@@ -416,7 +416,7 @@ int main(void){
         rotatePointsAroundY(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
         rotatePointsAroundZ(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
 
-        double DISTANCE =  10.0 * (sin(0.1 * i)+ 2.1);
+        double DISTANCE =  10.0 * (sin(0.1 * i)+ 2.1); //values chose by trial to avoid segfault
         projectPoints2d(points,p_points, DISTANCE);
 
         scaleMulti2DPoints(p_points);
