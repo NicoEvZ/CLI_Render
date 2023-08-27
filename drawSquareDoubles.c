@@ -157,10 +157,6 @@ void scaleMulti3DPoints(double arr[8][3]){
         double y = arr[i][1];
         double z = arr[i][2];
 
-        // //correction for aspect ratio (only applied to x)
-        //  x = x * ratio;
-
-        //scale?? multiply a scaling value to x and y???
         x = x * SCALE_FACTOR;
         y = y * SCALE_FACTOR;
         z = z * SCALE_FACTOR;
@@ -185,10 +181,6 @@ void scaleMulti2DPoints(double arr[8][2]){
         double x = arr[i][0];
         double y = arr[i][1];
 
-        // //correction for aspect ratio (only applied to x)
-        //  x = x * ratio;
-
-        //scale?? multiply a scaling value to x and y???
         x = x * SCALE_FACTOR;
         y = y * SCALE_FACTOR;
 
@@ -200,26 +192,22 @@ void scaleMulti2DPoints(double arr[8][2]){
             
 void projectPoints2d(double arr[8][3], double p_points[8][2], const double DISTANCE){
     for(int i = 0; i < 8; i++){
-        //extract x and y from array.
+        //extract x, y and z from array.
         double x = arr[i][0];
         double y = arr[i][1];
         double z = arr[i][2];
 
         double zPerspective = 1/(DISTANCE - z);
 
-        // zPerspective = 1 / zPerspective;
-
-        double p_Mat[2][3] = {{1,0,0},{0,1,0}}; //values of 1 give orthgraphic view
-
         double p_Mat2[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
         
         double x_p2 = (p_Mat2[0][0]*x)+(p_Mat2[0][1]*y)+(p_Mat2[0][2]*z);
         double y_p2 = (p_Mat2[1][0]*x)+(p_Mat2[1][1]*y)+(p_Mat2[1][2]*z);
 
-        double x_p = (p_Mat[0][0]*x)+(p_Mat[0][1]*y)+(p_Mat[0][2]*z);
-        double y_p = (p_Mat[1][0]*x)+(p_Mat[1][1]*y)+(p_Mat[1][2]*z);
+        //double p_Mat[2][3] = {{1,0,0},{0,1,0}}; //values of 1 give orthgraphic view
+        // double x_p = (p_Mat[0][0]*x)+(p_Mat[0][1]*y)+(p_Mat[0][2]*z);
+        // double y_p = (p_Mat[1][0]*x)+(p_Mat[1][1]*y)+(p_Mat[1][2]*z);
         
-        // screen[(origin[0]+(x_p*ratio))][origin[1]+y_p]=DOT;
         p_points[i][0] = x_p2;
         p_points[i][1] = y_p2;
     }
@@ -326,9 +314,7 @@ void BresenhamPlotLine(double pointA[2], double pointB[2], int screen[MAX_X][MAX
 
 void drawCubeOnScreen(double arr[8][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y]){
 
-    
     printf("\033[H\033[J"); // Clear screen escape sequence
-
 
     double pointA[2] = {0,0};
     double pointB[2] = {0,0};
@@ -385,32 +371,37 @@ int main(void){
 
     int screen[MAX_X][MAX_Y];
 
-    double basePoints[8][3]={
+    double cubeBasePoints[8][3]={
         //front face of Cube
-        {-1,-1,1}, 
-        {1,-1,1}, 
-        {1,1,1},
-        {-1,1,1},
-        //back face of Bube
-        {-1,-1,-1},
-        {1,-1,-1},
-        {1,1,-1},
-        {-1,1,-1},
+        {-1,-1,1},  //0
+        {1,-1,1},   //1
+        {1,1,1},    //2
+        {-1,1,1},   //3
+        //back face of Cube
+        {-1,-1,-1}, //4
+        {1,-1,-1},  //5
+        {1,1,-1},   //6
+        {-1,1,-1},  //7
     };
 
-    // initScreen(screen);
-    // initPoints(points);
-    // plotMultiPointsRel(points);
-    // displayScreen(screen);
+    double pyramidBasePoints[8][3]={
+        //Pyramid can be drawn by making the points that form the top square all coincide on the same place, (0,-1,0).
+        {0,-1,0},   //0
+        {0,-1,0},   //1
+        {1,1,1},    //2
+        {-1,1,1},   //3
+        {0,-1,0},   //4
+        {0,-1,0},   //5
+        {1,1,-1},   //6
+        {-1,1,-1},  //7
+    };
 
     double points[8][3];
     double p_points[8][2];
     for (int i = 0; i < 999; i++) {
         initScreen(screen); //fills screenspace array with dots. can act as a blank to re-draw over.
         
-        initPoints(points,basePoints); //resets points back to unity values
-
-        // scaleMulti3DPoints(points); //take unity points and scale
+        initPoints(points,cubeBasePoints); //resets points back to unity values
 
         rotatePointsAroundX(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
         rotatePointsAroundY(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
