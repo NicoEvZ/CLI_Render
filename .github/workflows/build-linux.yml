@@ -13,4 +13,4 @@ jobs:
         uses: actions/checkout@v3
       
       - name: Build
-        run: gcc drawSquareDoubles.c
+        run: gcc drawSquareDoubles.c -lm
