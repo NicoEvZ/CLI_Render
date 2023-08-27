@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <time.h>
 
 #define MAX_X 101 //best if odd
 #define MAX_Y 41 //best if odd
 #define SCALE_FACTOR 110 //
-#define DISTANCE 10 
+
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -15,7 +15,7 @@
 #define DEBUG2 '2'
 #define DEBUG3 '3'
 
-double initPoints(double arr[8][3], double basePoints[8][3]){
+void initPoints(double arr[8][3], double basePoints[8][3]){
     for (int i = 0; i < 8; i++){
         for (int j = 0; j < 3; j++)
         {
@@ -24,7 +24,7 @@ double initPoints(double arr[8][3], double basePoints[8][3]){
     }
 }
 
-double rotatePointsAroundX(double arr[8][3], double angle){
+void rotatePointsAroundX(double arr[8][3], double angle){
     for (int i = 0; i < 8; i++){
         double x = arr[i][0];
         double y = arr[i][1];
@@ -41,7 +41,7 @@ double rotatePointsAroundX(double arr[8][3], double angle){
     }
 };
 
-double rotatePointsAroundY(double arr[8][3], double angle){
+void rotatePointsAroundY(double arr[8][3], double angle){
     for (int i = 0; i < 8; i++){
         double x = arr[i][0];
         double y = arr[i][1];
@@ -58,7 +58,7 @@ double rotatePointsAroundY(double arr[8][3], double angle){
     }
 };
 
-double rotatePointsAroundZ(double arr[8][3], double angle){
+void rotatePointsAroundZ(double arr[8][3], double angle){
     for (int i = 0; i < 8; i++){
         double x = arr[i][0];
         double y = arr[i][1];
@@ -143,7 +143,7 @@ void plotMultiPointsRel(double arr[8][2], double origin[2], double ratio, int sc
     }
 }
 
-double scaleMulti3DPoints(double arr[8][3]){
+void scaleMulti3DPoints(double arr[8][3]){
     /*This function works in the same way as the plotMultiPointsRel,
     But must take the start address of an array which is a copy of the
     "initial" unity points array, and edit the values, so we end up
@@ -172,7 +172,7 @@ double scaleMulti3DPoints(double arr[8][3]){
     }
 }
 
-double scaleMulti2DPoints(double arr[8][2]){
+void scaleMulti2DPoints(double arr[8][2]){
     /*This function works in the same way as the plotMultiPointsRel,
     But must take the start address of an array which is a copy of the
     "initial" unity points array, and edit the values, so we end up
@@ -197,8 +197,8 @@ double scaleMulti2DPoints(double arr[8][2]){
         arr[i][1] = y;
     }
 }
-
-double projectPoints2d(double arr[8][3], double p_points[8][2]){
+            
+void projectPoints2d(double arr[8][3], double p_points[8][2], const double DISTANCE){
     for(int i = 0; i < 8; i++){
         //extract x and y from array.
         double x = arr[i][0];
@@ -225,7 +225,7 @@ double projectPoints2d(double arr[8][3], double p_points[8][2]){
     }
 }
 
-double plotMultiPointAbs(double arr[8][2], double origin[2], double ratio, int screen[MAX_X][MAX_Y]){
+void plotMultiPointAbs(double arr[8][2], double origin[2], double ratio, int screen[MAX_X][MAX_Y]){
     for(int i = 0; i < 8; i++){
         //extract x and y from array.
         double x = arr[i][0];
@@ -306,7 +306,7 @@ void BresenhamPlotLine(double pointA[2], double pointB[2], int screen[MAX_X][MAX
     int x1 = (int)pointB[0];
     int y1 = (int)pointB[1];
 
-    if (fabs(y1 - y0) < fabs(x1 - x0)){
+    if (abs(y1 - y0) < abs(x1 - x0)){
         if (x0 > x1){
             plotLineLow(x1, y1, x0, y0, screen);
         }
@@ -377,7 +377,7 @@ int main(void){
     const double half_x = MAX_X/2;
     const double half_y = MAX_Y/2;
     double ratio = MAX_X/MAX_Y;
-
+    
     //screenspace center, not 3d space center
     double origin[]={half_x,half_y}; //keeping origin as (halfx,halfy) i.e. middle of screenspace
 
@@ -405,7 +405,7 @@ int main(void){
 
     double points[8][3];
     double p_points[8][2];
-    for (int i = 0; i < 37; i++){
+    for (int i = 0; i < 999; i++) {
         initScreen(screen); //fills screenspace array with dots. can act as a blank to re-draw over.
         
         initPoints(points,basePoints); //resets points back to unity values
@@ -415,8 +415,9 @@ int main(void){
         rotatePointsAroundX(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
         rotatePointsAroundY(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
         rotatePointsAroundZ(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
-        
-        projectPoints2d(points,p_points);
+
+        double DISTANCE =  10.0 * (sin(0.1 * i)+ 2.1); //values chose by trial to avoid segfault
+        projectPoints2d(points,p_points, DISTANCE);
 
         scaleMulti2DPoints(p_points);
 
@@ -426,8 +427,8 @@ int main(void){
 
         displayScreen(screen);
 
-        angle = angle + 10;
-        sleep(1);
+        angle = angle + 1;
+        nanosleep((const struct timespec[]){{0, 41600000L}}, NULL);
     }
     
     return 0;
