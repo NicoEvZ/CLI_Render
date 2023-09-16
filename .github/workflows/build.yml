@@ -21,14 +21,14 @@ jobs:
 
       - name: Test on Linux
         if: matrix.os == 'ubuntu-latest'
-          run: |
-          cd build/tests
-          ./UnitTests
+        run: |
+        cd build/tests
+        ./UnitTests
 
       - name: Test on Windows
         if: matrix.os == 'windows-latest'
-          run: |
-          cd build/tests
-          ./UnitTests.exe
+        run: |
+        cd build/tests
+        ./UnitTests.exe
 
 
