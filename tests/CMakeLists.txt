@@ -17,6 +17,7 @@ FetchContent_MakeAvailable(CMocka)
 
 target_link_libraries(UnitTests PRIVATE CubeLib cmocka)
 
+IF (WIN32)
 # Copy cmocka.dll to the executable directory after build
 add_custom_command(
     TARGET UnitTests
@@ -25,3 +26,4 @@ add_custom_command(
             ${CMAKE_BINARY_DIR}/_deps/cmocka-build/src/cmocka.dll
             ${CMAKE_BINARY_DIR}/tests/
 )
+ENDIF()
