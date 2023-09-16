@@ -3,7 +3,6 @@
 #define MAX_X 101 //best if odd
 #define MAX_Y 41 //best if odd
 
-int something(int x, int y);
 void initPoints(double arr[8][3], double basePoints[8][3]);
 void rotatePointsAroundX(double arr[8][3], double angle);
 void rotatePointsAroundY(double arr[8][3], double angle);

@@ -14,11 +14,6 @@
 #define DEBUG2 '2'
 #define DEBUG3 '3'
 
-int something(int x, int y)
-{
-    return x+y;
-}
-
 void initPoints(double arr[8][3], double basePoints[8][3])
 {
     for (int i = 0; i < 8; i++)
