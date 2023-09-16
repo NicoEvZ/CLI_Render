@@ -28,7 +28,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           ./build_win.sh
-          cd build\tests
+          cd build/tests
           ./UnitTests.exe
 
 
