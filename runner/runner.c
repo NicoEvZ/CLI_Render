@@ -1,4 +1,7 @@
 #include "draw.h"
+#include <math.h>
+#include <stdlib.h>
+#include <time.h>
 
 int main(void){
     
