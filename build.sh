@@ -1,5 +1,4 @@
-cd src
-rm -R build
+#!/bin/bash
 cmake -B build .
 cd build
 make 
