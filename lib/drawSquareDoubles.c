@@ -4,7 +4,6 @@
 
 #include "draw.h"
 
-
 #define SCALE_FACTOR 110 
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
@@ -13,6 +12,10 @@
 #define DEBUG1 '1'
 #define DEBUG2 '2'
 #define DEBUG3 '3'
+
+triangle* meshInit (int numberOfTris){
+    return (triangle*) malloc(numberOfTris * sizeof(triangle));
+}
 
 void initPoints(double arr[8][3], double basePoints[8][3])
 {
@@ -89,7 +92,7 @@ void initScreen(int screenArr[MAX_X][MAX_Y])
         for (int y = 0; y < MAX_Y; y++)
         {
             screenArr[x][y]=BLANK;
-            if (x == 0 | y == 0 | x == (MAX_X-1) | y == (MAX_Y-1))
+            if ((x == 0) | (y == 0) | (x == (MAX_X-1)) | (y == (MAX_Y-1)))
             {
                 screenArr[x][y]=BORDER;
             }

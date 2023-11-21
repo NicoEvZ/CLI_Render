@@ -3,6 +3,23 @@
 #define MAX_X 101 //best if odd
 #define MAX_Y 41 //best if odd
 
+typedef struct vector
+{
+    int x, y, z;
+} vector;
+
+typedef struct triangle
+{
+    vector p[3];
+} triangle;
+
+typedef struct mesh
+{
+    triangle* tris;
+} mesh;
+
+triangle* meshInit (numberOfTris);
+
 void initPoints(double arr[8][3], double basePoints[8][3]);
 void rotatePointsAroundX(double arr[8][3], double angle);
 void rotatePointsAroundY(double arr[8][3], double angle);
