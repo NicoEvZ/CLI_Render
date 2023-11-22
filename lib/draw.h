@@ -1,7 +1,7 @@
 #pragma once
 
-#define MAX_X 15 //best if odd
-#define MAX_Y 10 //best if odd
+#define MAX_X 21 //best if odd
+#define MAX_Y 9 //best if odd
 
 typedef struct vector
 {

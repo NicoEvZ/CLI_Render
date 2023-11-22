@@ -16,7 +16,7 @@ int main(void){
 
     int screen[MAX_X][MAX_Y];
 
-    int x = 3;
+    int x = 1;
     vector myVector0;
     vector myVector1;
     vector myVector2;
