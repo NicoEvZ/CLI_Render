@@ -44,18 +44,18 @@ int main(void){
     double points[8][3];
     double p_points[8][2];
     for (int i = 0; i < 999; i++) {
-        initScreen(screen); //fills screenspace array with dots. can act as a blank to re-draw over.
+        initScreen(screen); //fills screenspace array with blanks and adds a border.
         
         initPoints(points,cubeBasePoints); //resets points back to unity values
 
-        rotatePointsAroundX(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
-        rotatePointsAroundY(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
-        rotatePointsAroundZ(points, (angle * (M_PI/180))); //takes output of "scalePoints", rotates by "angle"
+        rotatePointsAroundX(points, (angle * (M_PI/180))); //takes current points, rotates by "angle" around x axis
+        rotatePointsAroundY(points, (angle * (M_PI/180))); //takes current points, rotates by "angle" around y axis
+        rotatePointsAroundZ(points, (angle * (M_PI/180))); //takes current points, rotates by "angle" around z axis
 
-        double DISTANCE =  10.0 * (sin(0.1 * i)+ 2.1); //values chose by trial to avoid segfault
-        projectPoints2d(points,p_points, DISTANCE);
+        double DISTANCE = 10.0 * (sin(0.1 * i)+ 2.1); //values chosen by trial to avoid segfault
+        projectPoints2d(points,p_points, DISTANCE); //projects the points from 3D space, to 2D screenspace, stored in p_points.
 
-        scaleMulti2DPoints(p_points);
+        scaleMulti2DPoints(p_points); // scales 2D points by SCALE_FACTOR
 
         drawCubeOnScreen(p_points,origin,ratio,screen); // take output of "rotate points", translate to screenspace(and adjust for aspect ratio) (without modifying points!) and draw lines between points in array
 

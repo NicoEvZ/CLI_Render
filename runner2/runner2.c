@@ -20,9 +20,6 @@ int main(void){
     vector myVector0;
     vector myVector1;
     vector myVector2;
-    vector myVector3;
-    vector myVector4;
-    vector myVector5;
     triangle myTriangle0;
     mesh myMesh0;
 
@@ -43,14 +40,21 @@ int main(void){
     myTriangle0.p[2] = myVector2;
 
     myMesh0.tris = meshInit(x); //dynamically allocates an array according to number of triangles in mesh (x)
-
+    double points[(x*3)][3];
+    double p_points[(x*3)][2];
+    double DISTANCE = 10;
     //display 
         //initiate the screen as blank
         initScreen (screen);
-        for (int i = 0; i < x; i++){ //for each triangle
-            //iterate over data and plot the triangles
+        plotTrianglePoints(points, myMesh0.tris, x);
+
+        for(int i = 0; i < x; i++){
+            projectTrianglePoints2d(points, p_points, DISTANCE);
+            //rotate points
+            //scale points
+            scaleMulti2DPoints(p_points);
+            //draw lines between points
+            drawTriangleOnScreen(p_points,origin,ratio,screen);
         }
-        //rotate points
-        //scale points
-        //draw lines between points
+        displayScreen(screen);
 }

@@ -5,7 +5,7 @@
 
 typedef struct vector
 {
-    int x, y, z;
+    double x, y, z;
 } vector;
 
 typedef struct triangle
@@ -19,6 +19,13 @@ typedef struct mesh
 } mesh;
 
 triangle* meshInit (numberOfTris);
+
+void plotTrianglePoints(double arr[][3], triangle* triangle, int numberOfTris);
+
+void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE);
+
+void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
+
 void initPoints(double arr[8][3], double basePoints[8][3]);
 void initScreen(int screenArr[MAX_X][MAX_Y]);
 
@@ -35,7 +42,7 @@ void plotMultiPointAbs(double arr[8][2], double origin[2], double ratio, int scr
 void scaleMulti3DPoints(double arr[8][3]);
 void scaleMulti2DPoints(double arr[8][2]);
 
-void projectPoints2d(double arr[8][3], double p_points[8][2], const double DISTANCE);
+void projectPoints2d(double arr[8][3], double p_points[8][2], const double DISTANCE); //projects the points from 3D space, to 2D screenspace, stored in p_points.
 
 void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
 void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
