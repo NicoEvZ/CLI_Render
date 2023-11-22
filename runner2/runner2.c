@@ -42,12 +42,15 @@ int main(void){
     myTriangle0.p[1] = myVector1;
     myTriangle0.p[2] = myVector2;
 
-    myMesh0.tris = meshInit(1); //dynamically allocates an array according to number of triangles in mesh (x)
+    myMesh0.tris = meshInit(x); //dynamically allocates an array according to number of triangles in mesh (x)
 
     //display 
         //initiate the screen as blank
-        //iterate over data and plot the triangles
+        initScreen (screen);
+        for (int i = 0; i < x; i++){ //for each triangle
+            //iterate over data and plot the triangles
+        }
         //rotate points
         //scale points
-        //
+        //draw lines between points
 }
