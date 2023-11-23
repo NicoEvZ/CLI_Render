@@ -16,45 +16,58 @@ int main(void){
 
     int screen[MAX_X][MAX_Y];
 
-    int x = 1;
+    int x = 2;
+    int totalPoints = x*3;
     vector myVector0;
     vector myVector1;
     vector myVector2;
     triangle myTriangle0;
     mesh myMesh0;
 
-    myVector0.x = 1;
-    myVector0.y = -7;
-    myVector0.z = 0;
-
-    myVector1.x = 1;
-    myVector1.y = -1;
-    myVector1.z = 0;
-
-    myVector2.x = 6;
-    myVector2.y = -1;
-    myVector2.z = 0;
-
-    myTriangle0.p[0] = myVector0;
-    myTriangle0.p[1] = myVector1;
-    myTriangle0.p[2] = myVector2;
-
     myMesh0.tris = meshInit(x); //dynamically allocates an array according to number of triangles in mesh (x)
-    double points[(x*3)][3];
-    double p_points[(x*3)][2];
+
+    //1
+    myMesh0.tris[0].p[0].x = 1;
+    myMesh0.tris[0].p[0].y = 1;
+    myMesh0.tris[0].p[0].z = 0;
+    
+    //2
+    myMesh0.tris[0].p[1].x = -1;
+    myMesh0.tris[0].p[1].y = 1;
+    myMesh0.tris[0].p[1].z = 0;
+
+    //3
+    myMesh0.tris[0].p[2].x = -1;
+    myMesh0.tris[0].p[2].y = -1;
+    myMesh0.tris[0].p[2].z = 0;
+
+    //4
+    myMesh0.tris[1].p[0].x = -1;
+    myMesh0.tris[1].p[0].y = -1;
+    myMesh0.tris[1].p[0].z = 0;
+    
+    //5
+    myMesh0.tris[1].p[1].x = 1;
+    myMesh0.tris[1].p[1].y = -1;
+    myMesh0.tris[1].p[1].z = 0;
+
+    //6
+    myMesh0.tris[1].p[2].x = 1;
+    myMesh0.tris[1].p[2].y = 1;
+    myMesh0.tris[1].p[2].z = 0;
+   
+    double points[totalPoints][3];
+    double p_points[totalPoints][2];
     double DISTANCE = 10;
     //display 
         //initiate the screen as blank
         initScreen (screen);
         plotTrianglePoints(points, myMesh0.tris, x);
-
-        for(int i = 0; i < x; i++){
-            projectTrianglePoints2d(points, p_points, DISTANCE);
-            //rotate points
-            //scale points
-            scaleMulti2DPoints(p_points);
-            //draw lines between points
-            drawTriangleOnScreen(p_points,origin,ratio,screen);
-        }
+        projectTrianglePoints2d(points, p_points, DISTANCE, totalPoints);
+        //rotate points
+        //scale points
+        scaleTriangle2DPoints(p_points, totalPoints);
+        //draw lines between points
+        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, x);
         displayScreen(screen);
 }

@@ -4,7 +4,7 @@
 
 #include "draw.h"
 
-#define SCALE_FACTOR 110 
+#define SCALE_FACTOR 50
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -18,56 +18,87 @@ triangle* meshInit (int numberOfTris){
 }
 
 void plotTrianglePoints(double arr[][3], triangle* triangles, int numberOfTris){
-    for(int i = 0; i < numberOfTris; i++){
-        arr[i][0]=triangles[i].p->x;
-        arr[i][1]=triangles[i].p->y;
-        arr[i][2]=triangles[i].p->z;
+
+    int totalNumberOfPoints = numberOfTris*3;
+    int count = 0;
+
+    for (int i = 0; i < numberOfTris; i++){
+        for(int j = 0; j < 3; j++){
+                
+            arr[count][0] = triangles[i].p[j].x;
+            arr[count][1] = triangles[i].p[j].y;
+            arr[count][2] = triangles[i].p[j].z;
+            count++;    
+        }
     }
 }
 
-void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE){
-    for(int i = 0; i < 3; i++){
-        //extract x, y and z from array.
-        double x = arr[i][0];
-        double y = arr[i][1];
-        double z = arr[i][2];
+void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE, int iter){
+        for(int i = 0; i < iter; i++){
+            //extract x, y and z from array.
 
-        double zPerspective = 1/(DISTANCE - z);
+            double x = arr[i][0];
+            double y = arr[i][1];
+            double z = arr[i][2];
 
-        double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
-        
-        double x_p = (p_Mat[0][0]*x)+(p_Mat[0][1]*y)+(p_Mat[0][2]*z);
-        double y_p = (p_Mat[1][0]*x)+(p_Mat[1][1]*y)+(p_Mat[1][2]*z);
-        
-        p_points[i][0] = x_p;
-        p_points[i][1] = y_p;
-    }
+            double zPerspective = 1/(DISTANCE - z);
+
+            double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
+            
+            double x_p = (p_Mat[0][0]*x)+(p_Mat[0][1]*y)+(p_Mat[0][2]*z);
+            double y_p = (p_Mat[1][0]*x)+(p_Mat[1][1]*y)+(p_Mat[1][2]*z);
+            
+            p_points[i][0] = x_p;
+            p_points[i][1] = y_p;
+        }
 }
 
-void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y]){
+void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y], int iter, int totaltris){
 
     //printf("\033[H\033[J"); // Clear screen escape sequence
 
     double pointA[2] = {0,0};
     double pointB[2] = {0,0};
+    double pointC[2] = {0,0};
 
-    for(int i = 0; i < 3; i++){
-        for (int j = 0; j < 2; i++)
+    for(int i = 0; i < iter; i = i + 3){
+        for (int j = 0; j < 2; j++)
         {
             if (j == 0)
             {
                 pointA[j] = origin[j] + (arr[i][j] * ratio); //translates from unity to screenspace, and does aspect ratio adustment
-                pointB[j] = origin[j] + (arr[(i+1)%3][j] * ratio);//(i+1)%4 is used to draw line from point (0 -> 1), (1 -> 2), (2 -> 3), (3 -> 0).
+                pointB[j] = origin[j] + (arr[(i+1)][j] * ratio);//(i+1)%4 is used to draw line from point (0 -> 1), (1 -> 2), (2 -> 3), (3 -> 0).
+                pointC[j] = origin[j] + (arr[(i+2)][j] * ratio);//(i+1)%4 is used to draw line from point (0 -> 1), (1 -> 2), (2 -> 3), (3 -> 0).
             }
             // if y, dont modify by ratio
             else
             {
                 //drawing front face
                 pointA[j] = origin[j] + (arr[i][j]); //translates from unity to screenspace, and does aspect ratio adustment
-                pointB[j] = origin[j] + (arr[(i+1)%3][j]);//(i+1)%4 is used to draw line from point (0 -> 1), (1 -> 2), (2 -> 3), (3 -> 0).
+                pointB[j] = origin[j] + (arr[(i+1)][j]);//(i+1)%4 is used to draw line from point (0 -> 1), (1 -> 2), (2 -> 3), (3 -> 0).
+                pointC[j] = origin[j] + (arr[(i+2)][j]);
             } 
         }
         BresenhamPlotLine(pointA,pointB,screen);
+        BresenhamPlotLine(pointB,pointC,screen);
+        BresenhamPlotLine(pointC,pointA,screen);
+    }
+}
+
+void scaleTriangle2DPoints(double arr[][2], int iter){
+    //iterate over every point in points array
+    for (int i = 0; i < iter; i++)
+    {
+        //extract x and y from array.
+        double x = arr[i][0];
+        double y = arr[i][1];
+
+        x = x * SCALE_FACTOR;
+        y = y * SCALE_FACTOR;
+
+        //draw on screenspace
+        arr[i][0] = x;
+        arr[i][1] = y;
     }
 }
 

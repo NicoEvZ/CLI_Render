@@ -1,7 +1,7 @@
 #pragma once
 
-#define MAX_X 21 //best if odd
-#define MAX_Y 9 //best if odd
+#define MAX_X 41 //best if odd
+#define MAX_Y 17 //best if odd
 
 typedef struct vector
 {
@@ -22,9 +22,11 @@ triangle* meshInit (numberOfTris);
 
 void plotTrianglePoints(double arr[][3], triangle* triangle, int numberOfTris);
 
-void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE);
+void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE, int iter);
 
-void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
+void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y], int iter, int totaltris);
+
+void scaleTriangle2DPoints(double arr[][2], int iter);
 
 void initPoints(double arr[8][3], double basePoints[8][3]);
 void initScreen(int screenArr[MAX_X][MAX_Y]);
