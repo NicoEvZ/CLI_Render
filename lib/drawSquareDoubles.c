@@ -14,21 +14,28 @@
 #define DEBUG2 '2'
 #define DEBUG3 '3'
 
-triangle* meshInit (int numberOfTris){
-    return (triangle*) malloc(numberOfTris * sizeof(triangle));
+mesh meshInit (int numberOfTris){
+
+    mesh newMesh;
+
+    newMesh.tris = (triangle*) malloc(numberOfTris * sizeof(triangle));
+
+    newMesh.numOfTris = numberOfTris;
+
+    return newMesh;
 }
 
-void plotTrianglePoints(double arr[][3], triangle* triangles, int numberOfTris){
+void plotTrianglePoints(double arr[][3], mesh mesh){
 
-    int totalNumberOfPoints = numberOfTris*3;
+    int totalNumberOfPoints = mesh.numOfTris*3;
     int count = 0;
 
-    for (int i = 0; i < numberOfTris; i++){
+    for (int i = 0; i < mesh.numOfTris; i++){
         for(int j = 0; j < 3; j++){
                 
-            arr[count][0] = triangles[i].p[j].x;
-            arr[count][1] = triangles[i].p[j].y;
-            arr[count][2] = triangles[i].p[j].z;
+            arr[count][0] = mesh.tris[i].p[j].x;
+            arr[count][1] = mesh.tris[i].p[j].y;
+            arr[count][2] = mesh.tris[i].p[j].z;
             count++;    
         }
     }
@@ -103,7 +110,7 @@ void scaleTriangle2DPoints(double arr[][2], int iter){
     }
 }
 
-void importMesh(char *path,mesh mesh){
+void importMesh(char *path, mesh mesh){
     FILE *obj;
     char ch;
 
@@ -115,16 +122,33 @@ void importMesh(char *path,mesh mesh){
     }
  
     printf("content of this file are \n");
- 
-    // Printing what is written in file
-    // character by character using loop.
+    int count = 0;
     do {
-        ch = fgetc(obj);
+
         printf("%c", ch);
- 
-        // Checking if character is not EOF.
-        // If it is EOF stop reading.
+        ch = fgets(obj,"%c %lf %lf %lf",);
+            switch(ch) {
+                case ' ':
+                    int i = 0;
+                    do {
+                        char * toDouble;
+                        mesh.tris[count].p[count].x = fgetc(obj);  
+                        i++;
+                    } while (ch != ' ');
+                    //do something
+                    break;
+                
+                case 'v':
+                    //do something
+                    break;
+
+                case 'f':
+                    //do something
+                    break;
+            }
     } while (ch != EOF);
+
+    printf("\n");
  
     // Closing the file
     fclose(obj);

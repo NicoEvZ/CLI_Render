@@ -16,11 +16,12 @@ typedef struct triangle
 typedef struct mesh
 {
     triangle* tris;
+    int numOfTris;
 } mesh;
 
-triangle* meshInit (numberOfTris);
+mesh meshInit (numberOfTris);
 
-void plotTrianglePoints(double arr[][3], triangle* triangle, int numberOfTris);
+void plotTrianglePoints(double arr[][3], mesh mesh);
 
 void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE, int iter);
 

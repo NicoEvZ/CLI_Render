@@ -17,15 +17,15 @@ int main(void){
 
     int screen[MAX_X][MAX_Y];
 
-    int x = 2;
-    int totalPoints = x*3;
+    int numOfTris = 2;
+    int totalPoints = numOfTris*3;
 
-    //char importPath[] = "/home/nico/Cube/src/testCube.obj";
-    char importPath[] = "/home/nico/Cube/src/testText.txt";
+    char importPath[] = "/home/nico/Cube/src/testCube.obj";
+    //char importPath[] = "/home/nico/Cube/src/testText.txt";
 
     mesh myMesh0;
 
-    myMesh0.tris = meshInit(x); //dynamically allocates an array according to number of triangles in mesh (x)
+    myMesh0 = meshInit(numOfTris); //dynamically allocates an array according to number of triangles in mesh (numOfTris)
 
     importMesh(importPath, myMesh0);
 
@@ -65,12 +65,12 @@ int main(void){
     //display 
         //initiate the screen as blank
         initScreen (screen);
-        plotTrianglePoints(points, myMesh0.tris, x);
+        plotTrianglePoints(points, myMesh0);
         projectTrianglePoints2d(points, p_points, DISTANCE, totalPoints);
         //rotate points
         //scale points
         scaleTriangle2DPoints(p_points, totalPoints);
         //draw lines between points
-        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, x);
+        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, myMesh0.numOfTris);
         displayScreen(screen);
 }
