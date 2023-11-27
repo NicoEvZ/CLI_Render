@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "draw.h"
 
@@ -100,6 +101,33 @@ void scaleTriangle2DPoints(double arr[][2], int iter){
         arr[i][0] = x;
         arr[i][1] = y;
     }
+}
+
+void importMesh(char *path,mesh mesh){
+    FILE *obj;
+    char ch;
+
+    obj = fopen(path, "r");
+ 
+    if (NULL == obj) {
+        printf("file can't be opened \n");
+        return;
+    }
+ 
+    printf("content of this file are \n");
+ 
+    // Printing what is written in file
+    // character by character using loop.
+    do {
+        ch = fgetc(obj);
+        printf("%c", ch);
+ 
+        // Checking if character is not EOF.
+        // If it is EOF stop reading.
+    } while (ch != EOF);
+ 
+    // Closing the file
+    fclose(obj);
 }
 
 void initPoints(double arr[8][3], double basePoints[8][3])

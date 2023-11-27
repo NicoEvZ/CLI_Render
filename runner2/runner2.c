@@ -1,6 +1,7 @@
 #include "draw.h"
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 int main(void){
     //import the OBJ file
@@ -18,13 +19,15 @@ int main(void){
 
     int x = 2;
     int totalPoints = x*3;
-    vector myVector0;
-    vector myVector1;
-    vector myVector2;
-    triangle myTriangle0;
+
+    //char importPath[] = "/home/nico/Cube/src/testCube.obj";
+    char importPath[] = "/home/nico/Cube/src/testText.txt";
+
     mesh myMesh0;
 
     myMesh0.tris = meshInit(x); //dynamically allocates an array according to number of triangles in mesh (x)
+
+    importMesh(importPath, myMesh0);
 
     //1
     myMesh0.tris[0].p[0].x = 1;
