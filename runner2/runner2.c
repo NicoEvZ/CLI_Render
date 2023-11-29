@@ -52,4 +52,6 @@ int main(void){
         angle = angle + 1;
         nanosleep((const struct timespec[]){{0, 41600000L}}, NULL);
     }
+
+    return 0;
 }
