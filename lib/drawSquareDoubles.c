@@ -4,7 +4,7 @@
 
 #include "draw.h"
 
-#define SCALE_FACTOR 50
+#define SCALE_FACTOR 100
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -79,7 +79,7 @@ mesh importMeshFromOBJFile (char * pathToFile){
     return newMesh;
 }
 
-void plotTrianglePoints(double arr[][3], mesh mesh){
+void meshToVertexArray(double arr[][3], mesh mesh){
 
     int totalNumberOfPoints = mesh.numOfTris*3;
     int count = 0;
@@ -95,7 +95,7 @@ void plotTrianglePoints(double arr[][3], mesh mesh){
     }
 }
 
-void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE, int iter){
+void projectVertexArrayTo2D(double arr[][3], double p_points[][2], const double DISTANCE, int iter){
         for(int i = 0; i < iter; i++){
             //extract x, y and z from array.
 
@@ -161,6 +161,63 @@ void scaleTriangle2DPoints(double arr[][2], int iter){
         //draw on screenspace
         arr[i][0] = x;
         arr[i][1] = y;
+    }
+}
+
+void rotateVertexsAroundX(double arr[][3], int totalPoints, double angle)
+{
+    for (int i = 0; i < totalPoints; i++)
+    {
+        double x = arr[i][0];
+        double y = arr[i][1];
+        double z = arr[i][2];
+
+        //rotate points by angle
+        double x_r = x;
+        double y_r = (y * cos(angle)) - (z * sin(angle));
+        double z_r = (y * sin(angle)) + (z * cos(angle));
+
+        arr[i][0] = x_r;
+        arr[i][1] = y_r;
+        arr[i][2] = z_r;
+    }
+}
+
+void rotateVertexsAroundY(double arr[][3], int totalPoints,double angle)
+{
+    for (int i = 0; i < totalPoints; i++)
+    {
+        double x = arr[i][0];
+        double y = arr[i][1];
+        double z = arr[i][2];
+
+        //rotate points by angle
+        double x_r = (x * cos(angle)) + (z * sin(angle));
+        double y_r = y;
+        double z_r = (-x * sin(angle)) + (z * cos(angle));
+
+        arr[i][0] = x_r;
+        arr[i][1] = y_r;
+        arr[i][2] = z_r;
+    }
+}
+
+void rotateVertexsAroundZ(double arr[][3], int totalPoints, double angle)
+{
+    for (int i = 0; i < totalPoints; i++)
+    {
+        double x = arr[i][0];
+        double y = arr[i][1];
+        double z = arr[i][2];
+
+        //rotate points by angle
+        double x_r = (x * cos(angle)) - (y * sin(angle));
+        double y_r = (x * sin(angle)) + (y * cos(angle));
+        double z_r = z;
+
+        arr[i][0] = x_r;
+        arr[i][1] = y_r;
+        arr[i][2] = z_r;
     }
 }
 

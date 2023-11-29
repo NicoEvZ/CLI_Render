@@ -1,7 +1,7 @@
 #pragma once
 
-#define MAX_X 41 //best if odd
-#define MAX_Y 17 //best if odd
+#define MAX_X 81 //best if odd
+#define MAX_Y 35 //best if odd
 
 typedef struct vector
 {
@@ -22,9 +22,9 @@ typedef struct mesh
 
 mesh importMeshFromOBJFile (char * pathToFile);
 
-void plotTrianglePoints(double arr[][3], mesh mesh);
+void meshToVertexArray(double arr[][3], mesh mesh);
 
-void projectTrianglePoints2d(double arr[][3], double p_points[][2], const double DISTANCE, int iter);
+void projectVertexArrayTo2D(double arr[][3], double p_points[][2], const double DISTANCE, int iter);
 
 void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y], int iter, int totaltris);
 
@@ -36,6 +36,10 @@ void initScreen(int screenArr[MAX_X][MAX_Y]);
 void rotatePointsAroundX(double arr[8][3], double angle);
 void rotatePointsAroundY(double arr[8][3], double angle);
 void rotatePointsAroundZ(double arr[8][3], double angle);
+
+void rotateVertexsAroundX(double arr[][3], int totalPoints, double angle);
+void rotateVertexsAroundY(double arr[][3], int totalPoints, double angle);
+void rotateVertexsAroundZ(double arr[][3], int totalPoints, double angle);
 
 void plotPointRel(double point[2], double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
 void plotPointAbs(double point[2], int screen[MAX_X][MAX_Y]);

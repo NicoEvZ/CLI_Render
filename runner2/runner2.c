@@ -1,7 +1,8 @@
 #include "draw.h"
 #include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <time.h>
+
+#define PI 3.14159
 
 int main(void){
     //import the OBJ file
@@ -19,23 +20,36 @@ int main(void){
 
     char importPath[] = "/home/nico/Cube/src/testCube.obj";
 
-    mesh myMesh0;
+    mesh BaseMesh;
 
-    myMesh0 = importMeshFromOBJFile(importPath); //dynamically allocates an array according to number of triangles in mesh (numOfTris)
-    int totalPoints = myMesh0.numOfTris*3;
+    BaseMesh = importMeshFromOBJFile(importPath); //dynamically allocates an array according to number of triangles in mesh (numOfTris)
+    int totalPoints = BaseMesh.numOfTris*3;
    
     double points[totalPoints][3];
     double p_points[totalPoints][2];
     double DISTANCE = 15;
     //display 
+    for(int i = 0; i < 1080; i++){
         //initiate the screen as blank
         initScreen (screen);
-        plotTrianglePoints(points, myMesh0);
-        projectTrianglePoints2d(points, p_points, DISTANCE, totalPoints);
+
+        //init points
+        meshToVertexArray(points, BaseMesh);
+
+        rotateVertexsAroundX(points, totalPoints, (angle * (PI/180)));
+        rotateVertexsAroundY(points, totalPoints, (0.5 * angle * (PI/180)));
+        rotateVertexsAroundZ(points, totalPoints, (angle * (PI/180)));
+
+        projectVertexArrayTo2D(points, p_points, DISTANCE, totalPoints);
         //rotate points
+
         //scale points
         scaleTriangle2DPoints(p_points, totalPoints);
         //draw lines between points
-        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, myMesh0.numOfTris);
+        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, BaseMesh.numOfTris);
         displayScreen(screen);
+
+        angle = angle + 1;
+        nanosleep((const struct timespec[]){{0, 41600000L}}, NULL);
+    }
 }
