@@ -17,9 +17,10 @@ typedef struct mesh
 {
     triangle* tris;
     int numOfTris;
+
 } mesh;
 
-mesh meshInit (numberOfTris);
+mesh importMeshFromOBJFile (char * pathToFile);
 
 void plotTrianglePoints(double arr[][3], mesh mesh);
 

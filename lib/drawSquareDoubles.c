@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "draw.h"
 
@@ -14,13 +13,68 @@
 #define DEBUG2 '2'
 #define DEBUG3 '3'
 
-mesh meshInit (int numberOfTris){
+#define MAX_LINE_LENGTH 256
+
+mesh importMeshFromOBJFile (char * pathToFile){
+    FILE *obj = fopen(pathToFile, "r");
 
     mesh newMesh;
+ 
+    if (NULL == obj) {
+        printf("file can't be opened \n");
+        return newMesh;
+    }
 
-    newMesh.tris = (triangle*) malloc(numberOfTris * sizeof(triangle));
+    
+    char line[MAX_LINE_LENGTH];
+    int verts = 0;
+    int faces = 0;
+    int p0, p1, p2;
 
-    newMesh.numOfTris = numberOfTris;
+    while (fgets(line, sizeof(line), obj) != NULL) {
+
+        if (line[0] == 'v' && line[1] == ' '){
+            verts++;
+        }
+        else if (line[0] == 'f' && line[1] == ' '){
+            faces++;
+        }
+    }
+
+    newMesh.numOfTris = faces;
+
+    double (*VertArray)[3] = malloc((verts * 3) * sizeof(double));
+
+    newMesh.tris = (triangle*) malloc(faces * sizeof(triangle));
+
+    rewind(obj);
+
+    int vCount = 0;
+    int fCount = 0;
+    while (fgets(line, sizeof(line), obj) != NULL) {
+
+        if (line[0] == 'v' && line[1] == ' '){
+            sscanf(line,"v %lf %lf %lf", &VertArray[vCount][0], &VertArray[vCount][1], &VertArray[vCount][2]);
+            vCount++;
+        }
+        else if (line[0] == 'f' && line[1] == ' '){
+            sscanf(line,"f %d %d %d", &p0, &p1, &p2);
+            newMesh.tris[fCount].p[0].x = VertArray[(p0-1)][0];
+            newMesh.tris[fCount].p[0].y = VertArray[(p0-1)][1];
+            newMesh.tris[fCount].p[0].z = VertArray[(p0-1)][2];
+
+            newMesh.tris[fCount].p[1].x = VertArray[(p1-1)][0];
+            newMesh.tris[fCount].p[1].y = VertArray[(p1-1)][1];
+            newMesh.tris[fCount].p[1].z = VertArray[(p1-1)][2];
+
+            newMesh.tris[fCount].p[2].x = VertArray[(p2-1)][0];
+            newMesh.tris[fCount].p[2].y = VertArray[(p2-1)][1];
+            newMesh.tris[fCount].p[2].z = VertArray[(p2-1)][2];
+            fCount++;
+        }
+    }
+
+    fclose(obj);
 
     return newMesh;
 }
@@ -108,50 +162,6 @@ void scaleTriangle2DPoints(double arr[][2], int iter){
         arr[i][0] = x;
         arr[i][1] = y;
     }
-}
-
-void importMesh(char *path, mesh mesh){
-    FILE *obj;
-    char ch;
-
-    obj = fopen(path, "r");
- 
-    if (NULL == obj) {
-        printf("file can't be opened \n");
-        return;
-    }
- 
-    printf("content of this file are \n");
-    int count = 0;
-    do {
-
-        printf("%c", ch);
-        ch = fgets(obj,"%c %lf %lf %lf",);
-            switch(ch) {
-                case ' ':
-                    int i = 0;
-                    do {
-                        char * toDouble;
-                        mesh.tris[count].p[count].x = fgetc(obj);  
-                        i++;
-                    } while (ch != ' ');
-                    //do something
-                    break;
-                
-                case 'v':
-                    //do something
-                    break;
-
-                case 'f':
-                    //do something
-                    break;
-            }
-    } while (ch != EOF);
-
-    printf("\n");
- 
-    // Closing the file
-    fclose(obj);
 }
 
 void initPoints(double arr[8][3], double basePoints[8][3])
