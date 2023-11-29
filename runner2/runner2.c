@@ -18,7 +18,7 @@ int main(void){
 
     int screen[MAX_X][MAX_Y];
 
-    char importPath[] = "/home/nico/Cube/src/testCube.obj";
+    char importPath[] = "../data/testCube.obj";
 
     mesh BaseMesh;
 
