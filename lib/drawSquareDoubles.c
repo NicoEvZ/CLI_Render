@@ -4,7 +4,7 @@
 
 #include "draw.h"
 
-#define SCALE_FACTOR 100
+#define SCALE_FACTOR 200
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -19,18 +19,24 @@ mesh importMeshFromOBJFile (char * pathToFile){
     FILE *obj = fopen(pathToFile, "r");
 
     mesh newMesh;
- 
+    mesh zerodMesh;
+    newMesh.numOfTris = 0;
+
     if (NULL == obj) {
         printf("file can't be opened \n");
+        printf("run the program from Cube/ dir\n");
         return newMesh;
     }
 
-    
     char line[MAX_LINE_LENGTH];
     int verts = 0;
     int faces = 0;
+    vector pointCoords;
+    vector average;
+    triangle tempTriangle;
     int p0, p1, p2;
-
+    
+    //counts faces and verticies.
     while (fgets(line, sizeof(line), obj) != NULL) {
 
         if (line[0] == 'v' && line[1] == ' '){
@@ -43,9 +49,12 @@ mesh importMeshFromOBJFile (char * pathToFile){
 
     newMesh.numOfTris = faces;
 
-    double (*VertArray)[3] = malloc((verts * 3) * sizeof(double));
+    //double (*VertArray)[3] = malloc((verts * 3) * sizeof(double)); //dynamically allocates an array, based off the number points = (verticies * 3).
 
-    newMesh.tris = (triangle*) malloc(faces * sizeof(triangle));
+    vector (*vectorArray) = malloc(verts * sizeof(vector)); //dynamically allocates an array, based off the number points = (verticies * 3).
+
+    newMesh.tris = (triangle*) malloc(faces * sizeof(triangle)); //dynamically allocates memory for the number of triangles
+    zerodMesh = newMesh;
 
     rewind(obj);
 
@@ -53,30 +62,71 @@ mesh importMeshFromOBJFile (char * pathToFile){
     int fCount = 0;
     while (fgets(line, sizeof(line), obj) != NULL) {
 
+        //reads all lines of obj that start with "v " into the dynamically assigned array of points.
         if (line[0] == 'v' && line[1] == ' '){
-            sscanf(line,"v %lf %lf %lf", &VertArray[vCount][0], &VertArray[vCount][1], &VertArray[vCount][2]);
+            sscanf(line,"v %lf %lf %lf", &pointCoords.x, &pointCoords.y, &pointCoords.z);
+
+            vectorArray[vCount] = pointCoords;
+
             vCount++;
         }
+
+        //reads all lines of obj that start with "f ".
+        //each int after 'f ' represents an index (starting at 1), of the array of verticies.
+        //
         else if (line[0] == 'f' && line[1] == ' '){
             sscanf(line,"f %d %d %d", &p0, &p1, &p2);
-            newMesh.tris[fCount].p[0].x = VertArray[(p0-1)][0];
-            newMesh.tris[fCount].p[0].y = VertArray[(p0-1)][1];
-            newMesh.tris[fCount].p[0].z = VertArray[(p0-1)][2];
 
-            newMesh.tris[fCount].p[1].x = VertArray[(p1-1)][0];
-            newMesh.tris[fCount].p[1].y = VertArray[(p1-1)][1];
-            newMesh.tris[fCount].p[1].z = VertArray[(p1-1)][2];
+            newMesh.tris[fCount].p[0] = vectorArray[(p0-1)];
+            newMesh.tris[fCount].p[1] = vectorArray[(p1-1)];
+            newMesh.tris[fCount].p[2] = vectorArray[(p2-1)];
 
-            newMesh.tris[fCount].p[2].x = VertArray[(p2-1)][0];
-            newMesh.tris[fCount].p[2].y = VertArray[(p2-1)][1];
-            newMesh.tris[fCount].p[2].z = VertArray[(p2-1)][2];
             fCount++;
+        }
+        average = addVec(average, pointCoords); //only represents summed total of each co-ord at this point.
+    }
+
+    average = avgVec(average, vCount);
+
+    for(int j = 0; j < fCount; j++){
+
+        for(int i = 0; i < 3; i++){
+
+            zerodMesh.tris[j].p[i] = subVec(newMesh.tris[j].p[i], average);
         }
     }
 
+    free(vectorArray);
     fclose(obj);
 
-    return newMesh;
+    return zerodMesh;
+}
+
+//vec1.elements plus vec2.elements
+vector addVec( vector vec1, vector vec2){
+    vector returnVec;
+    returnVec.x = vec1.x + vec2.x;
+    returnVec.y = vec1.y + vec2.y;
+    returnVec.z = vec1.z + vec2.z;
+    return returnVec;
+}
+
+//vec1.elements minus vec2.elements
+vector subVec(vector vec1, vector vec2){
+    vector returnVec;
+    returnVec.x = vec1.x - vec2.x;
+    returnVec.y = vec1.y - vec2.y;
+    returnVec.z = vec1.z - vec2.z;
+    return returnVec;
+}
+
+//returns vector containing the average of each element (element/totalNumber) 
+vector avgVec(vector sumTotal, int totalNumber){
+    vector returnVec;
+    returnVec.x = sumTotal.x/totalNumber;
+    returnVec.y = sumTotal.y/totalNumber;
+    returnVec.z = sumTotal.z/totalNumber;
+    return returnVec;
 }
 
 void meshToVertexArray(double arr[][3], mesh mesh){

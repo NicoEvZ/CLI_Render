@@ -22,6 +22,12 @@ typedef struct mesh
 
 mesh importMeshFromOBJFile (char * pathToFile);
 
+vector addVec( vector vec1, vector vec2);
+
+vector subVec(vector vec1, vector vec2);
+
+vector avgVec(vector sumTotal, int totalNumber);
+
 void meshToVertexArray(double arr[][3], mesh mesh);
 
 void projectVertexArrayTo2D(double arr[][3], double p_points[][2], const double DISTANCE, int iter);
