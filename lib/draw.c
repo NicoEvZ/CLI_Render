@@ -4,7 +4,7 @@
 
 #include "draw.h"
 
-#define SCALE_FACTOR 500
+#define SCALE_FACTOR 103
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'

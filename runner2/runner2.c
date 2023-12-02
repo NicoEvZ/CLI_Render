@@ -19,7 +19,7 @@ int main(void){
 
     int screen[MAX_X][MAX_Y];
 
-    char importPath[] = "data/testCube.obj";
+    char importPath[] = "data/orb.obj";
 
     mesh BaseMesh = importMeshFromOBJFile(importPath); //dynamically allocates an array according to number of triangles in mesh (numOfTris)
     if (BaseMesh.numOfTris == 0)
@@ -30,7 +30,7 @@ int main(void){
    
     double points[totalPoints][3];
     double p_points[totalPoints][2];
-    double DISTANCE = 55;
+    double DISTANCE = 50;
     //display 
     for(int i = 0; i < 1080; i++){
         //initiate the screen as blank
@@ -40,8 +40,8 @@ int main(void){
         meshToVertexArray(points, BaseMesh);
 
         rotateVertexsAroundX(points, totalPoints, (angle * (PI/180)));
-        rotateVertexsAroundY(points, totalPoints, (angle * (PI/180)));
-        rotateVertexsAroundZ(points, totalPoints, (angle * 0.5 *  (PI/180)));
+        //rotateVertexsAroundY(points, totalPoints, (angle * (PI/180)));
+        //rotateVertexsAroundZ(points, totalPoints, (angle * 0.5 *  (PI/180)));
 
         projectVertexArrayTo2D(points, p_points, DISTANCE, totalPoints);
         //rotate points
