@@ -30,9 +30,9 @@ int main(void){
    
     double points[totalPoints][3];
     double p_points[totalPoints][2];
-    double DISTANCE = 50;
+    double DISTANCE = 55;
     //display 
-    for(int i = 0; i < 360; i++){
+    for(int i = 0; i < 1080; i++){
         //initiate the screen as blank
         initScreen (screen);
 
@@ -41,7 +41,7 @@ int main(void){
 
         rotateVertexsAroundX(points, totalPoints, (angle * (PI/180)));
         rotateVertexsAroundY(points, totalPoints, (angle * (PI/180)));
-        rotateVertexsAroundZ(points, totalPoints, (angle * (PI/180)));
+        rotateVertexsAroundZ(points, totalPoints, (angle * 0.5 *  (PI/180)));
 
         projectVertexArrayTo2D(points, p_points, DISTANCE, totalPoints);
         //rotate points

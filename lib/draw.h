@@ -17,6 +17,7 @@ typedef struct mesh
 {
     triangle* tris;
     int numOfTris;
+    int numOfVerts;
 
 } mesh;
 

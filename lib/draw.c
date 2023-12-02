@@ -4,7 +4,7 @@
 
 #include "draw.h"
 
-#define SCALE_FACTOR 200
+#define SCALE_FACTOR 500
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -23,8 +23,8 @@ mesh importMeshFromOBJFile (char * pathToFile){
     newMesh.numOfTris = 0;
 
     if (NULL == obj) {
-        printf("file can't be opened \n");
-        printf("run the program from Cube/ dir\n");
+        printf("Error: .OBJ file not found\n");
+        printf("Try to run the program from top level \"Cube/\" dir\n");
         return newMesh;
     }
 
@@ -33,6 +33,7 @@ mesh importMeshFromOBJFile (char * pathToFile){
     int faces = 0;
     vector pointCoords;
     vector average;
+    vector runningTotal;
     triangle tempTriangle;
     int p0, p1, p2;
     
@@ -48,12 +49,11 @@ mesh importMeshFromOBJFile (char * pathToFile){
     }
 
     newMesh.numOfTris = faces;
+    newMesh.numOfVerts = verts;
 
-    //double (*VertArray)[3] = malloc((verts * 3) * sizeof(double)); //dynamically allocates an array, based off the number points = (verticies * 3).
+    vector (*vectorArray) = malloc(newMesh.numOfVerts * sizeof(vector)); //dynamically allocates an array, based off the number points = (verticies * 3).
 
-    vector (*vectorArray) = malloc(verts * sizeof(vector)); //dynamically allocates an array, based off the number points = (verticies * 3).
-
-    newMesh.tris = (triangle*) malloc(faces * sizeof(triangle)); //dynamically allocates memory for the number of triangles
+    newMesh.tris = (triangle*) malloc(newMesh.numOfTris * sizeof(triangle)); //dynamically allocates memory for the number of triangles
     zerodMesh = newMesh;
 
     rewind(obj);
@@ -69,6 +69,8 @@ mesh importMeshFromOBJFile (char * pathToFile){
             vectorArray[vCount] = pointCoords;
 
             vCount++;
+
+            runningTotal = addVec(runningTotal, pointCoords); //only represents summed total of each co-ord at this point.
         }
 
         //reads all lines of obj that start with "f ".
@@ -83,10 +85,14 @@ mesh importMeshFromOBJFile (char * pathToFile){
 
             fCount++;
         }
-        average = addVec(average, pointCoords); //only represents summed total of each co-ord at this point.
     }
 
-    average = avgVec(average, vCount);
+    //Handy debug for seeing if points were imported properly
+    // for(int i = 0; i < vCount; i++){
+    //      printf("%d: %lf, %lf, %lf\n", i, vectorArray[i].x, vectorArray[i].y, vectorArray[i].z);
+    // }
+
+    average = avgVec(runningTotal, vCount);
 
     for(int j = 0; j < fCount; j++){
 
