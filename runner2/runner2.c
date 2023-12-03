@@ -21,40 +21,46 @@ int main(void){
 
     char importPath[] = "data/testCube.obj";
 
-    mesh BaseMesh = importMeshFromOBJFile(importPath); //dynamically allocates an array according to number of triangles in mesh (numOfTris)
-    if (BaseMesh.numOfTris == 0){
+    mesh baseMesh = importMeshFromOBJFile(importPath); //dynamically allocates an array according to number of triangles in mesh (numOfTris)
 
-            return 0;
-        }
-    int totalPoints = BaseMesh.numOfTris*3;
+    //failsafe that exits code if the importMeshFromOBJFile didn't succeed.
+    if (baseMesh.numOfTris == 0)
+    {
+        return 0;
+    }
+    int totalPoints = baseMesh.numOfTris*3;
    
     double points[totalPoints][3];
     double p_points[totalPoints][2];
     double DISTANCE = 10;
     //display 
-    for(int i = 0; i < 1080; i++){
+    for (int i = 0; i < 1080; i++)
+    {
         //initiate the screen as blank
         initScreen (screen);
 
         //init points
-        meshToVertexArray(points, BaseMesh);
+        meshToVertexArray(points, baseMesh);
 
-        rotateVertexsAroundX(points, totalPoints, (angle * 0.5 * (PI/180)));
-        rotateVertexsAroundY(points, totalPoints, (angle * (PI/180)));
-        rotateVertexsAroundZ(points, totalPoints, (angle * 0.9 *  (PI/180)));
-
-        projectVertexArrayTo2D(points, p_points, DISTANCE, totalPoints);
         //rotate points
+        rotateVerticiesAroundX(points, totalPoints, (angle * 0.5 * (PI/180)));
+        rotateVerticiesAroundY(points, totalPoints, (angle * (PI/180)));
+        rotateVerticiesAroundZ(points, totalPoints, (angle * 0.9 *  (PI/180)));
+
+        //project
+        projectVertexArrayTo2D(points, p_points, DISTANCE, totalPoints);
 
         //scale points
-        scaleTriangle2DPoints(p_points, totalPoints);
+        scale2DPoints(p_points, totalPoints);
+
         //draw lines between points
-        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, BaseMesh.numOfTris);
+        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, baseMesh.numOfTris);
 
         displayScreen(screen);
-        //printf("i = %d\n",i);
+
         angle = angle + 1;
         nanosleep((const struct timespec[]){{0, 41600000L}}, NULL);
+        
     }
     return 0;
 }
