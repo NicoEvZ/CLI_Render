@@ -11,56 +11,56 @@ int main(void){
     const double half_x = MAX_X/2;
     const double half_y = MAX_Y/2;
     double ratio = MAX_X/MAX_Y;
-    
-    //screenspace center, not 3d space center
-    double origin[]={half_x,half_y}; //keeping origin as (halfx,halfy) i.e. middle of screenspace
-
     double angle = 0;
+    const double DISTANCE = 10;
+
+    //screenspace center, not 3d space center
+    double origin[]={half_x,half_y}; //origin is middle of screenspace
 
     int screen[MAX_X][MAX_Y];
+    int screen2[MAX_X][MAX_Y];
 
     char importPath[] = "data/testCube.obj";
 
-    mesh baseMesh = importMeshFromOBJFile(importPath); //dynamically allocates an array according to number of triangles in mesh (numOfTris)
-
+    //Store OBJ data in mesh struct
+    mesh baseMesh = importMeshFromOBJFile(importPath); 
+    mesh rotatedMesh;
+    mesh projectedMesh;
+    
     //failsafe that exits code if the importMeshFromOBJFile didn't succeed.
     if (baseMesh.numOfTris == 0)
     {
         return 0;
     }
-    int totalPoints = baseMesh.numOfTris*3;
-   
-    double points[totalPoints][3];
-    double p_points[totalPoints][2];
-    double DISTANCE = 10;
+ 
     //display 
     for (int i = 0; i < 1080; i++)
     {
-        //initiate the screen as blank
-        initScreen (screen);
+        //clear screen
+        initScreen(screen);
 
-        //init points
-        meshToVertexArray(points, baseMesh);
+        rotatedMesh = copyMeshData(baseMesh, rotatedMesh);
 
-        //rotate points
-        rotateVerticiesAroundX(points, totalPoints, (angle * 0.5 * (PI/180)));
-        rotateVerticiesAroundY(points, totalPoints, (angle * (PI/180)));
-        rotateVerticiesAroundZ(points, totalPoints, (angle * 0.9 *  (PI/180)));
+        //rotate around axes
+        rotatedMesh = rotateMeshAroundX(rotatedMesh, (angle * (PI/180)));
+        rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
+        rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
 
-        //project
-        projectVertexArrayTo2D(points, p_points, DISTANCE, totalPoints);
+        projectedMesh = copyMeshData(rotatedMesh, projectedMesh);
 
+        //project 3D --> 2D
+        projectMeshTo2D(projectedMesh, DISTANCE);
+        
         //scale points
-        scale2DPoints(p_points, totalPoints);
+        scale2DPoints(projectedMesh);
 
-        //draw lines between points
-        drawTriangleOnScreen(p_points, origin, ratio, screen, totalPoints, baseMesh.numOfTris);
+        //draw lines
+        drawMeshOnScreen(projectedMesh, origin, ratio, screen);
 
         displayScreen(screen);
 
         angle = angle + 1;
         nanosleep((const struct timespec[]){{0, 41600000L}}, NULL);
-        
     }
     return 0;
 }

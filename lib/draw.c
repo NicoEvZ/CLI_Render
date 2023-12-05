@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-
 #include "draw.h"
 
 #define SCALE_FACTOR 150
@@ -9,6 +8,9 @@
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
 #define BORDER '*'
+#define MAX_X 111 //best if odd
+#define MAX_Y 45 //best if odd
+
 //#define DEBUG_POINTS
 
 #define MAX_LINE_LENGTH 256
@@ -18,7 +20,6 @@ mesh importMeshFromOBJFile (char * pathToFile)
     FILE *obj = fopen(pathToFile, "r");
 
     mesh newMesh;
-    mesh zerodMesh;
     newMesh.numOfTris = 0;
 
     if (NULL == obj) 
@@ -55,7 +56,6 @@ mesh importMeshFromOBJFile (char * pathToFile)
     vector (*vectorArray) = malloc(newMesh.numOfVerts * sizeof(vector)); //dynamically allocates an array of vectors, based off the number verticies.
 
     newMesh.tris = (triangle*) malloc(newMesh.numOfTris * sizeof(triangle)); //dynamically allocates memory for the number of triangles
-    zerodMesh = newMesh;
 
     rewind(obj);
 
@@ -75,7 +75,7 @@ mesh importMeshFromOBJFile (char * pathToFile)
             runningTotal = addVec(runningTotal, pointCoords);
         }
         //reads all lines of obj that start with "f ".
-        //each int after 'f ' represents an index (starting at 1), of the array of verticies.
+        //each int after 'f ' represents an index (starting at 1), of the vector array of verticies.
         else if (line[0] == 'f' && line[1] == ' ') 
         {
             sscanf(line,"f %d %d %d", &p0, &p1, &p2);
@@ -102,14 +102,26 @@ mesh importMeshFromOBJFile (char * pathToFile)
     {
         for (int i = 0; i < 3; i++) 
         {
-            zerodMesh.tris[j].p[i] = subVec(newMesh.tris[j].p[i], average);
+            newMesh.tris[j].p[i] = subVec(newMesh.tris[j].p[i], average);
         }
     }
 
     free(vectorArray);
     fclose(obj);
 
-    return zerodMesh;
+    return newMesh;
+}
+
+mesh copyMeshData(mesh fromMesh, mesh toMesh)
+{
+    toMesh.numOfTris = fromMesh.numOfTris;
+    toMesh.numOfVerts = fromMesh.numOfVerts;
+    toMesh.tris = (triangle*) malloc(toMesh.numOfTris * sizeof(triangle));
+    for (int i = 0; i < toMesh.numOfTris; i++)
+    {
+        toMesh.tris[i] = fromMesh.tris[i];
+    }
+    return toMesh;
 }
 
 //vec1.elements plus vec2.elements
@@ -148,145 +160,122 @@ vector divVecByScalar(vector vec, int scalar)
     return returnVec;
 }
 
-void meshToVertexArray(double arr[][3], const mesh mesh) 
+void projectMeshTo2D(mesh inputMesh, const double DISTANCE) 
 {
-    int count = 0;
-    for (int i = 0; i < mesh.numOfTris; i++) 
+    vector tempVec = {0,0,0};
+    for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        for (int j = 0; j < 3; j++) 
-        {  
-            arr[count][0] = mesh.tris[i].p[j].x;
-            arr[count][1] = mesh.tris[i].p[j].y;
-            arr[count][2] = mesh.tris[i].p[j].z;
-            count++;    
-        }
-    }
-}
+        for (int j = 0; j < 3; j++)
+        {
+        tempVec = inputMesh.tris[i].p[j];
 
-void projectVertexArrayTo2D(double arr[][3], double p_points[][2], const double DISTANCE, int iter) 
-{
-    for (int i = 0; i < iter; i++) 
-    {
-        double x = arr[i][0];
-        double y = arr[i][1];
-        double z = arr[i][2];
-
-        double zPerspective = 1/(DISTANCE - z);
+        double zPerspective = 1/(DISTANCE - tempVec.z);
 
         double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
         
-        double x_p = (p_Mat[0][0]*x)+(p_Mat[0][1]*y)+(p_Mat[0][2]*z);
-        double y_p = (p_Mat[1][0]*x)+(p_Mat[1][1]*y)+(p_Mat[1][2]*z);
+        double x_p = (p_Mat[0][0]*tempVec.x)+(p_Mat[0][1]*tempVec.y)+(p_Mat[0][2]*tempVec.z);
+        double y_p = (p_Mat[1][0]*tempVec.x)+(p_Mat[1][1]*tempVec.y)+(p_Mat[1][2]*tempVec.z);
         
-        p_points[i][0] = x_p;
-        p_points[i][1] = y_p;
-    }
-}
+        inputMesh.tris[i].p[j].x = x_p;
+        inputMesh.tris[i].p[j].y = y_p;
 
-void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y], int iter, int totaltris) 
-{
-    double pointA[2] = {0,0};
-    double pointB[2] = {0,0};
-    double pointC[2] = {0,0};
-
-    for (int i = 0; i < iter; i = i + 3) 
-    {
-        for (int j = 0; j < 2; j++) 
-        {
-            if (j == 0) 
-            {
-                pointA[j] = origin[j] + (arr[i][j] * ratio); //translates from unity to screenspace, and does aspect ratio adustment
-                pointB[j] = origin[j] + (arr[(i+1)][j] * ratio);
-                pointC[j] = origin[j] + (arr[(i+2)][j] * ratio);
-            }
-            // if y, dont modify by ratio
-            else
-            {
-                //drawing front face
-                pointA[j] = origin[j] + (arr[i][j]); //translates from unity to screenspace, and does aspect ratio adustment
-                pointB[j] = origin[j] + (arr[(i+1)][j]);
-                pointC[j] = origin[j] + (arr[(i+2)][j]);
-            } 
         }
-        BresenhamPlotLine(pointA,pointB,screen);
-        BresenhamPlotLine(pointB,pointC,screen);
-        BresenhamPlotLine(pointC,pointA,screen);
     }
 }
 
-void scale2DPoints(double arr[][2], int iter) 
+void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]) 
 {
-    //iterate over every point in points array
-    for (int i = 0; i < iter; i++) 
+    triangle output = {0,0,0};
+    for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        //extract x and y from array.
-        double x = arr[i][0];
-        double y = arr[i][1];
-
-        x = x * SCALE_FACTOR;
-        y = y * SCALE_FACTOR;
-
-        //draw on screenspace
-        arr[i][0] = x;
-        arr[i][1] = y;
+        for (int j = 0; j < 3; j++)
+        {
+            //translates from unity to screenspace, and does aspect ratio adustment
+            output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
+            output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
+        
+        }
+        BresenhamPlotLine(output.p[0],output.p[1],screen);
+        BresenhamPlotLine(output.p[1],output.p[2],screen);
+        BresenhamPlotLine(output.p[2],output.p[0],screen);
     }
 }
 
-void rotateVerticiesAroundX(double arr[][3], int totalPoints, double angle) 
+void scale2DPoints(mesh inputMesh) 
 {
-    for (int i = 0; i < totalPoints; i++) 
+    for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        double x = arr[i][0];
-        double y = arr[i][1];
-        double z = arr[i][2];
+        for (int j = 0; j < 3; j++)
+        {
+            //extract x and y from array.
+            double x = inputMesh.tris[i].p[j].x;
+            double y = inputMesh.tris[i].p[j].y;
 
-        //rotate points by angle
-        double x_r = x;
-        double y_r = (y * cos(angle)) - (z * sin(angle));
-        double z_r = (y * sin(angle)) + (z * cos(angle));
+            x = x * SCALE_FACTOR;
+            y = y * SCALE_FACTOR;
 
-        arr[i][0] = x_r;
-        arr[i][1] = y_r;
-        arr[i][2] = z_r;
+            inputMesh.tris[i].p[j].x = x;
+            inputMesh.tris[i].p[j].y = y;
+        }
     }
 }
 
-void rotateVerticiesAroundY(double arr[][3], int totalPoints,double angle) 
+mesh rotateMeshAroundX(mesh inputMesh, const double angle) 
 {
-    for (int i = 0; i < totalPoints; i++) 
+    int count = 0;
+    vector rotatedVec = {0,0,0};
+    for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        double x = arr[i][0];
-        double y = arr[i][1];
-        double z = arr[i][2];
+        for (int j =0; j < 3; j++)
+        {
+            rotatedVec.x = inputMesh.tris[i].p[j].x;
 
-        //rotate points by angle
-        double x_r = (x * cos(angle)) + (z * sin(angle));
-        double y_r = y;
-        double z_r = (-x * sin(angle)) + (z * cos(angle));
+            rotatedVec.y = ((inputMesh.tris[i].p[j].y * cos(angle)) - (inputMesh.tris[i].p[j].z * sin(angle)));
 
-        arr[i][0] = x_r;
-        arr[i][1] = y_r;
-        arr[i][2] = z_r;
+            rotatedVec.z = ((inputMesh.tris[i].p[j].y * sin(angle)) + (inputMesh.tris[i].p[j].z * cos(angle)));
+
+            inputMesh.tris[i].p[j] = rotatedVec;
+        }
     }
+    return inputMesh;
 }
 
-void rotateVerticiesAroundZ(double arr[][3], int totalPoints, double angle) 
+mesh rotateMeshAroundY(mesh inputMesh, const double angle) 
 {
-    for (int i = 0; i < totalPoints; i++) 
+    vector rotatedVec = {0,0,0};
+    for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        double x = arr[i][0];
-        double y = arr[i][1];
-        double z = arr[i][2];
+        for (int j =0; j < 3; j++)
+        {
+            rotatedVec.x = ((inputMesh.tris[i].p[j].x * cos(angle)) + (inputMesh.tris[i].p[j].z * sin(angle)));
 
-        //rotate points by angle
-        double x_r = (x * cos(angle)) - (y * sin(angle));
-        double y_r = (x * sin(angle)) + (y * cos(angle));
-        double z_r = z;
+            rotatedVec.y = inputMesh.tris[i].p[j].y;
 
-        arr[i][0] = x_r;
-        arr[i][1] = y_r;
-        arr[i][2] = z_r;
+            rotatedVec.z = ((inputMesh.tris[i].p[j].x * -1 * sin(angle)) + (inputMesh.tris[i].p[j].z * cos(angle)));
+
+            inputMesh.tris[i].p[j] = rotatedVec;
+        }
     }
+    return inputMesh;
+}
+
+mesh rotateMeshAroundZ(mesh inputMesh, const double angle) 
+{
+    vector rotatedVec = {0,0,0};
+    for (int i = 0; i < inputMesh.numOfTris; i++) 
+    {
+        for (int j =0; j < 3; j++)
+        {
+            rotatedVec.x = ((inputMesh.tris[i].p[j].x * cos(angle)) - (inputMesh.tris[i].p[j].y * sin(angle)));
+
+            rotatedVec.y = ((inputMesh.tris[i].p[j].x * sin(angle)) + (inputMesh.tris[i].p[j].y * cos(angle)));
+
+            rotatedVec.z = inputMesh.tris[i].p[j].z;
+
+            inputMesh.tris[i].p[j] = rotatedVec;
+        }
+    }
+    return inputMesh;
 }
 
 void initScreen(int screenArr[MAX_X][MAX_Y]) 
@@ -424,13 +413,13 @@ void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
     }
 }
 
-void BresenhamPlotLine(double pointA[2], double pointB[2], int screen[MAX_X][MAX_Y])
+void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y])
 {
     // Initialise points as doubles to do maths nicer
-    int x0 = (int)pointA[0];
-    int y0 = (int)pointA[1];
-    int x1 = (int)pointB[0];
-    int y1 = (int)pointB[1];
+    int x0 = (int)pointA.x;
+    int y0 = (int)pointA.y;
+    int x1 = (int)pointB.x;
+    int y1 = (int)pointB.y;
 
     if (abs(y1 - y0) < abs(x1 - x0)) 
     {
@@ -454,56 +443,6 @@ void BresenhamPlotLine(double pointA[2], double pointB[2], int screen[MAX_X][MAX
         {
             plotLineHigh(x0, y0, x1, y1, screen);
         }
-    }
-}
-
-void drawCubeOnScreen(double arr[8][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y])
-{
-
-    printf("\033[H\033[J"); // Clear screen escape sequence
-
-    double pointA[2] = {0,0};
-    double pointB[2] = {0,0};
-    double pointC[2] = {0,0};
-    double pointD[2] = {0,0};
-    double pointE[2] = {0,0};
-    double pointF[2] = {0,0};
-    //uses the Bresenham algorithm
-    for (int i = 0; i < 4; i++) 
-    {
-        //interates over x [0] and y[1], and assigns which two points will have lines drawn between them
-        for (int j = 0; j < 2; j++) 
-        {
-            // modifying if point is x, by aspect ratio
-            if (j == 0) 
-            {
-                //drawing front face
-                pointA[j] = origin[j] + (arr[i][j] * ratio); //translates from unity to screenspace, and does aspect ratio adustment
-                pointB[j] = origin[j] + (arr[(i+1)%4][j] * ratio);//(i+1)%4 is used to draw line from point (0 -> 1), (1 -> 2), (2 -> 3), (3 -> 0).
-                //drawing back face
-                pointC[j] = origin[j] + (arr[(i+4)][j] * ratio);
-                pointD[j] = origin[j] + (arr[(((i+1)%4)+4)][j] * ratio);//((i+1)%4)+4 is used to draw line from point (4 -> 5), (5 -> 6), (6 -> 7), (7 -> 4).
-                //drawing interconnects between the two faces
-                pointE[j] = origin[j] + (arr[i][j] * ratio);
-                pointF[j] = origin[j] + (arr[(i+4)][j] * ratio);//(i+4) is used to draw line from point (0 -> 4), (1 -> 5), (2 -> 6), (3 -> 7).
-            }
-            else
-            { // if y, dont modify by ratio
-            
-                //drawing front face
-                pointA[j] = origin[j] + (arr[i][j]); //translates from unity to screenspace, and does aspect ratio adustment
-                pointB[j] = origin[j] + (arr[(i+1)%4][j]);//(i+1)%4 is used to draw line from point (0 -> 1), (1 -> 2), (2 -> 3), (3 -> 0).
-                //drawing back face
-                pointC[j] = origin[j] + (arr[(i+4)][j]);
-                pointD[j] = origin[j] + (arr[(((i+1)%4)+4)][j]);//((i+1)%4)+4 is used to draw line from point (4 -> 5), (5 -> 6), (6 -> 7), (7 -> 4).
-                //drawing interconnects between the two faces
-                pointE[j] = origin[j] + (arr[i][j]);
-                pointF[j] = origin[j] + (arr[(i+4)][j]);//(i+4) is used to draw line from point (0 -> 4), (1 -> 5), (2 -> 6), (3 -> 7).
-            }
-        }
-        BresenhamPlotLine(pointA,pointB, screen);
-        BresenhamPlotLine(pointC,pointD, screen);
-        BresenhamPlotLine(pointE,pointF, screen);
     }
 }
 

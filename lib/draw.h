@@ -6,21 +6,23 @@
 typedef struct vector
 {
     double x, y, z;
-} vector;
+}vector;
 
 typedef struct triangle
 {
     vector p[3];
-} triangle;
+}triangle;
 
 typedef struct mesh
 {
     triangle* tris;
     int numOfTris;
     int numOfVerts;
-} mesh;
+}mesh;
 
 mesh importMeshFromOBJFile (char * pathToFile);
+
+mesh copyMeshData(mesh fromMesh, mesh toMesh);
 
 vector addVec( vector vec1, vector vec2);
 
@@ -28,28 +30,24 @@ vector subVec(vector vec1, vector vec2);
 
 vector divVecByScalar(vector vec, int scalar);
 
-void meshToVertexArray(double arr[][3], mesh mesh);
+void projectMeshTo2D(mesh inputMesh, const double DISTANCE);
 
-void projectVertexArrayTo2D(double arr[][3], double p_points[][2], const double DISTANCE, int iter);
+void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
 
-void drawTriangleOnScreen(double arr[][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y], int iter, int totaltris);
-
-void scale2DPoints(double arr[][2], int iter);
+void scale2DPoints(mesh inputMesh);
 
 void initScreen(int screenArr[MAX_X][MAX_Y]);
 
-void rotateVerticiesAroundX(double arr[][3], int totalPoints, double angle);
+mesh rotateMeshAroundX(mesh inputMesh, const double angle);
 
-void rotateVerticiesAroundY(double arr[][3], int totalPoints, double angle);
+mesh rotateMeshAroundY(mesh inputMesh, const double angle);
 
-void rotateVerticiesAroundZ(double arr[][3], int totalPoints, double angle);
+mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
 
 void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
 
 void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
 
-void BresenhamPlotLine(double pointA[2], double pointB[2], int screen[MAX_X][MAX_Y]);
-
-void drawCubeOnScreen(double arr[8][2],double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
+void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y]);
 
 void displayScreen(int arr[MAX_X][MAX_Y]);
