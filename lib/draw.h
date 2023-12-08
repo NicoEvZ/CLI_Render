@@ -44,6 +44,8 @@ mesh rotateMeshAroundY(mesh inputMesh, const double angle);
 
 mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
 
+vector calculateTriangleNormal(triangle inputTri);
+
 void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
 
 void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);

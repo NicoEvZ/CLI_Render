@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "draw.h"
 
-#define SCALE_FACTOR 100
+#define SCALE_FACTOR 500
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -183,19 +183,22 @@ void projectMeshTo2D(mesh inputMesh, const double DISTANCE)
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]) 
 {
-    triangle output = {0,0,0};
+    triangle output = {{0,0,0}};
+    vector normal= {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        for (int j = 0; j < 3; j++)
-        {
-            //translates from unity to screenspace, and does aspect ratio adustment
-            output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
-            output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
-        
-        }
-        BresenhamPlotLine(output.p[0],output.p[1],screen);
-        BresenhamPlotLine(output.p[1],output.p[2],screen);
-        BresenhamPlotLine(output.p[2],output.p[0],screen);
+        normal = calculateTriangleNormal(inputMesh.tris[i]);
+        if (normal.z > 0)
+            for (int j = 0; j < 3; j++)
+            {
+                //translates from unity to screenspace, and does aspect ratio adustment
+                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
+                output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
+            
+            }
+            BresenhamPlotLine(output.p[0],output.p[1],screen);
+            BresenhamPlotLine(output.p[1],output.p[2],screen);
+            BresenhamPlotLine(output.p[2],output.p[0],screen);
     }
 }
 
@@ -274,6 +277,20 @@ mesh rotateMeshAroundZ(mesh inputMesh, const double angle)
         }
     }
     return inputMesh;
+}
+
+vector calculateTriangleNormal(triangle inputTri)
+{   
+    vector U,V,normal;
+    
+    U = (subVec(inputTri.p[1],inputTri.p[0]));
+    V = (subVec(inputTri.p[2],inputTri.p[1]));
+
+    normal.x = (U.y * V.z) - (U.z * V.y);
+    normal.y = (U.z * V.x) - (U.x * V.z);
+    normal.z = (U.x * V.y) - (U.y * V.x);
+    
+    return normal;
 }
 
 void initScreen(int screenArr[MAX_X][MAX_Y]) 

@@ -12,7 +12,7 @@ int main(void){
     const double half_y = MAX_Y/2;
     double ratio = MAX_X/MAX_Y;
     double angle = 0;
-    double DISTANCE = 20;
+    double DISTANCE = 30;
 
     //screenspace center, not 3d space center
     double origin[]={half_x,half_y}; //origin is middle of screenspace
@@ -20,7 +20,7 @@ int main(void){
     int screen[MAX_X][MAX_Y];
     int screen2[MAX_X][MAX_Y];
 
-    char importPath[] = "data/orb.obj";
+    char importPath[] = "data/chatGPT.obj";
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importPath); 
