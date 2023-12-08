@@ -10,34 +10,22 @@
 
 double epsilon = 0.0001;
 
-static void test_initPoints(void /***state*/)
-{
-    double arr[8][3];
-    double basePoints[8][3] = {
-        {0, 0, 0},
-        {0, 0, 1},
-        {0, 1, 0},
-        {0, 1, 1},
-        {1, 0, 0},
-        {1, 0, 1},
-        {1, 1, 0},
-        {1, 1, 1}
-    };
-
-    initPoints(arr, basePoints);
-    for (int i = 0; i < 8; i++){
-        for (int j = 0; j < 3; j++)
-        {
-            assert_float_equal(arr[i][j], basePoints[i][j], epsilon);
-        }
-    }
+static void test_addVec(void /***state*/)
+{   
+    vector vec1 = {1,2,3};
+    vector vec2 = {4,5,6};
+    vector output = {5,7,9};
+    
+    assert_float_equal(output.x, addVec(vec1,vec2).x, epsilon);
+    assert_float_equal(output.y, addVec(vec1,vec2).y, epsilon);
+    assert_float_equal(output.z, addVec(vec1,vec2).z, epsilon);
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = 
     {
-        cmocka_unit_test(test_initPoints),
+        cmocka_unit_test(test_addVec)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
