@@ -158,6 +158,17 @@ vector divVecByScalar(vector vec, int scalar)
     return returnVec;
 }
 
+vector crossProduct(vector vec1, vector vec2)
+{
+    vector output;
+
+    output.x = (vec1.y * vec2.z) - (vec1.z * vec2.y);
+    output.y = (vec1.z * vec2.x) - (vec1.x * vec2.z);
+    output.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
+
+    return output;
+}
+
 void projectMeshTo2D(mesh inputMesh, const double DISTANCE) 
 {
     vector tempVec = {0,0,0};
@@ -286,9 +297,7 @@ vector calculateTriangleNormal(triangle inputTri)
     U = (subVec(inputTri.p[1],inputTri.p[0]));
     V = (subVec(inputTri.p[2],inputTri.p[1]));
 
-    normal.x = (U.y * V.z) - (U.z * V.y);
-    normal.y = (U.z * V.x) - (U.x * V.z);
-    normal.z = (U.x * V.y) - (U.y * V.x);
+    normal = crossProduct(U, V);
     
     return normal;
 }

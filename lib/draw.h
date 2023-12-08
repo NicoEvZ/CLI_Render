@@ -30,6 +30,8 @@ vector subVec(vector vec1, vector vec2);
 
 vector divVecByScalar(vector vec, int scalar);
 
+vector crossProduct(vector vec1, vector vec2);
+
 void projectMeshTo2D(mesh inputMesh, const double DISTANCE);
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
