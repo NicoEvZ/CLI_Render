@@ -3,13 +3,11 @@
 #include <stdlib.h>
 #include "draw.h"
 
-#define SCALE_FACTOR 150
+#define SCALE_FACTOR 100
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
 #define BORDER '*'
-#define MAX_X 111 //best if odd
-#define MAX_Y 45 //best if odd
 
 //#define DEBUG_POINTS
 

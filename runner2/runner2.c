@@ -12,7 +12,7 @@ int main(void){
     const double half_y = MAX_Y/2;
     double ratio = MAX_X/MAX_Y;
     double angle = 0;
-    const double DISTANCE = 10;
+    double DISTANCE = 20;
 
     //screenspace center, not 3d space center
     double origin[]={half_x,half_y}; //origin is middle of screenspace
@@ -20,7 +20,7 @@ int main(void){
     int screen[MAX_X][MAX_Y];
     int screen2[MAX_X][MAX_Y];
 
-    char importPath[] = "data/testCube.obj";
+    char importPath[] = "data/orb.obj";
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importPath); 
@@ -41,12 +41,14 @@ int main(void){
 
         rotatedMesh = copyMeshData(baseMesh, rotatedMesh);
 
-        //rotate around axes
+        // rotate around axes
         rotatedMesh = rotateMeshAroundX(rotatedMesh, (angle * (PI/180)));
         rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
         rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
 
         projectedMesh = copyMeshData(rotatedMesh, projectedMesh);
+
+        // DISTANCE =  50 * (sin(0.1 * i)+ 1.8);
 
         //project 3D --> 2D
         projectMeshTo2D(projectedMesh, DISTANCE);
