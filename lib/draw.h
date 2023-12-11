@@ -1,7 +1,9 @@
 #pragma once
 
-#define MAX_X 101 //best if odd
-#define MAX_Y 37 //best if odd
+#define MAX_X 111 //best if odd
+#define MAX_Y 43 //best if odd
+
+#define PI 3.14159
 
 typedef struct vector
 {
@@ -32,7 +34,7 @@ vector divVecByScalar(vector vec, int scalar);
 
 vector crossProduct(vector vec1, vector vec2);
 
-void projectMeshTo2D(mesh inputMesh, const double DISTANCE);
+void projectMeshTo2D(mesh inputMesh, const double distance);
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
 

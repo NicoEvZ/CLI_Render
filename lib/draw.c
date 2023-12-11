@@ -169,7 +169,7 @@ vector crossProduct(vector vec1, vector vec2)
     return output;
 }
 
-void projectMeshTo2D(mesh inputMesh, const double DISTANCE) 
+void projectMeshTo2D(mesh inputMesh, const double distance) 
 {
     vector tempVec = {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
@@ -178,7 +178,7 @@ void projectMeshTo2D(mesh inputMesh, const double DISTANCE)
         {
         tempVec = inputMesh.tris[i].p[j];
 
-        double zPerspective = 1/(DISTANCE - tempVec.z);
+        double zPerspective = 1/(distance - tempVec.z);
 
         double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
         
@@ -194,12 +194,13 @@ void projectMeshTo2D(mesh inputMesh, const double DISTANCE)
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]) 
 {
-    triangle output = {{0,0,0}};
+    triangle output = {{{0,0,0}}};
     vector normal= {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
         normal = calculateTriangleNormal(inputMesh.tris[i]);
         if (normal.z > 0)
+        {
             for (int j = 0; j < 3; j++)
             {
                 //translates from unity to screenspace, and does aspect ratio adustment
@@ -210,6 +211,7 @@ void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen
             BresenhamPlotLine(output.p[0],output.p[1],screen);
             BresenhamPlotLine(output.p[1],output.p[2],screen);
             BresenhamPlotLine(output.p[2],output.p[0],screen);
+        }
     }
 }
 
@@ -234,7 +236,6 @@ void scale2DPoints(mesh inputMesh)
 
 mesh rotateMeshAroundX(mesh inputMesh, const double angle) 
 {
-    int count = 0;
     vector rotatedVec = {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {

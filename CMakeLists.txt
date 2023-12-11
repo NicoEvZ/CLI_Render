@@ -9,6 +9,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 add_subdirectory(lib)
 
 #add_subdirectory(runner)
-add_subdirectory(runner2)
+add_subdirectory(runner)
 # Add your tests directory
 add_subdirectory(tests)
