@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "draw.h"
 
-#define SCALE_FACTOR 100
+#define SCALE_FACTOR 500
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -158,7 +158,18 @@ vector divVecByScalar(vector vec, int scalar)
     return returnVec;
 }
 
-void projectMeshTo2D(mesh inputMesh, const double DISTANCE) 
+vector crossProduct(vector vec1, vector vec2)
+{
+    vector output;
+
+    output.x = (vec1.y * vec2.z) - (vec1.z * vec2.y);
+    output.y = (vec1.z * vec2.x) - (vec1.x * vec2.z);
+    output.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
+
+    return output;
+}
+
+void projectMeshTo2D(mesh inputMesh, const double distance) 
 {
     vector tempVec = {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
@@ -167,7 +178,7 @@ void projectMeshTo2D(mesh inputMesh, const double DISTANCE)
         {
         tempVec = inputMesh.tris[i].p[j];
 
-        double zPerspective = 1/(DISTANCE - tempVec.z);
+        double zPerspective = 1/(distance - tempVec.z);
 
         double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
         
@@ -183,19 +194,24 @@ void projectMeshTo2D(mesh inputMesh, const double DISTANCE)
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]) 
 {
-    triangle output = {0,0,0};
+    triangle output = {{{0,0,0}}};
+    vector normal= {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        for (int j = 0; j < 3; j++)
+        normal = calculateTriangleNormal(inputMesh.tris[i]);
+        if (normal.z > 0)
         {
-            //translates from unity to screenspace, and does aspect ratio adustment
-            output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
-            output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
-        
+            for (int j = 0; j < 3; j++)
+            {
+                //translates from unity to screenspace, and does aspect ratio adustment
+                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
+                output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
+            
+            }
+            BresenhamPlotLine(output.p[0],output.p[1],screen);
+            BresenhamPlotLine(output.p[1],output.p[2],screen);
+            BresenhamPlotLine(output.p[2],output.p[0],screen);
         }
-        BresenhamPlotLine(output.p[0],output.p[1],screen);
-        BresenhamPlotLine(output.p[1],output.p[2],screen);
-        BresenhamPlotLine(output.p[2],output.p[0],screen);
     }
 }
 
@@ -220,7 +236,6 @@ void scale2DPoints(mesh inputMesh)
 
 mesh rotateMeshAroundX(mesh inputMesh, const double angle) 
 {
-    int count = 0;
     vector rotatedVec = {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
@@ -274,6 +289,18 @@ mesh rotateMeshAroundZ(mesh inputMesh, const double angle)
         }
     }
     return inputMesh;
+}
+
+vector calculateTriangleNormal(triangle inputTri)
+{   
+    vector U,V,normal;
+    
+    U = (subVec(inputTri.p[1],inputTri.p[0]));
+    V = (subVec(inputTri.p[2],inputTri.p[1]));
+
+    normal = crossProduct(U, V);
+    
+    return normal;
 }
 
 void initScreen(int screenArr[MAX_X][MAX_Y]) 

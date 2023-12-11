@@ -1,7 +1,9 @@
 #pragma once
 
-#define MAX_X 101 //best if odd
-#define MAX_Y 37 //best if odd
+#define MAX_X 111 //best if odd
+#define MAX_Y 43 //best if odd
+
+#define PI 3.14159
 
 typedef struct vector
 {
@@ -30,7 +32,9 @@ vector subVec(vector vec1, vector vec2);
 
 vector divVecByScalar(vector vec, int scalar);
 
-void projectMeshTo2D(mesh inputMesh, const double DISTANCE);
+vector crossProduct(vector vec1, vector vec2);
+
+void projectMeshTo2D(mesh inputMesh, const double distance);
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
 
@@ -43,6 +47,8 @@ mesh rotateMeshAroundX(mesh inputMesh, const double angle);
 mesh rotateMeshAroundY(mesh inputMesh, const double angle);
 
 mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
+
+vector calculateTriangleNormal(triangle inputTri);
 
 void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
 
