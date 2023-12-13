@@ -1,15 +1,63 @@
-#include "draw.h"
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
+#include "draw.h"
+#include "cJSON.h"
+
+int importJSON(const char *file_path )
+{
+    // Open the file for reading
+    FILE *file = fopen(file_path, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    // Determine the size of the file
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    // Read the content of the file into a buffer
+    char *json_buffer = (char *)malloc(file_size + 1);
+    fread(json_buffer, 1, file_size, file);
+    fclose(file);
+
+    // Null-terminate the buffer
+    json_buffer[file_size] = '\0';
+
+    // Parse the JSON from the buffer
+    cJSON *root = cJSON_Parse(json_buffer);
+
+    if (root == NULL) {
+        printf("Error parsing JSON: %s\n", cJSON_GetErrorPtr());
+        free(json_buffer);
+        return 1;
+    }
+
+    // Access values in the JSON object
+    cJSON *distance = cJSON_GetObjectItemCaseSensitive(root, "distance");
+    cJSON *scale = cJSON_GetObjectItemCaseSensitive(root, "scale");
+    cJSON *objFile = cJSON_GetObjectItemCaseSensitive(root, "objFile");
+
+    printf("Distance: %lf\n", distance->valuedouble);
+    printf("Scale: %lf\n", scale->valuedouble);
+    printf("OBJ File Name: %s\n", objFile->valuestring);
+
+    // Don't forget to free the cJSON object and the buffer when you're done with them
+    cJSON_Delete(root);
+    free(json_buffer);
+
+    return 0;
+
+}
 
 int main(void){
-    //import the OBJ file
-
+    
     const double half_x = MAX_X/2;
     const double half_y = MAX_Y/2;
     double ratio = MAX_X/MAX_Y;
-    double angle = 0;
+    double angle = 0;  
     double DISTANCE = 60;
 
     //screenspace center, not 3d space center
@@ -17,7 +65,10 @@ int main(void){
 
     int screen[MAX_X][MAX_Y];
 
+    const char jsonImportPath[] = "data/inputData.json";
     char importPath[] = "data/videoShip.obj";
+
+    importJSON(jsonImportPath);
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importPath); 
@@ -31,7 +82,7 @@ int main(void){
     }
  
     //display 
-    for (int i = 0; i < 1080; i++)
+    for (int i = 0; i < 1; i++)
     {
         //clear screen
         initScreen(screen);

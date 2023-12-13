@@ -1,5 +1,5 @@
 {
-    "Distance":"10",
-    "Scale":"100",
+    "distance":10.0,
+    "scale":100.0,
     "objFile":"testCube.obj"
 }
