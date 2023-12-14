@@ -1,10 +1,19 @@
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 #include "draw.h"
 #include "cJSON.h"
 
-int importJSON(const char *file_path )
+typedef struct
+{
+    double distance;
+    double scale;
+    char objPathBuffer[64];
+    int i;
+}data;
+
+int importJSON(const char *file_path, data *importData_struct)
 {
     // Open the file for reading
     FILE *file = fopen(file_path, "r");
@@ -35,15 +44,35 @@ int importJSON(const char *file_path )
         return 1;
     }
 
-    // Access values in the JSON object
-    cJSON *distance = cJSON_GetObjectItemCaseSensitive(root, "distance");
-    cJSON *scale = cJSON_GetObjectItemCaseSensitive(root, "scale");
-    cJSON *objFile = cJSON_GetObjectItemCaseSensitive(root, "objFile");
+    // Access values in the JSON object    
+    cJSON *distanceJSON = cJSON_GetObjectItemCaseSensitive(root, "distance");
+    cJSON *scaleJSON = cJSON_GetObjectItemCaseSensitive(root, "scale");
+    cJSON *objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
+    cJSON *iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
 
-    printf("Distance: %lf\n", distance->valuedouble);
-    printf("Scale: %lf\n", scale->valuedouble);
-    printf("OBJ File Name: %s\n", objFile->valuestring);
+    // printf("Distance: %lf\n", distance->valuedouble);
+    // printf("Scale: %lf\n", scale->valuedouble);
+    //printf("OBJ File Name: %s\n", objFile->valuestring);
+    if(cJSON_IsNumber(distanceJSON))
+    {
+        importData_struct->distance = distanceJSON->valuedouble;
+    }
 
+    if(cJSON_IsNumber(scaleJSON))
+    {
+        importData_struct->scale = scaleJSON->valuedouble;
+    }
+
+    if(cJSON_IsNumber(iterationsJSON))
+    {
+        importData_struct->i = iterationsJSON->valueint;
+    }
+
+    if(cJSON_IsString(objFileJOSN))
+    {
+        strncpy(importData_struct->objPathBuffer,objFileJOSN->valuestring,sizeof(importData_struct->objPathBuffer) -1);
+        importData_struct->objPathBuffer[sizeof(importData_struct->objPathBuffer) -1] = '\0';
+    }
     // Don't forget to free the cJSON object and the buffer when you're done with them
     cJSON_Delete(root);
     free(json_buffer);
@@ -53,12 +82,11 @@ int importJSON(const char *file_path )
 }
 
 int main(void){
-    
+    data importData;
     const double half_x = MAX_X/2;
     const double half_y = MAX_Y/2;
     double ratio = MAX_X/MAX_Y;
-    double angle = 0;  
-    double DISTANCE = 60;
+    double angle = 0;
 
     //screenspace center, not 3d space center
     double origin[]={half_x,half_y}; //origin is middle of screenspace
@@ -66,12 +94,21 @@ int main(void){
     int screen[MAX_X][MAX_Y];
 
     const char jsonImportPath[] = "data/inputData.json";
-    char importPath[] = "data/videoShip.obj";
+    // char importPath[64];
 
-    importJSON(jsonImportPath);
+    if (importJSON(jsonImportPath, &importData))
+    {
+        printf("Import of JSON failed, exiting here");
+        return 1;
+    }
+    int count = 0;
+
+    // printf("Distance: %lf\n", distance);
+    printf("importPath: %s\n", importData.objPathBuffer);
+
 
     //Store OBJ data in mesh struct
-    mesh baseMesh = importMeshFromOBJFile(importPath); 
+    mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
     mesh rotatedMesh;
     mesh projectedMesh;
     
@@ -82,7 +119,7 @@ int main(void){
     }
  
     //display 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < importData.i; i++)
     {
         //clear screen
         initScreen(screen);
@@ -96,13 +133,13 @@ int main(void){
 
         projectedMesh = copyMeshData(rotatedMesh, projectedMesh);
 
-        DISTANCE =  30 * (sin(0.1 * i)+ 1.8);
+        // distance =  30 * (sin(0.1 * i)+ 1.8);
 
         //project 3D --> 2D
-        projectMeshTo2D(projectedMesh, DISTANCE);
+        projectMeshTo2D(projectedMesh, importData.distance);
         
         //scale points
-        scale2DPoints(projectedMesh);
+        scale2DPoints(projectedMesh,importData.scale);
 
         //draw lines
         drawMeshOnScreen(projectedMesh, origin, ratio, screen);

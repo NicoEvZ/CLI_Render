@@ -22,7 +22,7 @@ typedef struct mesh
     int numOfVerts;
 }mesh;
 
-mesh importMeshFromOBJFile (char * pathToFile);
+mesh importMeshFromOBJFile(char * pathToFile);
 
 mesh copyMeshData(mesh fromMesh, mesh toMesh);
 
@@ -38,7 +38,7 @@ void projectMeshTo2D(mesh inputMesh, const double distance);
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
 
-void scale2DPoints(mesh inputMesh);
+void scale2DPoints(mesh inputMesh, const double scaleFactor);
 
 void initScreen(int screenArr[MAX_X][MAX_Y]);
 

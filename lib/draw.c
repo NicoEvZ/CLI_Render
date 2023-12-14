@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include "draw.h"
 
-#define SCALE_FACTOR 500
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -215,7 +214,7 @@ void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen
     }
 }
 
-void scale2DPoints(mesh inputMesh) 
+void scale2DPoints(mesh inputMesh, const double scaleFactor) 
 {
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
@@ -225,8 +224,8 @@ void scale2DPoints(mesh inputMesh)
             double x = inputMesh.tris[i].p[j].x;
             double y = inputMesh.tris[i].p[j].y;
 
-            x = x * SCALE_FACTOR;
-            y = y * SCALE_FACTOR;
+            x = x * scaleFactor;
+            y = y * scaleFactor;
 
             inputMesh.tris[i].p[j].x = x;
             inputMesh.tris[i].p[j].y = y;
