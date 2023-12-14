@@ -1,6 +1,9 @@
 {
     "distance":30.0,
     "scale":500.0,
-    "objFile":"data/testCube.obj",
-    "iterations":360
+    "objFile":"data/chatGPT.obj",
+    "iterations":4,
+    "rotateX":true,
+    "rotateY":false,
+    "rotateZ":true
 }

@@ -2,15 +2,19 @@
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "draw.h"
 #include "cJSON.h"
 
-typedef struct
+typedef struct data
 {
     double distance;
     double scale;
     char objPathBuffer[64];
     int i;
+    int rotationX;
+    int rotationY;
+    int rotationZ;
 }data;
 
 int importJSON(const char *file_path, data *importData_struct)
@@ -49,6 +53,10 @@ int importJSON(const char *file_path, data *importData_struct)
     cJSON *scaleJSON = cJSON_GetObjectItemCaseSensitive(root, "scale");
     cJSON *objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
     cJSON *iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
+    cJSON *rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
+    cJSON *rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
+    cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
+
 
     // printf("Distance: %lf\n", distance->valuedouble);
     // printf("Scale: %lf\n", scale->valuedouble);
@@ -66,6 +74,13 @@ int importJSON(const char *file_path, data *importData_struct)
     if(cJSON_IsNumber(iterationsJSON))
     {
         importData_struct->i = iterationsJSON->valueint;
+    }
+
+    if(cJSON_IsBool(rotateXJSON)&cJSON_IsBool(rotateYJSON)&cJSON_IsBool(rotateZJSON))
+    {
+        importData_struct->rotationX = rotateXJSON->valueint;
+        importData_struct->rotationY = rotateYJSON->valueint;
+        importData_struct->rotationZ = rotateZJSON->valueint;
     }
 
     if(cJSON_IsString(objFileJOSN))
@@ -94,18 +109,12 @@ int main(void){
     int screen[MAX_X][MAX_Y];
 
     const char jsonImportPath[] = "data/inputData.json";
-    // char importPath[64];
 
     if (importJSON(jsonImportPath, &importData))
     {
         printf("Import of JSON failed, exiting here");
         return 1;
     }
-    int count = 0;
-
-    // printf("Distance: %lf\n", distance);
-    printf("importPath: %s\n", importData.objPathBuffer);
-
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
@@ -127,10 +136,20 @@ int main(void){
         rotatedMesh = copyMeshData(baseMesh, rotatedMesh);
 
         // rotate around axes
-        rotatedMesh = rotateMeshAroundX(rotatedMesh, (angle * (PI/180)));
-        rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
-        rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
+        if(importData.rotationX)
+        {
+            rotatedMesh = rotateMeshAroundX(rotatedMesh, (angle * (PI/180)));
+        }
 
+        if(importData.rotationY)
+        {
+            rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
+        }
+
+        if(importData.rotationZ)
+        {
+            rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
+        }
         projectedMesh = copyMeshData(rotatedMesh, projectedMesh);
 
         // distance =  30 * (sin(0.1 * i)+ 1.8);
