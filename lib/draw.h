@@ -22,6 +22,13 @@ typedef struct mesh
     int numOfVerts;
 }mesh;
 
+typedef struct screenStruct
+{ 
+    int** screen;
+    int width; //max x
+    int height;
+};
+
 mesh importMeshFromOBJFile(char * pathToFile);
 
 mesh copyMeshData(mesh fromMesh, mesh toMesh);
@@ -50,7 +57,7 @@ mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
 
 vector calculateTriangleNormal(triangle inputTri);
 
-void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
+void plotLineLow(int x0, int y0, int x1, int y1, int**screen );
 
 void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
 

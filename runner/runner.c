@@ -57,10 +57,6 @@ int importJSON(const char *file_path, data *importData_struct)
     cJSON *rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
     cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
 
-
-    // printf("Distance: %lf\n", distance->valuedouble);
-    // printf("Scale: %lf\n", scale->valuedouble);
-    //printf("OBJ File Name: %s\n", objFile->valuestring);
     if(cJSON_IsNumber(distanceJSON))
     {
         importData_struct->distance = distanceJSON->valuedouble;
@@ -88,12 +84,12 @@ int importJSON(const char *file_path, data *importData_struct)
         strncpy(importData_struct->objPathBuffer,objFileJOSN->valuestring,sizeof(importData_struct->objPathBuffer) -1);
         importData_struct->objPathBuffer[sizeof(importData_struct->objPathBuffer) -1] = '\0';
     }
+
     // Don't forget to free the cJSON object and the buffer when you're done with them
     cJSON_Delete(root);
     free(json_buffer);
 
     return 0;
-
 }
 
 int main(void){

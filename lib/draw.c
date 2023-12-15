@@ -364,7 +364,7 @@ void displayScreen(int arr[MAX_X][MAX_Y])
     }
 }
 
-void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
+void plotLineLow(int x0, int y0, int x1, int y1, int**screen)
 {
     int dx = x1 - x0;
     int dy = y1 - y0;
