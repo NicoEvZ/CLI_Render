@@ -15,6 +15,8 @@ typedef struct data
     int rotationX;
     int rotationY;
     int rotationZ;
+    int screenWidthImprt;
+    int screenHeightImprt;
 }data;
 
 int importJSON(const char *file_path, data *importData_struct)
@@ -56,6 +58,9 @@ int importJSON(const char *file_path, data *importData_struct)
     cJSON *rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
     cJSON *rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
     cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
+    cJSON *screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
+    cJSON *screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
+
 
     if(cJSON_IsNumber(distanceJSON))
     {
@@ -72,7 +77,7 @@ int importJSON(const char *file_path, data *importData_struct)
         importData_struct->i = iterationsJSON->valueint;
     }
 
-    if(cJSON_IsBool(rotateXJSON)&cJSON_IsBool(rotateYJSON)&cJSON_IsBool(rotateZJSON))
+    if(cJSON_IsBool(rotateXJSON) & cJSON_IsBool(rotateYJSON) & cJSON_IsBool(rotateZJSON))
     {
         importData_struct->rotationX = rotateXJSON->valueint;
         importData_struct->rotationY = rotateYJSON->valueint;
@@ -85,6 +90,12 @@ int importJSON(const char *file_path, data *importData_struct)
         importData_struct->objPathBuffer[sizeof(importData_struct->objPathBuffer) -1] = '\0';
     }
 
+    if(cJSON_IsNumber(screenWidthJSON) & cJSON_IsNumber(screenHeightJSON))
+    {
+        importData_struct->screenWidthImprt = screenWidthJSON->valueint;
+        importData_struct->screenHeightImprt = screenHeightJSON->valueint;
+    }
+
     // Don't forget to free the cJSON object and the buffer when you're done with them
     cJSON_Delete(root);
     free(json_buffer);
@@ -92,17 +103,18 @@ int importJSON(const char *file_path, data *importData_struct)
     return 0;
 }
 
+void initScreen(screenStruct *screen)
+{
+    screen->screen = malloc(screen->width * sizeof(int *));
+    for(int i = 0; i < screen->width; i++)
+    {
+        screen->screen[i] = malloc(screen->height * sizeof(int));
+    }
+}
+
 int main(void){
     data importData;
-    const double half_x = MAX_X/2;
-    const double half_y = MAX_Y/2;
-    double ratio = MAX_X/MAX_Y;
-    double angle = 0;
-
-    //screenspace center, not 3d space center
-    double origin[]={half_x,half_y}; //origin is middle of screenspace
-
-    int screen[MAX_X][MAX_Y];
+    screenStruct screen;
 
     const char jsonImportPath[] = "data/inputData.json";
 
@@ -111,6 +123,19 @@ int main(void){
         printf("Import of JSON failed, exiting here");
         return 1;
     }
+
+    screen.width = importData.screenWidthImprt;
+    screen.height = importData.screenHeightImprt;
+
+    initScreen(&screen);
+
+    const double half_x = screen.width/2;
+    const double half_y = screen.height/2;
+    double ratio = screen.width/screen.height;
+    double angle = 0;
+
+    //screenspace center, not 3d space center
+    double origin[]={half_x,half_y}; //origin is middle of screenspace
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
@@ -127,7 +152,7 @@ int main(void){
     for (int i = 0; i < importData.i; i++)
     {
         //clear screen
-        initScreen(screen);
+        clearScreen(&screen);
 
         rotatedMesh = copyMeshData(baseMesh, rotatedMesh);
 

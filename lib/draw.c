@@ -191,7 +191,7 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
     }
 }
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]) 
+void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, screenStruct screen) 
 {
     triangle output = {{{0,0,0}}};
     vector normal= {0,0,0};
@@ -302,22 +302,22 @@ vector calculateTriangleNormal(triangle inputTri)
     return normal;
 }
 
-void initScreen(int screenArr[MAX_X][MAX_Y]) 
+void clearScreen(screenStruct *screen) 
 {
-    for (int x = 0; x < MAX_X; x++) 
+    for (int x = 0; x < screen->width; x++) 
     {
-        for (int y = 0; y < MAX_Y; y++) 
+        for (int y = 0; y < screen->height; y++) 
         {
-            screenArr[x][y]=BLANK;
-            if ((x == 0) | (y == 0) | (x == (MAX_X-1)) | (y == (MAX_Y-1))) 
+            screen->screen[x][y]=BLANK;
+            if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
             {   
-                screenArr[x][y]=BORDER;
+                screen->screen[x][y]=BORDER;
             }
         }
     }
 }
 
-void drawInScreen(int screenArr[MAX_X][MAX_Y], int x, int y, const char ASCII) 
+void drawInScreen(screenStruct screen, int x, int y, const char ASCII) 
 {
     if (x < 0) 
     {
@@ -325,10 +325,10 @@ void drawInScreen(int screenArr[MAX_X][MAX_Y], int x, int y, const char ASCII)
         x = 0;
     }
 
-    if (x > (MAX_X-1)) 
+    if (x > (screen.width-1)) 
     {
 
-        x = MAX_X-1;
+        x = screen.width-1;
     }
 
     if (y < 0) 
@@ -337,34 +337,34 @@ void drawInScreen(int screenArr[MAX_X][MAX_Y], int x, int y, const char ASCII)
         y = 0;
     }
 
-    if (y > (MAX_Y-1)) 
+    if (y > (screen.height-1)) 
     {
 
-        y = MAX_Y-1;
+        y = screen.height-1;
     }
 
-    screenArr[x][y] = ASCII;
+    screen.screen[x][y] = ASCII;
 }
 
-void displayScreen(int arr[MAX_X][MAX_Y])
+void displayScreen(screenStruct screen)
 {
     // Iterate over y axis
-    char outputString[MAX_X+1];
-    for (int y = 0; y < MAX_Y; y++)
+    char outputString[screen.width+1];
+    for (int y = 0; y < screen.height; y++)
     {
-        for (int x = 0; x < MAX_X; x++)
+        for (int x = 0; x < screen.width; x++)
         {
             // Store current value in array at point(x,y), as char in string
-            // String is length of MAX_X
-            outputString[x]=arr[x][y];
+            // String is length of screen.width
+            outputString[x]=screen.screen[x][y];
         }
         // Display filled string, and new line character, before moving onto the next value of y
-        outputString[MAX_X]='\0';
+        outputString[screen.width]='\0';
         printf("%s\n",outputString);
     }
 }
 
-void plotLineLow(int x0, int y0, int x1, int y1, int**screen)
+void plotLineLow(int x0, int y0, int x1, int y1, screenStruct screen)
 {
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -380,7 +380,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, int**screen)
 
     for (int x = x0; x <= x1; x++)
     {
-        if ((x <= 0) | (y <= 0) | (x >= (MAX_X-1)) | (y >= (MAX_Y-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
             drawInScreen(screen,x,y,BORDER);
         }
@@ -401,7 +401,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, int**screen)
     }
 }
 
-void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
+void plotLineHigh(int x0, int y0, int x1, int y1, screenStruct screen)
 {
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -416,7 +416,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
 
     for (int y = y0; y <= y1; y++) 
     {
-        if ((x <= 0) | (y <= 0) | (x >= (MAX_X-1)) | (y >= (MAX_Y-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
             drawInScreen(screen,x,y,BORDER);
         }
@@ -437,7 +437,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
     }
 }
 
-void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y])
+void BresenhamPlotLine(vector pointA, vector pointB, screenStruct screen)
 {
     // Initialise points as doubles to do maths nicer
     int x0 = (int)pointA.x;
