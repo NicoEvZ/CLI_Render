@@ -1,8 +1,8 @@
 {
-    "distance":40.0,
+    "distance":50,
     "scale":500.0,
-    "objFile":"data/chatGPT.obj",
-    "iterations":1,
+    "objFile":"data/videoShip.obj",
+    "iterations":360,
     "rotateX":true,
     "rotateY":true,
     "rotateZ":true,

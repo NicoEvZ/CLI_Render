@@ -60,4 +60,4 @@ void plotLineHigh(int x0, int y0, int x1, int y1, screenStruct screen);
 
 void BresenhamPlotLine(vector pointA, vector pointB, screenStruct screen);
 
-void displayScreen(screenStruct screen);
+void displayScreen(screenStruct *screen);

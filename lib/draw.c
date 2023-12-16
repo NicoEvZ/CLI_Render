@@ -193,6 +193,8 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, screenStruct screen) 
 {
+    printf("\033[H\033[J"); //clears the screen
+
     triangle output = {{{0,0,0}}};
     vector normal= {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
@@ -346,20 +348,20 @@ void drawInScreen(screenStruct screen, int x, int y, const char ASCII)
     screen.screen[x][y] = ASCII;
 }
 
-void displayScreen(screenStruct screen)
+void displayScreen(screenStruct *screen)
 {
     // Iterate over y axis
-    char outputString[screen.width+1];
-    for (int y = 0; y < screen.height; y++)
+    char outputString[screen->width+1];
+    for (int y = 0; y < screen->height; y++)
     {
-        for (int x = 0; x < screen.width; x++)
+        for (int x = 0; x < screen->width; x++)
         {
             // Store current value in array at point(x,y), as char in string
             // String is length of screen.width
-            outputString[x]=screen.screen[x][y];
+            outputString[x]=screen->screen[x][y];
         }
         // Display filled string, and new line character, before moving onto the next value of y
-        outputString[screen.width]='\0';
+        outputString[screen->width]='\0';
         printf("%s\n",outputString);
     }
 }
