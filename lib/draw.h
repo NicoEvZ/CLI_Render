@@ -22,9 +22,22 @@ typedef struct mesh
 typedef struct screenStruct
 { 
     int** screen;
-    int width; //max x
+    int width;
     int height;
 }screenStruct;
+
+typedef struct data
+{
+    double distance;
+    double scale;
+    char objPathBuffer[64];
+    int i;
+    int rotationX;
+    int rotationY;
+    int rotationZ;
+    int screenWidthImprt;
+    int screenHeightImprt;
+}data;
 
 mesh importMeshFromOBJFile(char * pathToFile);
 
@@ -40,11 +53,15 @@ vector crossProduct(vector vec1, vector vec2);
 
 void projectMeshTo2D(mesh inputMesh, const double distance);
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, screenStruct screen);
+void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr);
 
 void scale2DPoints(mesh inputMesh, const double scaleFactor);
 
 void clearScreen(screenStruct *screen);
+
+void initScreen(screenStruct *screen);
+
+void deleteScreen(screenStruct *screen);
 
 mesh rotateMeshAroundX(mesh inputMesh, const double angle);
 
@@ -53,6 +70,8 @@ mesh rotateMeshAroundY(mesh inputMesh, const double angle);
 mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
 
 vector calculateTriangleNormal(triangle inputTri);
+
+void calculateMeshNormals(mesh inputMesh, vector *inputArray);
 
 void plotLineLow(int x0, int y0, int x1, int y1, screenStruct screen);
 

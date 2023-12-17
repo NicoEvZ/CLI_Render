@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "draw.h"
+#include "cJSON.h"
 
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
@@ -11,6 +12,9 @@
 //#define DEBUG_POINTS
 
 #define MAX_LINE_LENGTH 256
+#define CHAR_CONST 2.3
+
+vector camera = {0,0,0};
 
 mesh importMeshFromOBJFile (char * pathToFile) 
 {
@@ -22,7 +26,7 @@ mesh importMeshFromOBJFile (char * pathToFile)
     if (NULL == obj) 
     {
         printf("Error: .OBJ file not found\n");
-        printf("Try to run the program from top level \"Cube/\" dir\n");
+        printf("Reminder: run the program from top level \"Cube/\" dir\n");
         return newMesh;
     }
 
@@ -109,6 +113,90 @@ mesh importMeshFromOBJFile (char * pathToFile)
     return newMesh;
 }
 
+int importJSON(const char *file_path, data *importData_struct)
+{
+    // Open the file for reading
+    FILE *file = fopen(file_path, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    // Determine the size of the file
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    // Read the content of the file into a buffer
+    char *json_buffer = (char *)malloc(file_size + 1);
+    fread(json_buffer, 1, file_size, file);
+    fclose(file);
+
+    // Null-terminate the buffer
+    json_buffer[file_size] = '\0';
+
+    // Parse the JSON from the buffer
+    cJSON *root = cJSON_Parse(json_buffer);
+
+    if (root == NULL) {
+        printf("Error parsing JSON: %s\n", cJSON_GetErrorPtr());
+        free(json_buffer);
+        return 1;
+    }
+
+    // Access values in the JSON object    
+    cJSON *distanceJSON = cJSON_GetObjectItemCaseSensitive(root, "distance");
+    cJSON *scaleJSON = cJSON_GetObjectItemCaseSensitive(root, "scale");
+    cJSON *objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
+    cJSON *iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
+    cJSON *rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
+    cJSON *rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
+    cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
+    cJSON *screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
+    cJSON *screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
+
+
+    if(cJSON_IsNumber(distanceJSON))
+    {
+        importData_struct->distance = distanceJSON->valuedouble;
+    }
+
+    if(cJSON_IsNumber(scaleJSON))
+    {
+        importData_struct->scale = scaleJSON->valuedouble;
+    }
+
+    if(cJSON_IsNumber(iterationsJSON))
+    {
+        importData_struct->i = iterationsJSON->valueint;
+    }
+
+    if(cJSON_IsBool(rotateXJSON) & cJSON_IsBool(rotateYJSON) & cJSON_IsBool(rotateZJSON))
+    {
+        importData_struct->rotationX = rotateXJSON->valueint;
+        importData_struct->rotationY = rotateYJSON->valueint;
+        importData_struct->rotationZ = rotateZJSON->valueint;
+    }
+
+    if(cJSON_IsString(objFileJOSN))
+    {
+        strncpy(importData_struct->objPathBuffer,objFileJOSN->valuestring,sizeof(importData_struct->objPathBuffer) -1);
+        importData_struct->objPathBuffer[sizeof(importData_struct->objPathBuffer) -1] = '\0';
+    }
+
+    if(cJSON_IsNumber(screenWidthJSON) & cJSON_IsNumber(screenHeightJSON))
+    {
+        importData_struct->screenWidthImprt = screenWidthJSON->valueint;
+        importData_struct->screenHeightImprt = screenHeightJSON->valueint;
+    }
+
+    // Don't forget to free the cJSON object and the buffer when you're done with them
+    cJSON_Delete(root);
+    free(json_buffer);
+
+    return 0;
+}
+
 mesh copyMeshData(mesh fromMesh, mesh toMesh)
 {
     toMesh.numOfTris = fromMesh.numOfTris;
@@ -177,6 +265,8 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
         {
         tempVec = inputMesh.tris[i].p[j];
 
+        tempVec.x = tempVec.x * CHAR_CONST;
+
         double zPerspective = 1/(distance - tempVec.z);
 
         double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
@@ -191,21 +281,30 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
     }
 }
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, screenStruct screen) 
+void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr) 
 {
-    printf("\033[H\033[J"); //clears the screen
+    // printf("\033[H\033[J"); //clears the screen
 
     triangle output = {{{0,0,0}}};
-    vector normal= {0,0,0};
+    vector normal = {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        normal = calculateTriangleNormal(inputMesh.tris[i]);
-        if (normal.z > 0)
+        normal = inputVecArr[i];
+        // double normalCheck = normal.x * (inputMesh.tris[i].p[0].x - camera.x) +
+        //                      normal.y * (inputMesh.tris[i].p[0].y - camera.y) +
+        //                      normal.z * (inputMesh.tris[i].p[0].z - camera.z);
+
+        double normalCheck = normal.z;
+        // printf("Triangle: %d\n",i);
+        // printf("normal.z: %lf\n", normalCheck);
+
+        if (normalCheck > 0)
         {
             for (int j = 0; j < 3; j++)
             {
                 //translates from unity to screenspace, and does aspect ratio adustment
-                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
+                // output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
+                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
                 output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
             
             }
@@ -300,8 +399,23 @@ vector calculateTriangleNormal(triangle inputTri)
     V = (subVec(inputTri.p[2],inputTri.p[1]));
 
     normal = crossProduct(U, V);
+
+    //its normally normal to normalise the normal
+
+    double l = sqrtl(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+    normal = divVecByScalar(normal, l);
     
     return normal;
+}
+
+void calculateMeshNormals(mesh inputMesh, vector *inputArray)
+{
+    vector normal = {0,0,0};
+    for (int i = 0; i < inputMesh.numOfTris; i++)
+    {
+        normal = calculateTriangleNormal(inputMesh.tris[i]);
+        inputArray[i] = normal;
+    }
 }
 
 void clearScreen(screenStruct *screen) 
@@ -317,6 +431,24 @@ void clearScreen(screenStruct *screen)
             }
         }
     }
+}
+
+void initScreen(screenStruct *screen)
+{
+    screen->screen = malloc(screen->width * sizeof(int *));
+    for (int i = 0; i < screen->width; i++)
+    {
+        screen->screen[i] = malloc(screen->height * sizeof(int));
+    }
+}
+
+void deleteScreen(screenStruct *screen)
+{
+    for (int i = 0; i < screen->width; i++)
+    {
+        free(screen->screen[i]);
+    }
+    free(screen->screen);
 }
 
 void drawInScreen(screenStruct screen, int x, int y, const char ASCII) 

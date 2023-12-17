@@ -1,11 +1,11 @@
 {
-    "distance":50,
+    "distance":30,
     "scale":500.0,
-    "objFile":"data/videoShip.obj",
+    "objFile":"data/chatGPT.obj",
     "iterations":360,
     "rotateX":true,
     "rotateY":true,
     "rotateZ":true,
-    "screenWidth":111,
-    "screenHeight":45
+    "screenWidth":81,
+    "screenHeight":33
 }
