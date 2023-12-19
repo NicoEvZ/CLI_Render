@@ -28,6 +28,8 @@ typedef struct screenStruct
 
 mesh importMeshFromOBJFile(char * pathToFile);
 
+char *stripString(char *inputString, char stripChar);
+
 mesh copyMeshData(mesh fromMesh, mesh toMesh);
 
 vector addVec(vector vec1, vector vec2);
@@ -36,11 +38,13 @@ vector subVec(vector vec1, vector vec2);
 
 vector divVecByScalar(vector vec, int scalar);
 
-vector crossProduct(vector vec1, vector vec2);
+vector vecCrossProduct(vector vec1, vector vec2);
 
 void projectMeshTo2D(mesh inputMesh, const double distance);
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr);
+
+void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr);
 
 void scale2DPoints(mesh inputMesh, const double scaleFactor);
 
@@ -67,3 +71,5 @@ void plotLineHigh(int x0, int y0, int x1, int y1, screenStruct screen);
 void BresenhamPlotLine(vector pointA, vector pointB, screenStruct screen);
 
 void displayScreen(screenStruct *screen);
+
+char getGrad(double lum);

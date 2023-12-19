@@ -31,7 +31,7 @@ int main(void){
     const double half_x = (double)screen.width * 0.5;
     const double half_y = (double)screen.height * 0.5;
     double ratio = ((double)screen.width/(double)screen.height);
-    printf("width: %d\nheight: %d\nhalf_x: %lf\nhalf_y: %lf\nratio: %lf\n",screen.width,screen.height,half_x,half_y,ratio);
+    // printf("width: %d\nheight: %d\nhalf_x: %lf\nhalf_y: %lf\nratio: %lf\n",screen.width,screen.height,half_x,half_y,ratio);
     double angle = 0;
 
     //screenspace center, not 3d space center
@@ -64,12 +64,12 @@ int main(void){
 
         if(importData.rotationY)
         {
-            rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
+            rotatedMesh = rotateMeshAroundY(rotatedMesh, ( (270 + angle) * (PI/180)));
         }
 
         if(importData.rotationZ)
         {
-            rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
+            rotatedMesh = rotateMeshAroundZ(rotatedMesh, ((180 + angle) * (PI/180)));
         }
         projectedMesh = copyMeshData(rotatedMesh, projectedMesh);
 
@@ -85,11 +85,12 @@ int main(void){
         scale2DPoints(projectedMesh,importData.scale);
 
         //draw lines
-        drawMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+        // drawMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+        rasteriseMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
 
         displayScreen(&screen);
 
-        angle = angle + 1;
+        angle = angle + 5;
         nanosleep((const struct timespec[]){{0, 83300000L}}, NULL);
     }
     free(normalsVecArr);

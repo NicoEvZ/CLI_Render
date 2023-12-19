@@ -56,14 +56,14 @@ vector divVecByScalar(vector vec, int scalar)
 {
     vector returnVec;
 
-    returnVec.x = vec.x/scalar;
-    returnVec.y = vec.y/scalar;
-    returnVec.z = vec.z/scalar;
+    returnVec.x = vec.x/(double)scalar;
+    returnVec.y = vec.y/(double)scalar;
+    returnVec.z = vec.z/(double)scalar;
 
     return returnVec;
 }
 
-vector crossProduct(vector vec1, vector vec2)
+vector vecCrossProduct(vector vec1, vector vec2)
 {
     vector output;
 
@@ -101,7 +101,7 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
 
 void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr) 
 {
-    // printf("\033[H\033[J"); //clears the screen
+    printf("\033[H\033[J"); //clears the screen
 
     triangle output = {{{0,0,0}}};
     vector normal = {0,0,0};
@@ -131,6 +131,135 @@ void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vec
             BresenhamPlotLine(output.p[2],output.p[0],screen);
         }
     }
+}
+
+void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr)
+{
+    printf("\033[H\033[J"); //clears the screen
+
+    triangle output = {{{0,0,0}}};
+    double trisToRasterCounter = 0;
+
+
+    vector lightDirection = {0, 0, 1};
+    double l = sqrtl(lightDirection.x * lightDirection.x + lightDirection.y * lightDirection.y + lightDirection.z * lightDirection.z);
+    lightDirection = divVecByScalar(lightDirection, l);
+
+    vector normal = {0,0,0};
+    
+    for (int i = 0; i < inputMesh.numOfTris; i++)
+    {
+        normal = inputVecArr[i];
+        double dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
+        char c = getGrad(dp);
+        // double normalCheck = normal.x * (inputMesh.tris[i].p[0].x - camera.x) +
+        //                      normal.y * (inputMesh.tris[i].p[0].y - camera.y) +
+        //                      normal.z * (inputMesh.tris[i].p[0].z - camera.z);
+
+        double normalCheck = normal.z;
+        // printf("Triangle: %d\n",i);
+        // printf("normal.z: %lf\n", normalCheck);
+
+        if (normalCheck > 0)
+        {
+            trisToRasterCounter++;
+            for (int j = 0; j < 3; j++)
+            {
+                //translates from unity to screenspace, and does aspect ratio adustment
+                // output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
+                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
+                output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
+            }
+
+            for (int x = 0; x < screen.width; x++)
+            {
+                for (int y = 0; y < screen.height; y++)
+                {
+                    if (pixelInTriangle(output,x,y))
+                    {
+                        screen.screen[x][y] = c;
+                    }
+                }
+            }
+            // fillTriangle(output.p[0], output.p[1], output.p[2], screen);
+            // BresenhamPlotLine(output.p[0],output.p[1],screen);
+            // BresenhamPlotLine(output.p[1],output.p[2],screen);
+            // BresenhamPlotLine(output.p[2],output.p[0],screen);
+        }
+    }
+}
+
+int pixelInTriangle(triangle inputTri, int x, int y)
+{
+    vector A = inputTri.p[0];
+    vector B = inputTri.p[1];
+    vector C = inputTri.p[2];
+    vector P;
+    P.x = x;
+    P.y = y;
+    // Calculate the barycentric coordinates
+    // of point P with respect to triangle ABC
+    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
+    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
+    double c = 1 - a - b;
+ 
+    // Check if all barycentric coordinates
+    // are non-negative
+    if (a >= 0 && b >= 0 && c >= 0) 
+    {
+        return 1;
+    } 
+    else
+    {
+        return 0;
+    }
+}
+
+char  getGrad(double lum)
+{
+    // `````` = 96
+    // '''''' = 39
+    // ****** = 42
+    // !!!!!! = 33
+    // $$$$$$ = 36
+    // &&&&&& = 38
+    // %%%%%% = 37
+    // ###### = 35
+
+    char outputChar;
+    int grad = (int)7 * lum;
+    switch (grad)
+    {
+    case 0:
+        outputChar = '`';
+        break;
+    case 1:
+        outputChar = '\'';
+        break;
+    case 2:
+        outputChar = '*';
+        break;
+    case 3:
+        outputChar = '!';
+        break;
+    case 4: 
+        outputChar = '$';
+        break;
+    case 5:
+        outputChar = '&';
+        break;
+    case 6:
+        outputChar = '%';
+        break;
+    case 7:
+        outputChar = '#';
+        break;
+    default:
+        outputChar = '?';
+        break;
+    }
+    return outputChar;
 }
 
 void scale2DPoints(mesh inputMesh, const double scaleFactor) 
@@ -216,7 +345,7 @@ vector calculateTriangleNormal(triangle inputTri)
     U = (subVec(inputTri.p[1],inputTri.p[0]));
     V = (subVec(inputTri.p[2],inputTri.p[1]));
 
-    normal = crossProduct(U, V);
+    normal = vecCrossProduct(U, V);
 
     //its normally normal to normalise the normal
 
@@ -421,4 +550,3 @@ void BresenhamPlotLine(vector pointA, vector pointB, screenStruct screen)
         }
     }
 }
-
