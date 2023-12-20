@@ -63,12 +63,12 @@ int main(void){
 
         if(importData.rotationY)
         {
-            rotatedMesh = rotateMeshAroundY(rotatedMesh, ( (270 + angle) * (PI/180)));
+            rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
         }
 
         if(importData.rotationZ)
         {
-            rotatedMesh = rotateMeshAroundZ(rotatedMesh, ((180 + angle) * (PI/180)));
+            rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
         }
         projectedMesh = copyMeshData(rotatedMesh, projectedMesh);
 
@@ -83,9 +83,15 @@ int main(void){
         //scale points
         scale2DPoints(projectedMesh,importData.scale);
 
-        //draw lines
-        // drawMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
-        rasteriseMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+        //select between vertex or rasterisation
+        if (importData.rasteriseBool)
+        {
+            rasteriseMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+        }
+        else
+        {
+            drawMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+        }
 
         displayScreen(&screen);
 

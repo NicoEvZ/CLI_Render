@@ -7,5 +7,6 @@
     "rotateY":true,
     "rotateZ":true,
     "screenWidth":111,
-    "screenHeight":41
+    "screenHeight":41,
+    "rasterise":true
 }

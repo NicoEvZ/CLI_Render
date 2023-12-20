@@ -26,7 +26,23 @@ typedef struct screenStruct
     int height;
 }screenStruct;
 
+typedef struct data
+{
+    double distance;
+    double scale;
+    char objPathBuffer[64];
+    int i;
+    int rotationX;
+    int rotationY;
+    int rotationZ;
+    int screenWidthImprt;
+    int screenHeightImprt;
+    int rasteriseBool;
+}data;
+
 mesh importMeshFromOBJFile(char * pathToFile);
+
+int importJSON(const char *file_path, data *importData_struct);
 
 char *stripString(char *inputString, char stripChar);
 
