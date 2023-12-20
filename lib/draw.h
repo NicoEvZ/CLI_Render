@@ -40,6 +40,12 @@ typedef struct data
     int rasteriseBool;
 }data;
 
+typedef struct mat4x4
+{
+    double m[4][4];
+}mat4x4;
+
+
 mesh importMeshFromOBJFile(char * pathToFile);
 
 int importJSON(const char *file_path, data *importData_struct);
@@ -52,9 +58,11 @@ vector addVec(vector vec1, vector vec2);
 
 vector subVec(vector vec1, vector vec2);
 
-vector divVecByScalar(vector vec, int scalar);
+vector divVecByScalar(vector vec, double scalar);
 
 vector vecCrossProduct(vector vec1, vector vec2);
+
+vector matrixVectorMultiply(vector input, mat4x4 m);
 
 void projectMeshTo2D(mesh inputMesh, const double distance);
 

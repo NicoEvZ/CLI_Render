@@ -268,13 +268,13 @@ vector subVec(vector vec1, vector vec2)
 }
 
 //devides each element of the vector by the value given
-vector divVecByScalar(vector vec, int scalar) 
+vector divVecByScalar(vector vec, double scalar) 
 {
     vector returnVec;
 
-    returnVec.x = vec.x/(double)scalar;
-    returnVec.y = vec.y/(double)scalar;
-    returnVec.z = vec.z/(double)scalar;
+    returnVec.x = vec.x/scalar;
+    returnVec.y = vec.y/scalar;
+    returnVec.z = vec.z/scalar;
 
     return returnVec;
 }
@@ -287,6 +287,23 @@ vector vecCrossProduct(vector vec1, vector vec2)
     output.y = (vec1.z * vec2.x) - (vec1.x * vec2.z);
     output.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
 
+    return output;
+}
+
+vector matrixVectorMultiply(vector input, mat4x4 m)
+{
+    vector output;
+
+    output.x = (input.x * m.m[0][0]) + (input.y * m.m[1][0]) + (input.z * m.m[2][0]) + (m.m[3][0]);
+    output.y = (input.x * m.m[0][1]) + (input.y * m.m[1][1]) + (input.z * m.m[2][1]) + (m.m[3][1]);
+    output.z = (input.x * m.m[0][2]) + (input.y * m.m[1][2]) + (input.z * m.m[2][2]) + (m.m[3][2]);
+    double w = (input.x * m.m[0][3]) + (input.y * m.m[1][3]) + (input.z * m.m[2][3]) + (m.m[3][3]);
+
+    if (w != 0.0)
+    {
+        output = divVecByScalar(output,w);
+    }
+    
     return output;
 }
 
