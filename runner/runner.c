@@ -90,8 +90,8 @@ int main(void){
 
         displayScreen(&screen);
 
-        angle = angle + 5;
-        nanosleep((const struct timespec[]){{0, 83300000L}}, NULL);
+        angle = angle + 1;
+        nanosleep((const struct timespec[]){{0, 166666667L}}, NULL);
     }
     free(normalsVecArr);
     deleteScreen(&screen);

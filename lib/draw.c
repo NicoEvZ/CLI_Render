@@ -130,6 +130,7 @@ void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vec
             BresenhamPlotLine(output.p[1],output.p[2],screen);
             BresenhamPlotLine(output.p[2],output.p[0],screen);
         }
+        // displayScreen(&screen);
     }
 }
 
@@ -141,7 +142,7 @@ void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen
     double trisToRasterCounter = 0;
 
 
-    vector lightDirection = {0, 0, 1};
+    vector lightDirection = {0, 1, 0};
     double l = sqrtl(lightDirection.x * lightDirection.x + lightDirection.y * lightDirection.y + lightDirection.z * lightDirection.z);
     lightDirection = divVecByScalar(lightDirection, l);
 
@@ -186,6 +187,9 @@ void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen
             // BresenhamPlotLine(output.p[1],output.p[2],screen);
             // BresenhamPlotLine(output.p[2],output.p[0],screen);
         }
+        // printf("\033[H\033[J"); //clears the screen
+        // displayScreen(&screen);
+
     }
 }
 
@@ -256,7 +260,7 @@ char  getGrad(double lum)
         outputChar = '#';
         break;
     default:
-        outputChar = '?';
+        outputChar = ' ';
         break;
     }
     return outputChar;

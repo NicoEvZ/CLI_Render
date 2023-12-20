@@ -1,11 +1,11 @@
 {
-    "distance":900,
-    "scale":300.0,
-    "objFile":"data/skull.obj",
+    "distance":15,
+    "scale":200.0,
+    "objFile":"data/testCube.obj",
     "iterations":100,
     "rotateX":true,
     "rotateY":true,
     "rotateZ":true,
-    "screenWidth":251,
-    "screenHeight":81
+    "screenWidth":111,
+    "screenHeight":41
 }
