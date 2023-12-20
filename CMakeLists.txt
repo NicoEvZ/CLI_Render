@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(Cube)
+project(CLI_Render)
 
 # Set compiler flags
 set(CMAKE_C_STANDARD 11)

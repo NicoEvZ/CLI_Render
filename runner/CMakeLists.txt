@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-add_executable(Cube runner.c)
-target_include_directories(Cube PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(CLI_Render runner.c)
+target_include_directories(CLI_Render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(Cube PRIVATE CubeLib m thirdparty-cJSON)
+target_link_libraries(CLI_Render PRIVATE CLI_RenderLib m thirdparty-cJSON)
