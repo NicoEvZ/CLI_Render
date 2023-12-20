@@ -99,7 +99,7 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
     }
 }
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr) 
+void drawMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr) 
 {
     printf("\033[H\033[J"); //clears the screen
 
@@ -122,8 +122,8 @@ void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vec
             {
                 //translates from unity to screenspace, and does aspect ratio adustment
                 // output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
-                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
-                output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
+                output.p[j].x = origin.x + (inputMesh.tris[i].p[j].x); 
+                output.p[j].y = origin.y + inputMesh.tris[i].p[j].y;
             
             }
             BresenhamPlotLine(output.p[0],output.p[1],screen);
@@ -161,7 +161,61 @@ int pixelInTriangle(triangle inputTri, int x, int y)
     }
 }
 
-void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr)
+int pixelInTriangle(triangle inputTri, int x, int y)
+{
+    vector A = inputTri.p[0];
+    vector B = inputTri.p[1];
+    vector C = inputTri.p[2];
+    vector P;
+    P.x = x;
+    P.y = y;
+    // Calculate the barycentric coordinates
+    // of point P with respect to triangle ABC
+    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
+    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
+    double c = 1 - a - b;
+ 
+    // Check if all barycentric coordinates
+    // are non-negative
+    if (a >= 0 && b >= 0 && c >= 0) 
+    {
+        return 1;
+    } 
+    else
+    {
+        return 0;
+    }
+}
+
+int pixelInTriangle(triangle inputTri, int x, int y)
+{
+    vector A = inputTri.p[0];
+    vector B = inputTri.p[1];
+    vector C = inputTri.p[2];
+    vector P;
+    P.x = x;
+    P.y = y;
+    // Calculate the barycentric coordinates
+    // of point P with respect to triangle ABC
+    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
+    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
+    double c = 1 - a - b;
+ 
+    // Check if all barycentric coordinates
+    // are non-negative
+    if (a >= 0 && b >= 0 && c >= 0) 
+    {
+        return 1;
+    } 
+    else
+    {
+        return 0;
+    }
+}
+
+void rasteriseMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr)
 {
     printf("\033[H\033[J"); //clears the screen
 
@@ -195,8 +249,8 @@ void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen
             {
                 //translates from unity to screenspace, and does aspect ratio adustment
                 // output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
-                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
-                output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
+                output.p[j].x = origin.x + (inputMesh.tris[i].p[j].x); 
+                output.p[j].y = origin.y + inputMesh.tris[i].p[j].y;
             }
 
             for (int x = 0; x < screen.width; x++)

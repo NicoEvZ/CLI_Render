@@ -42,9 +42,9 @@ vector vecCrossProduct(vector vec1, vector vec2);
 
 void projectMeshTo2D(mesh inputMesh, const double distance);
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr);
+void drawMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr);
 
-void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr);
+void rasteriseMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr);
 
 void scale2DPoints(mesh inputMesh, const double scaleFactor);
 

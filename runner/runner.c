@@ -34,7 +34,7 @@ int main(void){
     double angle = 0;
 
     //screenspace center, not 3d space center
-    double origin[]={half_x,half_y}; //origin is middle of screenspace
+    vector origin={half_x,half_y,0}; //origin is middle of screenspace
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
