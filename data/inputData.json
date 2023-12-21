@@ -1,12 +1,12 @@
 {
-    "distance":15,
+    "distance":8,
     "scale":200.0,
     "objFile":"data/testCube.obj",
     "iterations":100,
-    "rotateX":true,
-    "rotateY":true,
-    "rotateZ":true,
+    "rotateX":false,
+    "rotateY":false,
+    "rotateZ":false,
     "screenWidth":111,
     "screenHeight":41,
-    "rasterise":true
+    "rasterise":false
 }

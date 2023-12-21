@@ -12,6 +12,7 @@ typedef struct
     int rotationZ;
     int screenWidthImprt;
     int screenHeightImprt;
+    int rasteriseBool;
 } renderConfig;
 
 int importJSON(const char *file_path, renderConfig *importData_struct);

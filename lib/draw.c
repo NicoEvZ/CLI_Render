@@ -2,7 +2,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include "draw.h"
+#include "runner.h"
 
+// #include "quick_sort.h"
 
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
@@ -15,222 +17,6 @@
 
 vector camera = {0,0,0};
 
-mesh importMeshFromOBJFile (char * pathToFile) 
-{
-    FILE *obj = fopen(pathToFile, "r");
-
-    mesh newMesh;
-    newMesh.numOfTris = 0;
-
-    if (NULL == obj) 
-    {
-        printf("Error: .OBJ file not found\n");
-        printf("Reminder: run the program from top level \"Cube/\" dir\n");
-        return newMesh;
-    }
-
-    char line[MAX_LINE_LENGTH];
-    int verts = 0;
-    int faces = 0;
-    vector pointCoords;
-    vector average;
-    vector runningTotal;
-    int p0, p1, p2;
-    
-    //counts faces and verticies.
-    while (fgets(line, sizeof(line), obj) != NULL) 
-    {
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            verts++;
-        }
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            faces++;
-        }
-    }
-
-    newMesh.numOfTris = faces;
-    newMesh.numOfVerts = verts;
-
-    vector (*vectorArray) = malloc(newMesh.numOfVerts * sizeof(vector)); //dynamically allocates an array of vectors, based off the number verticies.
-
-    newMesh.tris = (triangle*) malloc(newMesh.numOfTris * sizeof(triangle)); //dynamically allocates memory for the number of triangles
-
-    rewind(obj);
-    char a[20];
-    char b[20];
-    char c[20];
-    char junk[MAX_LINE_LENGTH];
-    char buffChar[20];
-    int vCount = 0;
-    int fCount = 0;
-    while (fgets(line, sizeof(line), obj) != NULL)
-    {
-        //reads all lines of obj that start with "v " into the dynamically assigned array of vectors.
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            sscanf(line,"v %lf %lf %lf", &pointCoords.x, &pointCoords.y, &pointCoords.z);
-
-            vectorArray[vCount] = pointCoords;
-
-            vCount++;
-
-            runningTotal = addVec(runningTotal, pointCoords);
-        }
-        //reads all lines of obj that start with "f ".
-        //each int after 'f ' represents an index (starting at 1), of the vector array of verticies.
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            sscanf(line,"f %s %s %s", a, b, c);
-
-            // for (int i = 0; i < sizeof(buffChar); i++)
-            // *a = stripString(a, '/');
-            // b[0] = stripString(b, '/');
-            // c[0] = stripString(c, '/');
-            sscanf(a, "%d/%s", &p0, &junk);
-            sscanf(b, "%d/%s", &p1, &junk);
-            sscanf(c, "%d/%s", &p2, &junk);
-
-            newMesh.tris[fCount].p[0] = vectorArray[(p0-1)];
-            newMesh.tris[fCount].p[1] = vectorArray[(p1-1)];
-            newMesh.tris[fCount].p[2] = vectorArray[(p2-1)];
-
-            fCount++;
-        }
-    }
-
-    #ifdef DEBUG_POINTS
-    //Handy debug for seeing if points were imported properly
-    for (int i = 0; i < vCount; i++) 
-    {
-          printf("%d: %lf, %lf, %lf\n", i, vectorArray[i].x, vectorArray[i].y, vectorArray[i].z);
-    }
-    #endif
-
-    average = divVecByScalar(runningTotal, vCount);
-
-    for (int j = 0; j < fCount; j++) 
-    {
-        for (int i = 0; i < 3; i++) 
-        {
-            newMesh.tris[j].p[i] = subVec(newMesh.tris[j].p[i], average);
-        }
-    }
-
-    free(vectorArray);
-    fclose(obj);
-
-    return newMesh;
-}
-
-char * stripString(char *inputString, char stripChar)
-{
-    char buffChar[MAX_LINE_LENGTH]={0};
-    for (int i = 0; i < MAX_LINE_LENGTH; i++)
-            {   
-                if (inputString[i] != stripChar)
-                {
-                    buffChar[i] = inputString[i];
-                }
-                else
-                {
-                    break;
-                }
-            }
-    return *buffChar;
-}
-
-int importJSON(const char *file_path, data *importData_struct)
-{
-    // Open the file for reading
-    FILE *file = fopen(file_path, "r");
-    if (file == NULL) {
-        perror("Error opening file");
-        return 1;
-    }
-
-    // Determine the size of the file
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    // Read the content of the file into a buffer
-    char *json_buffer = (char *)malloc(file_size + 1);
-    fread(json_buffer, 1, file_size, file);
-    fclose(file);
-
-    // Null-terminate the buffer
-    json_buffer[file_size] = '\0';
-
-    // Parse the JSON from the buffer
-    cJSON *root = cJSON_Parse(json_buffer);
-
-    if (root == NULL) {
-        printf("Error parsing JSON: %s\n", cJSON_GetErrorPtr());
-        free(json_buffer);
-        return 1;
-    }
-
-    // Access values in the JSON object    
-    cJSON *distanceJSON = cJSON_GetObjectItemCaseSensitive(root, "distance");
-    cJSON *scaleJSON = cJSON_GetObjectItemCaseSensitive(root, "scale");
-    cJSON *objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
-    cJSON *iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
-    cJSON *rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
-    cJSON *rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
-    cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
-    cJSON *screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
-    cJSON *screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
-    cJSON *rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
-
-
-    if(cJSON_IsNumber(distanceJSON))
-    {
-        importData_struct->distance = distanceJSON->valuedouble;
-    }
-
-    if(cJSON_IsNumber(scaleJSON))
-    {
-        importData_struct->scale = scaleJSON->valuedouble;
-    }
-
-    if(cJSON_IsNumber(iterationsJSON))
-    {
-        importData_struct->i = iterationsJSON->valueint;
-    }
-
-    if(cJSON_IsBool(rotateXJSON) & cJSON_IsBool(rotateYJSON) & cJSON_IsBool(rotateZJSON))
-    {
-        importData_struct->rotationX = rotateXJSON->valueint;
-        importData_struct->rotationY = rotateYJSON->valueint;
-        importData_struct->rotationZ = rotateZJSON->valueint;
-    }
-
-    if(cJSON_IsString(objFileJOSN))
-    {
-        strncpy(importData_struct->objPathBuffer,objFileJOSN->valuestring,sizeof(importData_struct->objPathBuffer) -1);
-        importData_struct->objPathBuffer[sizeof(importData_struct->objPathBuffer) -1] = '\0';
-    }
-
-    if(cJSON_IsNumber(screenWidthJSON) & cJSON_IsNumber(screenHeightJSON))
-    {
-        importData_struct->screenWidthImprt = screenWidthJSON->valueint;
-        importData_struct->screenHeightImprt = screenHeightJSON->valueint;
-    }
-
-    if (cJSON_IsBool(rasteriseBoolJSON))
-    {
-        importData_struct->rasteriseBool = rasteriseBoolJSON->valueint;
-    }
-
-    // Don't forget to free the cJSON object and the buffer when you're done with them
-    cJSON_Delete(root);
-    free(json_buffer);
-
-    return 0;
-}
-
 mesh copyMeshData(mesh fromMesh, mesh toMesh)
 {
     toMesh.numOfTris = fromMesh.numOfTris;
@@ -241,6 +27,15 @@ mesh copyMeshData(mesh fromMesh, mesh toMesh)
         toMesh.tris[i] = fromMesh.tris[i];
     }
     return toMesh;
+}
+
+void copyTriangleData(triangle fromTri, triangle *toTri)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        toTri->p[i] = fromTri.p[i];
+    }
+    toTri->symbol = fromTri.symbol;
 }
 
 //vec1.elements plus vec2.elements
@@ -290,21 +85,45 @@ vector vecCrossProduct(vector vec1, vector vec2)
     return output;
 }
 
-vector matrixVectorMultiply(vector input, mat4x4 m)
+triangle matrixVectorMultiply(triangle input, mat4x4 m)
 {
-    vector output;
-
-    output.x = (input.x * m.m[0][0]) + (input.y * m.m[1][0]) + (input.z * m.m[2][0]) + (m.m[3][0]);
-    output.y = (input.x * m.m[0][1]) + (input.y * m.m[1][1]) + (input.z * m.m[2][1]) + (m.m[3][1]);
-    output.z = (input.x * m.m[0][2]) + (input.y * m.m[1][2]) + (input.z * m.m[2][2]) + (m.m[3][2]);
-    double w = (input.x * m.m[0][3]) + (input.y * m.m[1][3]) + (input.z * m.m[2][3]) + (m.m[3][3]);
-
-    if (w != 0.0)
+    triangle output;
+    for (int i = 0; i < 3; i++)
     {
-        output = divVecByScalar(output,w);
+        output.p[i].x = (input.p[i].x * m.m[0][0]) + (input.p[i].y * m.m[1][0]) + (input.p[i].z * m.m[2][0]) + (m.m[3][0]);
+        output.p[i].y = (input.p[i].x * m.m[0][1]) + (input.p[i].y * m.m[1][1]) + (input.p[i].z * m.m[2][1]) + (m.m[3][1]);
+        output.p[i].z = (input.p[i].x * m.m[0][2]) + (input.p[i].y * m.m[1][2]) + (input.p[i].z * m.m[2][2]) + (m.m[3][2]);
+        double w      = (input.p[i].x * m.m[0][3]) + (input.p[i].y * m.m[1][3]) + (input.p[i].z * m.m[2][3]) + (m.m[3][3]);
+
+        if (w != 0.0)
+        {
+            output.p[i] = divVecByScalar(output.p[i],w);
+        }
     }
-    
     return output;
+}
+
+void initProjectMat(renderConfig importData, mat4x4 *matProj)
+{
+    double near = 0.1;
+    double far = 1000;
+    double fov = 90;
+    double aspectRatio = (double)importData.screenHeightImprt / (double)importData.screenWidthImprt;
+    double fovRad = 1 / tanf(fov * 0.5 / 180 * PI);
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            matProj->m[i][j] = 0;
+        }
+    }
+
+    matProj->m[0][0] = aspectRatio * fovRad;
+    matProj->m[1][1] = fovRad;
+    matProj->m[2][2] = far / (far - near);
+    matProj->m[3][2] = (-far * near) / (far - near);
+    matProj->m[2][3] = 1;
 }
 
 void projectMeshTo2D(mesh inputMesh, const double distance) 
@@ -572,6 +391,19 @@ void scale2DPoints(mesh inputMesh, const double scaleFactor)
     }
 }
 
+void scaleTriangle(triangle *inputTriangle, screenStruct screen)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        inputTriangle->p[i].x += 1;
+        inputTriangle->p[i].y += 1;
+
+        inputTriangle->p[i].x *= (0.5 * (double)screen.width);
+        inputTriangle->p[i].y *= (0.5 * (double)screen.height);
+    }
+}
+
+
 mesh rotateMeshAroundX(mesh inputMesh, const double angle) 
 {
     vector rotatedVec = {0,0,0};
@@ -589,6 +421,24 @@ mesh rotateMeshAroundX(mesh inputMesh, const double angle)
         }
     }
     return inputMesh;
+}
+
+void initRotateXMat(mat4x4 * matX, double angle)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            matX->m[i][j] = 0;
+        }
+    }
+
+    matX->m[0][0] = 1;
+    matX->m[1][1] = cosf(angle);
+    matX->m[1][2] = sinf(angle);
+    matX->m[2][1] = -sinf(angle);
+    matX->m[2][2] = cosf(angle);
+    matX->m[3][3] = 1;
 }
 
 mesh rotateMeshAroundY(mesh inputMesh, const double angle) 
@@ -610,6 +460,24 @@ mesh rotateMeshAroundY(mesh inputMesh, const double angle)
     return inputMesh;
 }
 
+void initRotateYMat(mat4x4 * matY, double angle)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            matY->m[i][j] = 0;
+        }
+    }
+
+    matY->m[0][0] = cosf(angle);;
+    matY->m[0][2] = -sinf(angle);
+    matY->m[1][1] = 1;
+    matY->m[2][0] = sinf(angle);
+    matY->m[2][2] = cosf(angle);
+    matY->m[3][3] = 1;
+}
+
 mesh rotateMeshAroundZ(mesh inputMesh, const double angle) 
 {
     vector rotatedVec = {0,0,0};
@@ -627,6 +495,32 @@ mesh rotateMeshAroundZ(mesh inputMesh, const double angle)
         }
     }
     return inputMesh;
+}
+
+void initRotateZMat(mat4x4 * matZ, double angle)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            matZ->m[i][j] = 0;
+        }
+    }
+
+    matZ->m[0][0] = cosf(angle);
+    matZ->m[0][1] = sinf(angle);
+    matZ->m[1][0] = -sinf(angle);
+    matZ->m[1][1] = cosf(angle);
+    matZ->m[2][2] = 1;
+    matZ->m[3][3] = 1;
+}
+
+void translateTriangle(triangle *triToTranslate, double distance)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        triToTranslate->p[i].z = triToTranslate->p[i].z + distance;
+    }
 }
 
 vector calculateTriangleNormal(triangle inputTri)

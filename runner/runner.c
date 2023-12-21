@@ -9,10 +9,13 @@
 #include "draw.h"
 #include "runner.h"
 
+#include "quick_sort.h"
+
 
 int main(void){
     renderConfig importData;
     screenStruct screen;
+    mat4x4 projMat;
 
     const char jsonImportPath[] = "data/inputData.json";
 
@@ -27,6 +30,7 @@ int main(void){
     screen.height = importData.screenHeightImprt;
 
     initScreen(&screen);
+    initProjectMat(importData,&projMat);
 
     const double half_x = (double)screen.width * 0.5;
     const double half_y = (double)screen.height * 0.5;
@@ -43,60 +47,117 @@ int main(void){
         return 0;
     }
 
-    mesh rotatedMesh;
-    mesh projectedMesh;
-    vector (*normalsVecArr) = malloc(baseMesh.numOfTris * sizeof(vector));    
- 
+    mat4x4 rotateX;
+    mat4x4 rotateY;
+    mat4x4 rotateZ;
+
+    // mesh rotatedMesh;
+    // mesh projectedMesh;
+    vector (*normalsVecArr) = malloc(baseMesh.numOfTris * sizeof(vector));
+    triangle (*renderBufferArr) = malloc(baseMesh.numOfTris * sizeof(triangle));
     //display 
     for (int i = 0; i < importData.i; i++)
     {
-        //clear screen
+        double numOfTrisToRender = 0;
         clearScreen(&screen);
+        initRotateXMat(&rotateX, angle);
+        initRotateYMat(&rotateY, angle);
+        initRotateZMat(&rotateZ, angle);
 
-        rotatedMesh = copyMeshData(baseMesh, rotatedMesh);
-
-        // rotate around axes
-        if(importData.rotationX)
+        for (int j = 0; j < baseMesh.numOfTris; j++)
         {
-            rotatedMesh = rotateMeshAroundX(rotatedMesh, (angle * (PI/180)));
+            triangle rotatedTri;
+            triangle projectedTri;
+            triangle translatedTri;
+            //clear screen
+
+            copyTriangleData(baseMesh.tris[j], &rotatedTri);
+
+            // rotate around axes
+            if(importData.rotationX)
+            {
+                rotatedTri = matrixVectorMultiply(rotatedTri, rotateX);
+                // rotatedMesh = rotateMeshAroundX(rotatedMesh, (angle * (PI/180)));
+            }
+
+            if(importData.rotationY)
+            {
+                rotatedTri = matrixVectorMultiply(rotatedTri, rotateY);
+                // rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
+            }
+
+            if(importData.rotationZ)
+            {
+                rotatedTri = matrixVectorMultiply(rotatedTri, rotateZ);
+                // rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
+            }
+
+            copyTriangleData(rotatedTri, &translatedTri);
+
+            //offest into screen
+            translateTriangle(&translatedTri, importData.distance);
+
+            // distance =  30 * (sin(0.1 * i)+ 1.8);
+
+            //calculate normals
+            normalsVecArr[j] = calculateTriangleNormal(translatedTri);
+            // calculateMeshNormals(projectedMesh, normalsVecArr);
+
+            if (normalsVecArr[j].z > 0)
+            {    
+                copyTriangleData(translatedTri, &projectedTri);
+
+                //assign the "illumination" symbol based off normal
+                vector lightDirection = {0, 1, 0};
+                illuminateTriangle(&translatedTri,normalsVecArr[j],lightDirection);
+
+                //project 3D --> 2D
+                projectedTri.p[0].x *= CHAR_CONST;
+                projectedTri.p[1].x *= CHAR_CONST;
+                projectedTri.p[2].x *= CHAR_CONST;
+
+                projectedTri = matrixVectorMultiply(translatedTri, projMat);
+                // projectMeshTo2D(projectedMesh, importData.distance);
+                
+                //scale points
+                scaleTriangle(&projectedTri, screen);
+                // scale2DPoints(projectedMesh,importData.scale);
+
+                renderBufferArr[j] = projectedTri;
+                numOfTrisToRender++;
+
+            }
         }
 
-        if(importData.rotationY)
-        {
-            rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
-        }
-
-        if(importData.rotationZ)
-        {
-            rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
-        }
-        projectedMesh = copyMeshData(rotatedMesh, projectedMesh);
-
-        // distance =  30 * (sin(0.1 * i)+ 1.8);
-
-        //calculate normals
-        calculateMeshNormals(projectedMesh, normalsVecArr);
-
-        //project 3D --> 2D
-        projectMeshTo2D(projectedMesh, importData.distance);
+        triangle (*trisToRender) = malloc(numOfTrisToRender*sizeof(triangle));
         
-        //scale points
-        scale2DPoints(projectedMesh,importData.scale);
+        for (int k = 0; k < numOfTrisToRender; k++)
+        {
+            trisToRender[k] = renderBufferArr[k];
+        }
 
         //select between vertex or rasterisation
-        if (importData.rasteriseBool)
+        for (int trisInView = 0; trisInView < numOfTrisToRender; trisInView++)
         {
-            rasteriseMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
-        }
-        else
-        {
-            drawMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+            quickSort(trisToRender, 0, (numOfTrisToRender -1));
+
+            if (importData.rasteriseBool)
+            {
+                rasteriseTriangleOnScreen(trisToRender[trisInView], screen);
+                // rasteriseMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+            }
+            else
+            {
+                drawTriangleOnScreen(trisToRender[trisInView], screen);
+                // drawMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+            }
         }
 
         displayScreen(&screen);
 
         angle = angle + 1;
         nanosleep((const struct timespec[]){{0, 166666667L}}, NULL);
+        free(trisToRender);
     }
     free(normalsVecArr);
     deleteScreen(&screen);
