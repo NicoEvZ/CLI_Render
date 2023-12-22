@@ -26,19 +26,6 @@ typedef struct screenStruct
     int height;
 }screenStruct;
 
-typedef struct data
-{
-    double distance;
-    double scale;
-    char objPathBuffer[64];
-    int i;
-    int rotationX;
-    int rotationY;
-    int rotationZ;
-    int screenWidthImprt;
-    int screenHeightImprt;
-}data;
-
 mesh importMeshFromOBJFile(char * pathToFile);
 
 mesh copyMeshData(mesh fromMesh, mesh toMesh);
