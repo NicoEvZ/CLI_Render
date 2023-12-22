@@ -2,10 +2,13 @@
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
-#include "cJson-w.h"
-#include "draw.h"
+#include <stdlib.h>
 
+#include "cJson-w.h"
+
+#include "draw.h"
 #include "runner.h"
+
 
 int main(void){
     renderConfig importData;
