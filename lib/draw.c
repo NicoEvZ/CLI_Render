@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "draw.h"
 
-#define SCALE_FACTOR 500
+
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
@@ -11,104 +11,9 @@
 
 //#define DEBUG_POINTS
 
-#define MAX_LINE_LENGTH 256
+#define CHAR_CONST 2.3
 
-mesh importMeshFromOBJFile (char * pathToFile) 
-{
-    FILE *obj = fopen(pathToFile, "r");
-
-    mesh newMesh;
-    newMesh.numOfTris = 0;
-
-    if (NULL == obj) 
-    {
-        printf("Error: .OBJ file not found\n");
-        printf("Try to run the program from top level \"Cube/\" dir\n");
-        return newMesh;
-    }
-
-    char line[MAX_LINE_LENGTH];
-    int verts = 0;
-    int faces = 0;
-    vector pointCoords;
-    vector average;
-    vector runningTotal;
-    int p0, p1, p2;
-    
-    //counts faces and verticies.
-    while (fgets(line, sizeof(line), obj) != NULL) 
-    {
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            verts++;
-        }
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            faces++;
-        }
-    }
-
-    newMesh.numOfTris = faces;
-    newMesh.numOfVerts = verts;
-
-    vector (*vectorArray) = malloc(newMesh.numOfVerts * sizeof(vector)); //dynamically allocates an array of vectors, based off the number verticies.
-
-    newMesh.tris = (triangle*) malloc(newMesh.numOfTris * sizeof(triangle)); //dynamically allocates memory for the number of triangles
-
-    rewind(obj);
-
-    int vCount = 0;
-    int fCount = 0;
-    while (fgets(line, sizeof(line), obj) != NULL)
-    {
-        //reads all lines of obj that start with "v " into the dynamically assigned array of vectors.
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            sscanf(line,"v %lf %lf %lf", &pointCoords.x, &pointCoords.y, &pointCoords.z);
-
-            vectorArray[vCount] = pointCoords;
-
-            vCount++;
-
-            runningTotal = addVec(runningTotal, pointCoords);
-        }
-        //reads all lines of obj that start with "f ".
-        //each int after 'f ' represents an index (starting at 1), of the vector array of verticies.
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            sscanf(line,"f %d %d %d", &p0, &p1, &p2);
-
-            newMesh.tris[fCount].p[0] = vectorArray[(p0-1)];
-            newMesh.tris[fCount].p[1] = vectorArray[(p1-1)];
-            newMesh.tris[fCount].p[2] = vectorArray[(p2-1)];
-
-            fCount++;
-        }
-    }
-
-    #ifdef DEBUG_POINTS
-    //Handy debug for seeing if points were imported properly
-    for (int i = 0; i < vCount; i++) 
-    {
-          printf("%d: %lf, %lf, %lf\n", i, vectorArray[i].x, vectorArray[i].y, vectorArray[i].z);
-    }
-    #endif
-
-    average = divVecByScalar(runningTotal, vCount);
-
-    for (int j = 0; j < fCount; j++) 
-    {
-        for (int i = 0; i < 3; i++) 
-        {
-            newMesh.tris[j].p[i] = subVec(newMesh.tris[j].p[i], average);
-        }
-    }
-
-    free(vectorArray);
-    fclose(obj);
-
-    return newMesh;
-}
+vector camera = {0,0,0};
 
 mesh copyMeshData(mesh fromMesh, mesh toMesh)
 {
@@ -178,6 +83,8 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
         {
         tempVec = inputMesh.tris[i].p[j];
 
+        tempVec.x = tempVec.x * CHAR_CONST;
+
         double zPerspective = 1/(distance - tempVec.z);
 
         double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
@@ -192,19 +99,30 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
     }
 }
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]) 
+void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr) 
 {
+    // printf("\033[H\033[J"); //clears the screen
+
     triangle output = {{{0,0,0}}};
-    vector normal= {0,0,0};
+    vector normal = {0,0,0};
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
-        normal = calculateTriangleNormal(inputMesh.tris[i]);
-        if (normal.z > 0)
+        normal = inputVecArr[i];
+        // double normalCheck = normal.x * (inputMesh.tris[i].p[0].x - camera.x) +
+        //                      normal.y * (inputMesh.tris[i].p[0].y - camera.y) +
+        //                      normal.z * (inputMesh.tris[i].p[0].z - camera.z);
+
+        double normalCheck = normal.z;
+        // printf("Triangle: %d\n",i);
+        // printf("normal.z: %lf\n", normalCheck);
+
+        if (normalCheck > 0)
         {
             for (int j = 0; j < 3; j++)
             {
                 //translates from unity to screenspace, and does aspect ratio adustment
-                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
+                // output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
+                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
                 output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
             
             }
@@ -215,7 +133,7 @@ void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen
     }
 }
 
-void scale2DPoints(mesh inputMesh) 
+void scale2DPoints(mesh inputMesh, const double scaleFactor) 
 {
     for (int i = 0; i < inputMesh.numOfTris; i++) 
     {
@@ -225,8 +143,8 @@ void scale2DPoints(mesh inputMesh)
             double x = inputMesh.tris[i].p[j].x;
             double y = inputMesh.tris[i].p[j].y;
 
-            x = x * SCALE_FACTOR;
-            y = y * SCALE_FACTOR;
+            x = x * scaleFactor;
+            y = y * scaleFactor;
 
             inputMesh.tris[i].p[j].x = x;
             inputMesh.tris[i].p[j].y = y;
@@ -299,26 +217,59 @@ vector calculateTriangleNormal(triangle inputTri)
     V = (subVec(inputTri.p[2],inputTri.p[1]));
 
     normal = crossProduct(U, V);
+
+    //its normally normal to normalise the normal
+
+    double l = sqrtl(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+    normal = divVecByScalar(normal, l);
     
     return normal;
 }
 
-void initScreen(int screenArr[MAX_X][MAX_Y]) 
+void calculateMeshNormals(mesh inputMesh, vector *inputArray)
 {
-    for (int x = 0; x < MAX_X; x++) 
+    vector normal = {0,0,0};
+    for (int i = 0; i < inputMesh.numOfTris; i++)
     {
-        for (int y = 0; y < MAX_Y; y++) 
+        normal = calculateTriangleNormal(inputMesh.tris[i]);
+        inputArray[i] = normal;
+    }
+}
+
+void clearScreen(screenStruct *screen) 
+{
+    for (int x = 0; x < screen->width; x++) 
+    {
+        for (int y = 0; y < screen->height; y++) 
         {
-            screenArr[x][y]=BLANK;
-            if ((x == 0) | (y == 0) | (x == (MAX_X-1)) | (y == (MAX_Y-1))) 
+            screen->screen[x][y]=BLANK;
+            if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
             {   
-                screenArr[x][y]=BORDER;
+                screen->screen[x][y]=BORDER;
             }
         }
     }
 }
 
-void drawInScreen(int screenArr[MAX_X][MAX_Y], int x, int y, const char ASCII) 
+void initScreen(screenStruct *screen)
+{
+    screen->screen = malloc(screen->width * sizeof(int *));
+    for (int i = 0; i < screen->width; i++)
+    {
+        screen->screen[i] = malloc(screen->height * sizeof(int));
+    }
+}
+
+void deleteScreen(screenStruct *screen)
+{
+    for (int i = 0; i < screen->width; i++)
+    {
+        free(screen->screen[i]);
+    }
+    free(screen->screen);
+}
+
+void drawInScreen(screenStruct screen, int x, int y, const char ASCII) 
 {
     if (x < 0) 
     {
@@ -326,10 +277,10 @@ void drawInScreen(int screenArr[MAX_X][MAX_Y], int x, int y, const char ASCII)
         x = 0;
     }
 
-    if (x > (MAX_X-1)) 
+    if (x > (screen.width-1)) 
     {
 
-        x = MAX_X-1;
+        x = screen.width-1;
     }
 
     if (y < 0) 
@@ -338,34 +289,34 @@ void drawInScreen(int screenArr[MAX_X][MAX_Y], int x, int y, const char ASCII)
         y = 0;
     }
 
-    if (y > (MAX_Y-1)) 
+    if (y > (screen.height-1)) 
     {
 
-        y = MAX_Y-1;
+        y = screen.height-1;
     }
 
-    screenArr[x][y] = ASCII;
+    screen.screen[x][y] = ASCII;
 }
 
-void displayScreen(int arr[MAX_X][MAX_Y])
+void displayScreen(screenStruct *screen)
 {
     // Iterate over y axis
-    char outputString[MAX_X+1];
-    for (int y = 0; y < MAX_Y; y++)
+    char outputString[screen->width+1];
+    for (int y = 0; y < screen->height; y++)
     {
-        for (int x = 0; x < MAX_X; x++)
+        for (int x = 0; x < screen->width; x++)
         {
             // Store current value in array at point(x,y), as char in string
-            // String is length of MAX_X
-            outputString[x]=arr[x][y];
+            // String is length of screen.width
+            outputString[x]=screen->screen[x][y];
         }
         // Display filled string, and new line character, before moving onto the next value of y
-        outputString[MAX_X]='\0';
+        outputString[screen->width]='\0';
         printf("%s\n",outputString);
     }
 }
 
-void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
+void plotLineLow(int x0, int y0, int x1, int y1, screenStruct screen)
 {
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -381,7 +332,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
 
     for (int x = x0; x <= x1; x++)
     {
-        if ((x <= 0) | (y <= 0) | (x >= (MAX_X-1)) | (y >= (MAX_Y-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
             drawInScreen(screen,x,y,BORDER);
         }
@@ -402,7 +353,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
     }
 }
 
-void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
+void plotLineHigh(int x0, int y0, int x1, int y1, screenStruct screen)
 {
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -417,7 +368,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
 
     for (int y = y0; y <= y1; y++) 
     {
-        if ((x <= 0) | (y <= 0) | (x >= (MAX_X-1)) | (y >= (MAX_Y-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
             drawInScreen(screen,x,y,BORDER);
         }
@@ -438,7 +389,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
     }
 }
 
-void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y])
+void BresenhamPlotLine(vector pointA, vector pointB, screenStruct screen)
 {
     // Initialise points as doubles to do maths nicer
     int x0 = (int)pointA.x;

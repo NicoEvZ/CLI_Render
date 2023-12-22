@@ -1,8 +1,5 @@
 #pragma once
 
-#define MAX_X 111 //best if odd
-#define MAX_Y 43 //best if odd
-
 #define PI 3.14159
 
 typedef struct vector
@@ -22,11 +19,18 @@ typedef struct mesh
     int numOfVerts;
 }mesh;
 
-mesh importMeshFromOBJFile (char * pathToFile);
+typedef struct screenStruct
+{ 
+    int** screen;
+    int width;
+    int height;
+}screenStruct;
+
+mesh importMeshFromOBJFile(char * pathToFile);
 
 mesh copyMeshData(mesh fromMesh, mesh toMesh);
 
-vector addVec( vector vec1, vector vec2);
+vector addVec(vector vec1, vector vec2);
 
 vector subVec(vector vec1, vector vec2);
 
@@ -36,11 +40,15 @@ vector crossProduct(vector vec1, vector vec2);
 
 void projectMeshTo2D(mesh inputMesh, const double distance);
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
+void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr);
 
-void scale2DPoints(mesh inputMesh);
+void scale2DPoints(mesh inputMesh, const double scaleFactor);
 
-void initScreen(int screenArr[MAX_X][MAX_Y]);
+void clearScreen(screenStruct *screen);
+
+void initScreen(screenStruct *screen);
+
+void deleteScreen(screenStruct *screen);
 
 mesh rotateMeshAroundX(mesh inputMesh, const double angle);
 
@@ -50,10 +58,12 @@ mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
 
 vector calculateTriangleNormal(triangle inputTri);
 
-void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
+void calculateMeshNormals(mesh inputMesh, vector *inputArray);
 
-void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
+void plotLineLow(int x0, int y0, int x1, int y1, screenStruct screen);
 
-void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y]);
+void plotLineHigh(int x0, int y0, int x1, int y1, screenStruct screen);
 
-void displayScreen(int arr[MAX_X][MAX_Y]);
+void BresenhamPlotLine(vector pointA, vector pointB, screenStruct screen);
+
+void displayScreen(screenStruct *screen);
