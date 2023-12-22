@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "draw.h"
-#include "cJSON.h"
+#include "cJson-w.h"
 
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
