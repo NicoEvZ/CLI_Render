@@ -32,13 +32,14 @@ int main(void){
     initScreen(&screen);
     initProjectMat(importData,&projMat);
 
-    const double half_x = (double)screen.width * 0.5;
-    const double half_y = (double)screen.height * 0.5;
+    // const double half_x = (double)screen.width * 0.5;
+    // const double half_y = (double)screen.height * 0.5;
+    // double ratio = ((double)screen.width/(double)screen.height);
     // printf("width: %d\nheight: %d\nhalf_x: %lf\nhalf_y: %lf\nratio: %lf\n",screen.width,screen.height,half_x,half_y,ratio);
     double angle = 0;
 
     //screenspace center, not 3d space center
-    vector origin={half_x,half_y,0}; //origin is middle of screenspace
+    // vector origin={half_x,half_y,0}; //origin is middle of screenspace
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
@@ -50,6 +51,8 @@ int main(void){
     mat4x4 rotateX;
     mat4x4 rotateY;
     mat4x4 rotateZ;
+    vector camera = {0,0,0};
+
 
     // mesh rotatedMesh;
     // mesh projectedMesh;
@@ -58,7 +61,7 @@ int main(void){
     //display 
     for (int i = 0; i < importData.i; i++)
     {
-        double numOfTrisToRender = 0;
+        int numOfTrisToRender = 0;
         clearScreen(&screen);
         initRotateXMat(&rotateX, angle);
         initRotateYMat(&rotateY, angle);
@@ -103,18 +106,21 @@ int main(void){
             normalsVecArr[j] = calculateTriangleNormal(translatedTri);
             // calculateMeshNormals(projectedMesh, normalsVecArr);
 
-            if (normalsVecArr[j].z > 0)
+            if ((normalsVecArr[j].x * (translatedTri.p[0].x - camera.x) +
+                 normalsVecArr[j].y * (translatedTri.p[0].y - camera.y) +
+                 normalsVecArr[j].z * (translatedTri.p[0].z - camera.z)) < 0)
             {    
-                copyTriangleData(translatedTri, &projectedTri);
 
                 //assign the "illumination" symbol based off normal
-                vector lightDirection = {0, 1, 0};
+                vector lightDirection = {0, -1, 0};
                 illuminateTriangle(&translatedTri,normalsVecArr[j],lightDirection);
 
                 //project 3D --> 2D
-                projectedTri.p[0].x *= CHAR_CONST;
-                projectedTri.p[1].x *= CHAR_CONST;
-                projectedTri.p[2].x *= CHAR_CONST;
+                translatedTri.p[0].x *= CHAR_CONST;
+                translatedTri.p[1].x *= CHAR_CONST;
+                translatedTri.p[2].x *= CHAR_CONST;
+
+                copyTriangleData(translatedTri, &projectedTri);
 
                 projectedTri = matrixVectorMultiply(translatedTri, projMat);
                 // projectMeshTo2D(projectedMesh, importData.distance);
@@ -123,9 +129,8 @@ int main(void){
                 scaleTriangle(&projectedTri, screen);
                 // scale2DPoints(projectedMesh,importData.scale);
 
-                renderBufferArr[j] = projectedTri;
+                copyTriangleData(projectedTri,&renderBufferArr[numOfTrisToRender]);
                 numOfTrisToRender++;
-
             }
         }
 
@@ -133,12 +138,15 @@ int main(void){
         
         for (int k = 0; k < numOfTrisToRender; k++)
         {
-            trisToRender[k] = renderBufferArr[k];
+            copyTriangleData(renderBufferArr[k],&trisToRender[k]);
         }
 
         //select between vertex or rasterisation
         for (int trisInView = 0; trisInView < numOfTrisToRender; trisInView++)
-        {
+        {   
+            #ifdef DEBUG_POINTS
+            printf("Working on %d of %d\n",trisInView,numOfTrisToRender);
+            #endif
             quickSort(trisToRender, 0, (numOfTrisToRender -1));
 
             if (importData.rasteriseBool)
@@ -155,7 +163,7 @@ int main(void){
 
         displayScreen(&screen);
 
-        angle = angle + 1;
+        angle = angle + 0.1;
         nanosleep((const struct timespec[]){{0, 166666667L}}, NULL);
         free(trisToRender);
     }
@@ -197,7 +205,7 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
 
     // Access values in the JSON object    
     cJSON *distanceJSON = cJSON_GetObjectItemCaseSensitive(root, "distance");
-    cJSON *scaleJSON = cJSON_GetObjectItemCaseSensitive(root, "scale");
+    cJSON *fovJSON = cJSON_GetObjectItemCaseSensitive(root, "fov");
     cJSON *objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
     cJSON *iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
     cJSON *rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
@@ -212,9 +220,9 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
         importData_struct->distance = distanceJSON->valuedouble;
     }
 
-    if(cJSON_IsNumber(scaleJSON))
+    if(cJSON_IsNumber(fovJSON))
     {
-        importData_struct->scale = scaleJSON->valuedouble;
+        importData_struct->fov = fovJSON->valuedouble;
     }
 
     if(cJSON_IsNumber(iterationsJSON))

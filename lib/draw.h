@@ -34,7 +34,7 @@ typedef struct screenStruct
 typedef struct data
 {
     double distance;
-    double scale;
+    double fov;
     char objPathBuffer[64];
     int i;
     int rotationX;

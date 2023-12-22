@@ -4,7 +4,7 @@
 typedef struct
 {
     double distance;
-    double scale;
+    double fov;
     char objPathBuffer[64];
     int i;
     int rotationX;

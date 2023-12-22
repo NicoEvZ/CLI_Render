@@ -11,8 +11,6 @@
 #define DOT '@'
 #define BORDER '*'
 
-//#define DEBUG_POINTS
-
 #define CHAR_CONST 2.3
 
 vector camera = {0,0,0};
@@ -87,7 +85,7 @@ vector vecCrossProduct(vector vec1, vector vec2)
 
 triangle matrixVectorMultiply(triangle input, mat4x4 m)
 {
-    triangle output;
+    triangle output = input;
     for (int i = 0; i < 3; i++)
     {
         output.p[i].x = (input.p[i].x * m.m[0][0]) + (input.p[i].y * m.m[1][0]) + (input.p[i].z * m.m[2][0]) + (m.m[3][0]);
@@ -107,7 +105,7 @@ void initProjectMat(renderConfig importData, mat4x4 *matProj)
 {
     double near = 0.1;
     double far = 1000;
-    double fov = 90;
+    double fov = importData.fov;
     double aspectRatio = (double)importData.screenHeightImprt / (double)importData.screenWidthImprt;
     double fovRad = 1 / tanf(fov * 0.5 / 180 * PI);
 
@@ -276,7 +274,9 @@ void rasteriseMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, v
 
 
     vector lightDirection = {0, 1, 0};
-    double l = sqrtl(lightDirection.x * lightDirection.x + lightDirection.y * lightDirection.y + lightDirection.z * lightDirection.z);
+    double l = sqrtl(lightDirection.x * lightDirection.x + 
+                     lightDirection.y * lightDirection.y + 
+                     lightDirection.z * lightDirection.z);
     lightDirection = divVecByScalar(lightDirection, l);
 
     vector normal = {0,0,0};
@@ -326,48 +326,121 @@ void rasteriseMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, v
     }
 }
 
+void drawTriangleOnScreen(triangle inputTri, screenStruct screen)
+{
+    // printf("\033[H\033[J"); //clears the screen
+
+    for (int i = 0; i < 3; i++)
+    {
+       BresenhamPlotLine(inputTri.p[i],inputTri.p[((i+1)%3)],screen);
+    }    
+}
+
+
+void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
+{
+    // printf("\033[H\033[J"); //clears the screen
+
+    for (int x = 0; x < screen.width; x++)
+    {
+        for (int y = 0; y < screen.height; y++)
+        {
+            if (pixelInTriangle(inputTri,x,y))
+            {
+                screen.screen[x][y] = inputTri.symbol;
+            }
+        }
+    }
+}
+
+void illuminateTriangle(triangle *inputTri, vector inputTriNorm, vector lightDirection)
+{
+    double l = sqrtl(lightDirection.x * lightDirection.x + 
+                     lightDirection.y * lightDirection.y + 
+                     lightDirection.z * lightDirection.z);
+
+    lightDirection = divVecByScalar(lightDirection, l);
+
+    double dp = inputTriNorm.x * lightDirection.x + 
+                inputTriNorm.y * lightDirection.y + 
+                inputTriNorm.z * lightDirection.z;
+
+    inputTri->symbol = getGrad(dp);
+}
+
+int pixelInTriangle(triangle inputTri, int x, int y)
+{
+    vector A = inputTri.p[0];
+    vector B = inputTri.p[1];
+    vector C = inputTri.p[2];
+    vector P;
+    P.x = x;
+    P.y = y;
+    // Calculate the barycentric coordinates
+    // of point P with respect to triangle ABC
+    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
+    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
+    double c = 1 - a - b;
+ 
+    // Check if all barycentric coordinates
+    // are non-negative
+    if (a >= 0 && b >= 0 && c >= 0) 
+    {
+        return 1;
+    } 
+    else
+    {
+        return 0;
+    }
+}
+
 char  getGrad(double lum)
 {
-    // `````` = 96
-    // '''''' = 39
-    // ****** = 42
-    // !!!!!! = 33
-    // $$$$$$ = 36
-    // &&&&&& = 38
-    // %%%%%% = 37
-    // ###### = 35
+    // 
+    // .
+    // :
+    // -
+    // =
+    // +
+    // *
+    // #
+    // %
+    // @
 
     char outputChar;
-    int grad = (int)7 * lum;
+    int grad = (int)9 * lum;
     switch (grad)
     {
     case 0:
-        outputChar = '`';
+        outputChar = '.';
         break;
     case 1:
-        outputChar = '\'';
+        outputChar = ':';
         break;
     case 2:
-        outputChar = '*';
+        outputChar = '-';
         break;
-    case 3:
-        outputChar = '!';
+    case 3: 
+        outputChar = '=';
         break;
-    case 4: 
-        outputChar = '$';
+    case 4:
+        outputChar = '+';
         break;
     case 5:
-        outputChar = '&';
+        outputChar = '*';
         break;
     case 6:
-        outputChar = '%';
-        break;
-    case 7:
         outputChar = '#';
         break;
-    default:
-        outputChar = ' ';
+    case 7:
+        outputChar = '%';
         break;
+    case 8:
+        outputChar = '@';
+        break;
+    default:
+        outputChar = '`';
     }
     return outputChar;
 }
@@ -528,13 +601,14 @@ vector calculateTriangleNormal(triangle inputTri)
     vector U,V,normal;
     
     U = (subVec(inputTri.p[1],inputTri.p[0]));
-    V = (subVec(inputTri.p[2],inputTri.p[1]));
+    V = (subVec(inputTri.p[2],inputTri.p[0]));
 
     normal = vecCrossProduct(U, V);
 
     //its normally normal to normalise the normal
-
-    double l = sqrtl(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+    double l = sqrtl(normal.x * normal.x + 
+                     normal.y * normal.y + 
+                     normal.z * normal.z);
     normal = divVecByScalar(normal, l);
     
     return normal;
@@ -614,6 +688,7 @@ void drawInScreen(screenStruct screen, int x, int y, const char ASCII)
 
 void displayScreen(screenStruct *screen)
 {
+    printf("\033[H\033[J"); //clears the screen
     // Iterate over y axis
     char outputString[screen->width+1];
     for (int y = 0; y < screen->height; y++)
