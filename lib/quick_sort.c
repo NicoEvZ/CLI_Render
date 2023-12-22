@@ -4,9 +4,9 @@
 
 // Function to swap two elements in an array
 void swap(triangle* a, triangle* b) {
-    triangle temp = *a;
-    *a = *b;
-    *b = temp;
+    triangle *temp = a;
+    a = b;
+    b = temp;
 }
 
 double zAvg(triangle inputTri)
