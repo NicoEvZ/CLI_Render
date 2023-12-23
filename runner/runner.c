@@ -145,7 +145,7 @@ int main(void){
         for (int trisInView = 0; trisInView < numOfTrisToRender; trisInView++)
         {   
             #ifdef DEBUG_POINTS
-            printf("Working on %d of %d\n",trisInView,numOfTrisToRender);
+            printf("Loading... %d%%\n",(int)(((double)trisInView/(double)numOfTrisToRender)*100));
             #endif
             quickSort(trisToRender, 0, (numOfTrisToRender -1));
 
