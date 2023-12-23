@@ -49,26 +49,3 @@ void quickSort(triangle triArr[], int low, int high) {
         quickSort(triArr, pivotIndex + 1, high);
     }
 }
-
-// // Function to print an array
-// void printArray(int arr[], int size) {
-//     for (int i = 0; i < size; i++)
-//         printf("%d ", arr[i]);
-//     printf("\n");
-// }
-
-// // Example usage
-// int main() {
-//     int arr[] = {1, 17, 152, 3, 11, 11, 13, 5, 6, 7};
-//     int arr_size = sizeof(arr) / sizeof(arr[0]);
-
-//     printf("Original array: \n");
-//     printArray(arr, arr_size);
-
-//     quickSort(arr, 0, arr_size - 1);
-
-//     printf("Sorted array: \n");
-//     printArray(arr, arr_size);
-
-//     return 0;
-// }

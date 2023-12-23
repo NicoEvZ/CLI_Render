@@ -30,7 +30,7 @@ int main(void){
     screen.height = importData.screenHeightImprt;
 
     initScreen(&screen);
-    initProjectMat(importData,&projMat);
+    initProjectMat(importData, &projMat);
 
     // const double half_x = (double)screen.width * 0.5;
     // const double half_y = (double)screen.height * 0.5;
@@ -116,9 +116,9 @@ int main(void){
                 illuminateTriangle(&translatedTri,normalsVecArr[j],lightDirection);
 
                 //project 3D --> 2D
-                translatedTri.p[0].x *= CHAR_CONST;
-                translatedTri.p[1].x *= CHAR_CONST;
-                translatedTri.p[2].x *= CHAR_CONST;
+                translatedTri.p[0].x *= CHARACHTER_RATIO;
+                translatedTri.p[1].x *= CHARACHTER_RATIO;
+                translatedTri.p[2].x *= CHARACHTER_RATIO;
 
                 copyTriangleData(translatedTri, &projectedTri);
 
@@ -213,6 +213,7 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
     cJSON *screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
     cJSON *screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
+    cJSON *rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
 
 
     if(cJSON_IsNumber(distanceJSON))
@@ -249,6 +250,11 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
         importData_struct->screenHeightImprt = screenHeightJSON->valueint;
     }
 
+    if (cJSON_IsBool(rasteriseBoolJSON))
+    {
+        importData_struct->rasteriseBool = rasteriseBoolJSON->valueint;
+    }
+    
     // Don't forget to free the cJSON object and the buffer when you're done with them
     cJSON_Delete(root);
     free(json_buffer);
@@ -299,7 +305,11 @@ mesh importMeshFromOBJFile (char * pathToFile)
     newMesh.tris = (triangle*) malloc(newMesh.numOfTris * sizeof(triangle)); //dynamically allocates memory for the number of triangles
 
     rewind(obj);
-
+    char a[20];
+    char b[20];
+    char c[20];
+    char junk[MAX_LINE_LENGTH];
+    char buffChar[20];
     int vCount = 0;
     int fCount = 0;
     while (fgets(line, sizeof(line), obj) != NULL)
@@ -319,7 +329,12 @@ mesh importMeshFromOBJFile (char * pathToFile)
         //each int after 'f ' represents an index (starting at 1), of the vector array of verticies.
         else if (line[0] == 'f' && line[1] == ' ') 
         {
-            sscanf(line,"f %d %d %d", &p0, &p1, &p2);
+            sscanf(line,"f %s %s %s", a, b, c);
+
+            //handle OBJs withe "f 00/00/00" format
+            sscanf(a, "%d/%s", &p0, &junk);
+            sscanf(b, "%d/%s", &p1, &junk);
+            sscanf(c, "%d/%s", &p2, &junk);
 
             newMesh.tris[fCount].p[0] = vectorArray[(p0-1)];
             newMesh.tris[fCount].p[1] = vectorArray[(p1-1)];

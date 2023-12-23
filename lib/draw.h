@@ -1,37 +1,34 @@
 #pragma once
 
-#include "runner.h"
-
 #define PI 3.14159
-#define CHAR_CONST 2.3
+#define CHARACHTER_RATIO 2.3
 
-
-typedef struct vector
+typedef struct
 {
     double x, y, z;
 }vector;
 
-typedef struct triangle
+typedef struct
 {
     vector p[3];
     char symbol;
 }triangle;
 
-typedef struct mesh
+typedef struct
 {
     triangle* tris;
     int numOfTris;
     int numOfVerts;
 }mesh;
 
-typedef struct screenStruct
+typedef struct
 { 
     int** screen;
     int width;
     int height;
-}screenStruct;
+} screenStruct;
 
-typedef struct data
+typedef struct
 {
     double distance;
     double fov;
@@ -43,17 +40,12 @@ typedef struct data
     int screenWidthImprt;
     int screenHeightImprt;
     int rasteriseBool;
-}data;
+} renderConfig;
 
-typedef struct mat4x4
+typedef struct
 {
     double m[4][4];
 }mat4x4;
-
-
-mesh importMeshFromOBJFile(char * pathToFile);
-
-int importJSON(const char *file_path, renderConfig *importData_struct);
 
 char *stripString(char *inputString, char stripChar);
 
@@ -73,13 +65,9 @@ triangle matrixVectorMultiply(triangle input, mat4x4 m);
 
 void projectMeshTo2D(mesh inputMesh, const double distance);
 
-void drawMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr);
-
 void drawTriangleOnScreen(triangle inputTri, screenStruct screen);
 
 void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen);
-
-void rasteriseMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr);
 
 void scale2DPoints(mesh inputMesh, const double scaleFactor);
 

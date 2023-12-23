@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 
-add_library(CLI_RenderLib draw.c cJSON.c quick_sort.c)
+add_library(CLI_RenderLib draw.c quick_sort.c)
 target_include_directories(CLI_RenderLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(CLI_RenderLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/private)
 target_link_libraries(CLI_RenderLib PRIVATE m)
 
 find_package(Threads REQUIRED)

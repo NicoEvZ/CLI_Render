@@ -2,16 +2,11 @@
 #include <math.h>
 #include <stdlib.h>
 #include "draw.h"
-#include "runner.h"
-
-// #include "quick_sort.h"
 
 #define BLANK ' ' //SPACE character ASCII code
 #define LINE '#' //'#' character ASCII code
 #define DOT '@'
 #define BORDER '*'
-
-#define CHAR_CONST 2.3
 
 vector camera = {0,0,0};
 
@@ -133,7 +128,7 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
         {
         tempVec = inputMesh.tris[i].p[j];
 
-        tempVec.x = tempVec.x * CHAR_CONST;
+        tempVec.x = tempVec.x * CHARACHTER_RATIO;
 
         double zPerspective = 1/(distance - tempVec.z);
 
@@ -149,41 +144,6 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
     }
 }
 
-void drawMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr) 
-{
-    printf("\033[H\033[J"); //clears the screen
-
-    triangle output = {{{0,0,0}}};
-    vector normal = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        normal = inputVecArr[i];
-        // double normalCheck = normal.x * (inputMesh.tris[i].p[0].x - camera.x) +
-        //                      normal.y * (inputMesh.tris[i].p[0].y - camera.y) +
-        //                      normal.z * (inputMesh.tris[i].p[0].z - camera.z);
-
-        double normalCheck = normal.z;
-        // printf("Triangle: %d\n",i);
-        // printf("normal.z: %lf\n", normalCheck);
-
-        if (normalCheck > 0)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                //translates from unity to screenspace, and does aspect ratio adustment
-                // output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
-                output.p[j].x = origin.x + (inputMesh.tris[i].p[j].x); 
-                output.p[j].y = origin.y + inputMesh.tris[i].p[j].y;
-            
-            }
-            BresenhamPlotLine(output.p[0],output.p[1],screen);
-            BresenhamPlotLine(output.p[1],output.p[2],screen);
-            BresenhamPlotLine(output.p[2],output.p[0],screen);
-        }
-        // displayScreen(&screen);
-    }
-}
-
 int pixelInTriangle(triangle inputTri, int x, int y)
 {
     vector A = inputTri.p[0];
@@ -208,121 +168,6 @@ int pixelInTriangle(triangle inputTri, int x, int y)
     else
     {
         return 0;
-    }
-}
-
-int pixelInTriangle(triangle inputTri, int x, int y)
-{
-    vector A = inputTri.p[0];
-    vector B = inputTri.p[1];
-    vector C = inputTri.p[2];
-    vector P;
-    P.x = x;
-    P.y = y;
-    // Calculate the barycentric coordinates
-    // of point P with respect to triangle ABC
-    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
-    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
-    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
-    double c = 1 - a - b;
- 
-    // Check if all barycentric coordinates
-    // are non-negative
-    if (a >= 0 && b >= 0 && c >= 0) 
-    {
-        return 1;
-    } 
-    else
-    {
-        return 0;
-    }
-}
-
-int pixelInTriangle(triangle inputTri, int x, int y)
-{
-    vector A = inputTri.p[0];
-    vector B = inputTri.p[1];
-    vector C = inputTri.p[2];
-    vector P;
-    P.x = x;
-    P.y = y;
-    // Calculate the barycentric coordinates
-    // of point P with respect to triangle ABC
-    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
-    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
-    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
-    double c = 1 - a - b;
- 
-    // Check if all barycentric coordinates
-    // are non-negative
-    if (a >= 0 && b >= 0 && c >= 0) 
-    {
-        return 1;
-    } 
-    else
-    {
-        return 0;
-    }
-}
-
-void rasteriseMeshOnScreen(mesh inputMesh, vector origin, screenStruct screen, vector *inputVecArr)
-{
-    printf("\033[H\033[J"); //clears the screen
-
-    triangle output = {{{0,0,0}}};
-    double trisToRasterCounter = 0;
-
-
-    vector lightDirection = {0, 1, 0};
-    double l = sqrtl(lightDirection.x * lightDirection.x + 
-                     lightDirection.y * lightDirection.y + 
-                     lightDirection.z * lightDirection.z);
-    lightDirection = divVecByScalar(lightDirection, l);
-
-    vector normal = {0,0,0};
-    
-    for (int i = 0; i < inputMesh.numOfTris; i++)
-    {
-        normal = inputVecArr[i];
-        double dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
-        char c = getGrad(dp);
-        // double normalCheck = normal.x * (inputMesh.tris[i].p[0].x - camera.x) +
-        //                      normal.y * (inputMesh.tris[i].p[0].y - camera.y) +
-        //                      normal.z * (inputMesh.tris[i].p[0].z - camera.z);
-
-        double normalCheck = normal.z;
-        // printf("Triangle: %d\n",i);
-        // printf("normal.z: %lf\n", normalCheck);
-
-        if (normalCheck > 0)
-        {
-            trisToRasterCounter++;
-            for (int j = 0; j < 3; j++)
-            {
-                //translates from unity to screenspace, and does aspect ratio adustment
-                // output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x); 
-                output.p[j].x = origin.x + (inputMesh.tris[i].p[j].x); 
-                output.p[j].y = origin.y + inputMesh.tris[i].p[j].y;
-            }
-
-            for (int x = 0; x < screen.width; x++)
-            {
-                for (int y = 0; y < screen.height; y++)
-                {
-                    if (pixelInTriangle(output,x,y))
-                    {
-                        screen.screen[x][y] = c;
-                    }
-                }
-            }
-            // fillTriangle(output.p[0], output.p[1], output.p[2], screen);
-            // BresenhamPlotLine(output.p[0],output.p[1],screen);
-            // BresenhamPlotLine(output.p[1],output.p[2],screen);
-            // BresenhamPlotLine(output.p[2],output.p[0],screen);
-        }
-        // printf("\033[H\033[J"); //clears the screen
-        // displayScreen(&screen);
-
     }
 }
 
@@ -366,33 +211,6 @@ void illuminateTriangle(triangle *inputTri, vector inputTriNorm, vector lightDir
                 inputTriNorm.z * lightDirection.z;
 
     inputTri->symbol = getGrad(dp);
-}
-
-int pixelInTriangle(triangle inputTri, int x, int y)
-{
-    vector A = inputTri.p[0];
-    vector B = inputTri.p[1];
-    vector C = inputTri.p[2];
-    vector P;
-    P.x = x;
-    P.y = y;
-    // Calculate the barycentric coordinates
-    // of point P with respect to triangle ABC
-    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
-    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
-    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
-    double c = 1 - a - b;
- 
-    // Check if all barycentric coordinates
-    // are non-negative
-    if (a >= 0 && b >= 0 && c >= 0) 
-    {
-        return 1;
-    } 
-    else
-    {
-        return 0;
-    }
 }
 
 char  getGrad(double lum)
