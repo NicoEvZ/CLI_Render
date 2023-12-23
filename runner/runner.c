@@ -30,7 +30,6 @@ int main(void){
 
     const double half_x = (double)screen.width * 0.5;
     const double half_y = (double)screen.height * 0.5;
-    double ratio = ((double)screen.width/(double)screen.height);
     // printf("width: %d\nheight: %d\nhalf_x: %lf\nhalf_y: %lf\nratio: %lf\n",screen.width,screen.height,half_x,half_y,ratio);
     double angle = 0;
 

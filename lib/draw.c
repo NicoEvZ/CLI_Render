@@ -134,6 +134,33 @@ void drawMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vec
     }
 }
 
+int pixelInTriangle(triangle inputTri, int x, int y)
+{
+    vector A = inputTri.p[0];
+    vector B = inputTri.p[1];
+    vector C = inputTri.p[2];
+    vector P;
+    P.x = x;
+    P.y = y;
+    // Calculate the barycentric coordinates
+    // of point P with respect to triangle ABC
+    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
+    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
+    double c = 1 - a - b;
+ 
+    // Check if all barycentric coordinates
+    // are non-negative
+    if (a >= 0 && b >= 0 && c >= 0) 
+    {
+        return 1;
+    } 
+    else
+    {
+        return 0;
+    }
+}
+
 void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen, vector *inputVecArr)
 {
     printf("\033[H\033[J"); //clears the screen
@@ -190,33 +217,6 @@ void rasteriseMeshOnScreen(mesh inputMesh, double origin[2], screenStruct screen
         // printf("\033[H\033[J"); //clears the screen
         // displayScreen(&screen);
 
-    }
-}
-
-int pixelInTriangle(triangle inputTri, int x, int y)
-{
-    vector A = inputTri.p[0];
-    vector B = inputTri.p[1];
-    vector C = inputTri.p[2];
-    vector P;
-    P.x = x;
-    P.y = y;
-    // Calculate the barycentric coordinates
-    // of point P with respect to triangle ABC
-    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
-    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
-    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
-    double c = 1 - a - b;
- 
-    // Check if all barycentric coordinates
-    // are non-negative
-    if (a >= 0 && b >= 0 && c >= 0) 
-    {
-        return 1;
-    } 
-    else
-    {
-        return 0;
     }
 }
 
