@@ -147,7 +147,7 @@ int main(void){
             #ifdef DEBUG_POINTS
             printf("Loading... %d%%\n",(int)(((double)trisInView/(double)numOfTrisToRender)*100));
             #endif
-            quickSort(trisToRender, 0, (numOfTrisToRender -1));
+            // quickSort(trisToRender, 0, (numOfTrisToRender -1));
 
             if (importData.rasteriseBool)
             {
@@ -163,7 +163,7 @@ int main(void){
 
         displayScreen(&screen);
 
-        angle = angle + 0.1;
+        angle = angle + 0.01745329;
         nanosleep((const struct timespec[]){{0, 166666667L}}, NULL);
         free(trisToRender);
     }

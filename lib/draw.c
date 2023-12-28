@@ -144,7 +144,7 @@ void projectMeshTo2D(mesh inputMesh, const double distance)
     }
 }
 
-int pixelInTriangle(triangle inputTri, int x, int y)
+int pixelInTriangle(triangle inputTri, int x, int y, double* z)
 {
     vector A = inputTri.p[0];
     vector B = inputTri.p[1];
@@ -158,7 +158,11 @@ int pixelInTriangle(triangle inputTri, int x, int y)
     double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
     double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
     double c = 1 - a - b;
- 
+    
+    P.z = 1/(((1/A.z) * a) + ((1/B.z) * b) + ((C.z * c)));
+
+    z = &P.z;
+
     // Check if all barycentric coordinates
     // are non-negative
     if (a >= 0 && b >= 0 && c >= 0) 
@@ -186,13 +190,41 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
 {
     // printf("\033[H\033[J"); //clears the screen
 
-    for (int x = 0; x < screen.width; x++)
+    vector bbmin = {INFINITY, INFINITY, 0};
+    vector bbmax = {-INFINITY, -INFINITY, 0};
+
+    for (int i = 0; i < 3; i++)
     {
-        for (int y = 0; y < screen.height; y++)
+        if (inputTri.p[i].x < bbmin.x)
         {
-            if (pixelInTriangle(inputTri,x,y))
+            bbmin.x = inputTri.p[i].x;
+        }
+        if (inputTri.p[i].y < bbmin.y)
+        {
+            bbmin.y = inputTri.p[i].y;
+        }
+        if (inputTri.p[i].x > bbmax.x)
+        {
+            bbmax.x = inputTri.p[i].x;
+        }
+        if (inputTri.p[i].y > bbmax.y)
+        {
+            bbmax.y = inputTri.p[i].y;
+        }
+    }
+
+    for (int x = bbmin.x; x < bbmax.x; x++)
+    {
+        for (int y = bbmin.y; y < bbmax.y; y++)
+        {
+            double z = 0;
+            if (pixelInTriangle(inputTri,x,y,&z))
             {
-                screen.screen[x][y] = inputTri.symbol;
+                if (z < screen.zBuffer[x][y])
+                {
+                    screen.zBuffer[x][y] = z;
+                    drawInScreen(screen, x, y, inputTri.symbol);
+                }
             }
         }
     }
@@ -398,10 +430,10 @@ void initRotateZMat(mat4x4 * matZ, double angle)
         }
     }
 
-    matZ->m[0][0] = cosf(angle);
-    matZ->m[0][1] = sinf(angle);
-    matZ->m[1][0] = -sinf(angle);
-    matZ->m[1][1] = cosf(angle);
+    matZ->m[0][0] = cosf(angle*0.5);
+    matZ->m[0][1] = sinf(angle*0.5);
+    matZ->m[1][0] = -sinf(angle*0.5);
+    matZ->m[1][1] = cosf(angle*0.5);
     matZ->m[2][2] = 1;
     matZ->m[3][3] = 1;
 }
@@ -460,9 +492,19 @@ void clearScreen(screenStruct *screen)
 void initScreen(screenStruct *screen)
 {
     screen->screen = malloc(screen->width * sizeof(int *));
+    screen->zBuffer = malloc(screen->width* sizeof(double *));
     for (int i = 0; i < screen->width; i++)
     {
         screen->screen[i] = malloc(screen->height * sizeof(int));
+        screen->zBuffer[i] = malloc(screen->height * sizeof(double));
+    }
+
+    for (int x = 0; x < screen->width; x++)
+    {
+        for (int y = 0; y < screen->height; y++)
+        {
+            screen->zBuffer[x][y] = INFINITY;
+        }
     }
 }
 
@@ -471,8 +513,10 @@ void deleteScreen(screenStruct *screen)
     for (int i = 0; i < screen->width; i++)
     {
         free(screen->screen[i]);
+        free(screen->zBuffer[i]);
     }
     free(screen->screen);
+    free(screen->zBuffer);
 }
 
 void drawInScreen(screenStruct screen, int x, int y, const char ASCII) 

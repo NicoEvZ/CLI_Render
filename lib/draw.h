@@ -26,6 +26,7 @@ typedef struct
     int** screen;
     int width;
     int height;
+    double** zBuffer;
 } screenStruct;
 
 typedef struct
@@ -47,7 +48,7 @@ typedef struct
     double m[4][4];
 }mat4x4;
 
-char *stripString(char *inputString, char stripChar);
+// char *stripString(char *inputString, char stripChar);
 
 mesh copyMeshData(mesh fromMesh, mesh toMesh);
 
