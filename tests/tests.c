@@ -8,6 +8,8 @@
 
 #include <draw.h>
 
+#include <quick_sort.h>
+
 double epsilon = 0.0001;
 
 static void test_addVec(void **state)
@@ -21,6 +23,22 @@ static void test_addVec(void **state)
     assert_float_equal(output.y, addVec(vec1,vec2).y, epsilon);
     assert_float_equal(output.z, addVec(vec1,vec2).z, epsilon);
 }
+
+// static void test_quicksort(void **state)
+// {
+//     (void) state;
+//     triangle triangleArry[] = {
+//                                 {{25, -21, 0}, {-25, -21, 0}, {0, 22, 0}},
+//                                 {{25, -21, 0}, {0, 22, 0}, {0, -7, 40}},
+//                                 {{-25, -21, 0}, {0, -7, 40}, {0, 22, 0}},
+//                                 {{25, -21, 0}, {0, -7, 40}, {-25, -21, 0}}
+//                             };
+
+//     double arrayLength = (sizeof(triangleArry)/sizeof(triangleArry[0]));
+    
+//     quickSort(triangleArry, 0, arrayLength - 1);
+
+// }
 
 int main(void)
 {

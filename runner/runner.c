@@ -11,6 +11,8 @@
 
 #include "quick_sort.h"
 
+// #define DEBUG_POINTS_IMPORT
+// #define DEBUG_POINTS_RENDER
 
 int main(void){
     renderConfig importData;
@@ -32,14 +34,7 @@ int main(void){
     initScreen(&screen);
     initProjectMat(importData, &projMat);
 
-    // const double half_x = (double)screen.width * 0.5;
-    // const double half_y = (double)screen.height * 0.5;
-    // double ratio = ((double)screen.width/(double)screen.height);
-    // printf("width: %d\nheight: %d\nhalf_x: %lf\nhalf_y: %lf\nratio: %lf\n",screen.width,screen.height,half_x,half_y,ratio);
     double angle = 0;
-
-    //screenspace center, not 3d space center
-    // vector origin={half_x,half_y,0}; //origin is middle of screenspace
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
@@ -53,11 +48,9 @@ int main(void){
     mat4x4 rotateZ;
     vector camera = {0,0,0};
 
-
-    // mesh rotatedMesh;
-    // mesh projectedMesh;
     vector (*normalsVecArr) = malloc(baseMesh.numOfTris * sizeof(vector));
     triangle (*renderBufferArr) = malloc(baseMesh.numOfTris * sizeof(triangle));
+
     //display 
     for (int i = 0; i < importData.i; i++)
     {
@@ -72,7 +65,6 @@ int main(void){
             triangle rotatedTri;
             triangle projectedTri;
             triangle translatedTri;
-            //clear screen
 
             copyTriangleData(baseMesh.tris[j], &rotatedTri);
 
@@ -80,19 +72,16 @@ int main(void){
             if(importData.rotationX)
             {
                 rotatedTri = matrixVectorMultiply(rotatedTri, rotateX);
-                // rotatedMesh = rotateMeshAroundX(rotatedMesh, (angle * (PI/180)));
             }
 
             if(importData.rotationY)
             {
                 rotatedTri = matrixVectorMultiply(rotatedTri, rotateY);
-                // rotatedMesh = rotateMeshAroundY(rotatedMesh, (angle * (PI/180)));
             }
 
             if(importData.rotationZ)
             {
                 rotatedTri = matrixVectorMultiply(rotatedTri, rotateZ);
-                // rotatedMesh = rotateMeshAroundZ(rotatedMesh, (angle * (PI/180)));
             }
 
             copyTriangleData(rotatedTri, &translatedTri);
@@ -100,11 +89,8 @@ int main(void){
             //offest into screen
             translateTriangle(&translatedTri, importData.distance);
 
-            // distance =  30 * (sin(0.1 * i)+ 1.8);
-
             //calculate normals
             normalsVecArr[j] = calculateTriangleNormal(translatedTri);
-            // calculateMeshNormals(projectedMesh, normalsVecArr);
 
             if ((normalsVecArr[j].x * (translatedTri.p[0].x - camera.x) +
                  normalsVecArr[j].y * (translatedTri.p[0].y - camera.y) +
@@ -112,7 +98,7 @@ int main(void){
             {    
 
                 //assign the "illumination" symbol based off normal
-                vector lightDirection = {0, -1, 0};
+                vector lightDirection = {0, -0.5, 0.25};
                 illuminateTriangle(&translatedTri,normalsVecArr[j],lightDirection);
 
                 //project 3D --> 2D
@@ -129,6 +115,11 @@ int main(void){
                 scaleTriangle(&projectedTri, screen);
                 // scale2DPoints(projectedMesh,importData.scale);
 
+                for (int triCopy = 0; triCopy < 3; triCopy++ )
+                {
+                    projectedTri.p[triCopy].z = translatedTri.p[triCopy].z;
+                }
+
                 copyTriangleData(projectedTri,&renderBufferArr[numOfTrisToRender]);
                 numOfTrisToRender++;
             }
@@ -141,30 +132,39 @@ int main(void){
             copyTriangleData(renderBufferArr[k],&trisToRender[k]);
         }
 
+        // quickSort(trisToRender, 0, (numOfTrisToRender -1));
+
         //select between vertex or rasterisation
-        for (int trisInView = 0; trisInView < numOfTrisToRender; trisInView++)
+        for (int tri = 0; tri < numOfTrisToRender; tri++)
         {   
-            #ifdef DEBUG_POINTS
-            printf("Loading... %d%%\n",(int)(((double)trisInView/(double)numOfTrisToRender)*100));
+            #ifdef DEBUG_POINTS_RENDER
+            printf("Loading... %d%% complete:\n",(int)(((double)tri/(double)numOfTrisToRender)*100));
+            printf("Drawing (%d/%d)\n",tri+1,numOfTrisToRender);
             #endif
-            // quickSort(trisToRender, 0, (numOfTrisToRender -1));
 
             if (importData.rasteriseBool)
-            {
-                rasteriseTriangleOnScreen(trisToRender[trisInView], screen);
-                // rasteriseMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+            {   
+                rasteriseTriangleOnScreen(trisToRender[tri], screen);  
             }
             else
             {
-                drawTriangleOnScreen(trisToRender[trisInView], screen);
-                // drawMeshOnScreen(projectedMesh, origin, screen, normalsVecArr);
+                drawTriangleOnScreen(trisToRender[tri], screen);
             }
+
+            #ifdef DEBUG_POINTS_RENDER
+            displayScreen(&screen);
+            nanosleep((const struct timespec[]){{0, 125000000}}, NULL);
+            #endif
         }
+
+        #ifdef DEBUG_POINTS_RENDER
+        printf("Final Output:\n");
+        #endif
 
         displayScreen(&screen);
 
         angle = angle + 0.01745329;
-        nanosleep((const struct timespec[]){{0, 166666667L}}, NULL);
+        nanosleep((const struct timespec[]){{0, 41666667L}}, NULL);
         free(trisToRender);
     }
     free(normalsVecArr);
@@ -344,7 +344,7 @@ mesh importMeshFromOBJFile (char * pathToFile)
         }
     }
 
-    #ifdef DEBUG_POINTS
+    #ifdef DEBUG_POINTS_IMPORT
     //Handy debug for seeing if points were imported properly
     for (int i = 0; i < vCount; i++) 
     {

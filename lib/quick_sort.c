@@ -21,7 +21,7 @@ double zAvg(triangle inputTri)
 }
 
 // Function to partition the array and return the pivot index
-int partition(triangle triArr[], int low, int high) {
+int partition(triangle *triArr, int low, int high) {
     triangle pivot = triArr[high]; // Choose the last element as the pivot
     int i = (low - 1);     // Index of the smaller element
 
@@ -38,7 +38,7 @@ int partition(triangle triArr[], int low, int high) {
 }
 
 // Function to implement QuickSort
-void quickSort(triangle triArr[], int low, int high) {
+void quickSort(triangle *triArr, int low, int high) {
     if (low < high) {
         // Find the pivot index such that elements smaller than the pivot are on the left,
         // and elements greater than the pivot are on the right

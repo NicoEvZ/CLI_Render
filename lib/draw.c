@@ -119,31 +119,6 @@ void initProjectMat(renderConfig importData, mat4x4 *matProj)
     matProj->m[2][3] = 1;
 }
 
-void projectMeshTo2D(mesh inputMesh, const double distance) 
-{
-    vector tempVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        for (int j = 0; j < 3; j++)
-        {
-        tempVec = inputMesh.tris[i].p[j];
-
-        tempVec.x = tempVec.x * CHARACHTER_RATIO;
-
-        double zPerspective = 1/(distance - tempVec.z);
-
-        double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
-        
-        double x_p = (p_Mat[0][0]*tempVec.x)+(p_Mat[0][1]*tempVec.y)+(p_Mat[0][2]*tempVec.z);
-        double y_p = (p_Mat[1][0]*tempVec.x)+(p_Mat[1][1]*tempVec.y)+(p_Mat[1][2]*tempVec.z);
-        
-        inputMesh.tris[i].p[j].x = x_p;
-        inputMesh.tris[i].p[j].y = y_p;
-
-        }
-    }
-}
-
 int pixelInTriangle(triangle inputTri, int x, int y, double* z)
 {
     vector A = inputTri.p[0];
@@ -160,8 +135,8 @@ int pixelInTriangle(triangle inputTri, int x, int y, double* z)
     double c = 1 - a - b;
     
     P.z = 1/(((1/A.z) * a) + ((1/B.z) * b) + ((C.z * c)));
-
-    z = &P.z;
+    // printf("P.x, P.y, P.z = %lf, %lf, %lf\n", P.x, P.y, P.z);
+    *z = P.z;
 
     // Check if all barycentric coordinates
     // are non-negative
@@ -212,22 +187,52 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
             bbmax.y = inputTri.p[i].y;
         }
     }
-
+    #ifdef DEBUG_POINTS_BBs
+    printf("bbmin = (%lf,%lf)\tbbmax = (%lf,%lf)\n",bbmin.x,bbmin.y,bbmax.x,bbmax.y);
+    #endif
+    double z = 0;
     for (int x = bbmin.x; x < bbmax.x; x++)
     {
         for (int y = bbmin.y; y < bbmax.y; y++)
         {
-            double z = 0;
             if (pixelInTriangle(inputTri,x,y,&z))
             {
+                #ifdef DEBUG_POINTS_ZBUFFER
+                printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
+                printf("z(%lf) needs to be smalled than: %lf...\n",z,screen.zBuffer[x][y]);
+                #endif
                 if (z < screen.zBuffer[x][y])
                 {
+                    #ifdef DEBUG_POINTS_ZBUFFER
+                    printf("And it is! ");
+                    printf("\t\tComputed z = %lf\n",z);
+                    printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
+                    printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n\n");
+                    #endif;
                     screen.zBuffer[x][y] = z;
                     drawInScreen(screen, x, y, inputTri.symbol);
                 }
             }
         }
     }
+    #ifdef DEBUG_POINTS_BBs
+    vector boundingBoxP1;
+    vector boundingBoxP2;
+    vector boundingBoxP3;
+    vector boundingBoxP4;
+    boundingBoxP1.x = bbmin.x;
+    boundingBoxP1.y = bbmin.y;
+    boundingBoxP2.x = bbmin.x;
+    boundingBoxP2.y = bbmax.y;
+    boundingBoxP3.x = bbmax.x;
+    boundingBoxP3.y = bbmax.y;
+    boundingBoxP4.x = bbmax.x;
+    boundingBoxP4.y = bbmin.y;
+    BresenhamPlotLine(boundingBoxP1, boundingBoxP2, screen);
+    BresenhamPlotLine(boundingBoxP2, boundingBoxP3, screen);
+    BresenhamPlotLine(boundingBoxP3, boundingBoxP4, screen);
+    BresenhamPlotLine(boundingBoxP4, boundingBoxP1, screen);
+    #endif
 }
 
 void illuminateTriangle(triangle *inputTri, vector inputTriNorm, vector lightDirection)
@@ -295,25 +300,6 @@ char  getGrad(double lum)
     return outputChar;
 }
 
-void scale2DPoints(mesh inputMesh, const double scaleFactor) 
-{
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            //extract x and y from array.
-            double x = inputMesh.tris[i].p[j].x;
-            double y = inputMesh.tris[i].p[j].y;
-
-            x = x * scaleFactor;
-            y = y * scaleFactor;
-
-            inputMesh.tris[i].p[j].x = x;
-            inputMesh.tris[i].p[j].y = y;
-        }
-    }
-}
-
 void scaleTriangle(triangle *inputTriangle, screenStruct screen)
 {
     for (int i = 0; i < 3; i++)
@@ -324,26 +310,6 @@ void scaleTriangle(triangle *inputTriangle, screenStruct screen)
         inputTriangle->p[i].x *= (0.5 * (double)screen.width);
         inputTriangle->p[i].y *= (0.5 * (double)screen.height);
     }
-}
-
-
-mesh rotateMeshAroundX(mesh inputMesh, const double angle) 
-{
-    vector rotatedVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        for (int j =0; j < 3; j++)
-        {
-            rotatedVec.x = inputMesh.tris[i].p[j].x;
-
-            rotatedVec.y = ((inputMesh.tris[i].p[j].y * cos(angle)) - (inputMesh.tris[i].p[j].z * sin(angle)));
-
-            rotatedVec.z = ((inputMesh.tris[i].p[j].y * sin(angle)) + (inputMesh.tris[i].p[j].z * cos(angle)));
-
-            inputMesh.tris[i].p[j] = rotatedVec;
-        }
-    }
-    return inputMesh;
 }
 
 void initRotateXMat(mat4x4 * matX, double angle)
@@ -364,25 +330,6 @@ void initRotateXMat(mat4x4 * matX, double angle)
     matX->m[3][3] = 1;
 }
 
-mesh rotateMeshAroundY(mesh inputMesh, const double angle) 
-{
-    vector rotatedVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        for (int j =0; j < 3; j++)
-        {
-            rotatedVec.x = ((inputMesh.tris[i].p[j].x * cos(angle)) + (inputMesh.tris[i].p[j].z * sin(angle)));
-
-            rotatedVec.y = inputMesh.tris[i].p[j].y;
-
-            rotatedVec.z = ((inputMesh.tris[i].p[j].x * -1 * sin(angle)) + (inputMesh.tris[i].p[j].z * cos(angle)));
-
-            inputMesh.tris[i].p[j] = rotatedVec;
-        }
-    }
-    return inputMesh;
-}
-
 void initRotateYMat(mat4x4 * matY, double angle)
 {
     for (int i = 0; i < 4; i++)
@@ -401,25 +348,6 @@ void initRotateYMat(mat4x4 * matY, double angle)
     matY->m[3][3] = 1;
 }
 
-mesh rotateMeshAroundZ(mesh inputMesh, const double angle) 
-{
-    vector rotatedVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        for (int j =0; j < 3; j++)
-        {
-            rotatedVec.x = ((inputMesh.tris[i].p[j].x * cos(angle)) - (inputMesh.tris[i].p[j].y * sin(angle)));
-
-            rotatedVec.y = ((inputMesh.tris[i].p[j].x * sin(angle)) + (inputMesh.tris[i].p[j].y * cos(angle)));
-
-            rotatedVec.z = inputMesh.tris[i].p[j].z;
-
-            inputMesh.tris[i].p[j] = rotatedVec;
-        }
-    }
-    return inputMesh;
-}
-
 void initRotateZMat(mat4x4 * matZ, double angle)
 {
     for (int i = 0; i < 4; i++)
@@ -430,10 +358,10 @@ void initRotateZMat(mat4x4 * matZ, double angle)
         }
     }
 
-    matZ->m[0][0] = cosf(angle*0.5);
-    matZ->m[0][1] = sinf(angle*0.5);
-    matZ->m[1][0] = -sinf(angle*0.5);
-    matZ->m[1][1] = cosf(angle*0.5);
+    matZ->m[0][0] = cosf(angle);
+    matZ->m[0][1] = sinf(angle);
+    matZ->m[1][0] = -sinf(angle);
+    matZ->m[1][1] = cosf(angle);
     matZ->m[2][2] = 1;
     matZ->m[3][3] = 1;
 }
@@ -464,16 +392,6 @@ vector calculateTriangleNormal(triangle inputTri)
     return normal;
 }
 
-void calculateMeshNormals(mesh inputMesh, vector *inputArray)
-{
-    vector normal = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++)
-    {
-        normal = calculateTriangleNormal(inputMesh.tris[i]);
-        inputArray[i] = normal;
-    }
-}
-
 void clearScreen(screenStruct *screen) 
 {
     for (int x = 0; x < screen->width; x++) 
@@ -481,6 +399,7 @@ void clearScreen(screenStruct *screen)
         for (int y = 0; y < screen->height; y++) 
         {
             screen->screen[x][y]=BLANK;
+            screen->zBuffer[x][y]=INFINITY;
             if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
             {   
                 screen->screen[x][y]=BORDER;
@@ -549,8 +468,10 @@ void drawInScreen(screenStruct screen, int x, int y, const char ASCII)
 }
 
 void displayScreen(screenStruct *screen)
-{
+{   
+    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
     printf("\033[H\033[J"); //clears the screen
+    #endif
     // Iterate over y axis
     char outputString[screen->width+1];
     for (int y = 0; y < screen->height; y++)

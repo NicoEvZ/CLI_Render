@@ -2,6 +2,9 @@
 
 #define PI 3.14159
 #define CHARACHTER_RATIO 2.3
+// #define DEBUG_POINTS_NO_CLEARSCREEN
+// #define DEBUG_POINTS_BBs
+// #define DEBUG_POINTS_ZBUFFER
 
 typedef struct
 {
@@ -48,8 +51,6 @@ typedef struct
     double m[4][4];
 }mat4x4;
 
-// char *stripString(char *inputString, char stripChar);
-
 mesh copyMeshData(mesh fromMesh, mesh toMesh);
 
 void copyTriangleData(triangle fromTri, triangle *toTri);
@@ -63,8 +64,6 @@ vector divVecByScalar(vector vec, double scalar);
 vector vecCrossProduct(vector vec1, vector vec2);
 
 triangle matrixVectorMultiply(triangle input, mat4x4 m);
-
-void projectMeshTo2D(mesh inputMesh, const double distance);
 
 void drawTriangleOnScreen(triangle inputTri, screenStruct screen);
 
@@ -90,15 +89,7 @@ void translateTriangle(triangle *triToTranslate, double distance);
 
 void deleteScreen(screenStruct *screen);
 
-mesh rotateMeshAroundX(mesh inputMesh, const double angle);
-
-mesh rotateMeshAroundY(mesh inputMesh, const double angle);
-
-mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
-
 vector calculateTriangleNormal(triangle inputTri);
-
-void calculateMeshNormals(mesh inputMesh, vector *inputArray);
 
 void plotLineLow(int x0, int y0, int x1, int y1, screenStruct screen);
 
