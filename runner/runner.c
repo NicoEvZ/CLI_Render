@@ -92,33 +92,40 @@ int main(void){
             //calculate normals
             normalsVecArr[j] = calculateTriangleNormal(translatedTri);
 
+           
             if ((normalsVecArr[j].x * (translatedTri.p[0].x - camera.x) +
                  normalsVecArr[j].y * (translatedTri.p[0].y - camera.y) +
-                 normalsVecArr[j].z * (translatedTri.p[0].z - camera.z)) < 0)
+                 normalsVecArr[j].z * (translatedTri.p[0].z - camera.z)) > 0)
             {    
 
                 //assign the "illumination" symbol based off normal
-                vector lightDirection = {0, -0.5, 0.25};
+                vector lightDirection = {0, 0.5, 0.5};
                 illuminateTriangle(&translatedTri,normalsVecArr[j],lightDirection);
 
-                //project 3D --> 2D
                 translatedTri.p[0].x *= CHARACHTER_RATIO;
                 translatedTri.p[1].x *= CHARACHTER_RATIO;
                 translatedTri.p[2].x *= CHARACHTER_RATIO;
 
                 copyTriangleData(translatedTri, &projectedTri);
 
+                //project 3D --> 2D
                 projectedTri = matrixVectorMultiply(translatedTri, projMat);
-                // projectMeshTo2D(projectedMesh, importData.distance);
-                
+
                 //scale points
                 scaleTriangle(&projectedTri, screen);
-                // scale2DPoints(projectedMesh,importData.scale);
 
                 for (int triCopy = 0; triCopy < 3; triCopy++ )
                 {
                     projectedTri.p[triCopy].z = translatedTri.p[triCopy].z;
                 }
+
+                #ifdef DEBUG_POINTS_RENDER
+                printf("Triangle %d:\n",j+1);
+                printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTri.p[0].x, projectedTri.p[0].y, projectedTri.p[0].z);
+                printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTri.p[1].x, projectedTri.p[1].y, projectedTri.p[1].z);
+                printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTri.p[2].x, projectedTri.p[2].y, projectedTri.p[2].z);
+                printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVecArr[j].x, normalsVecArr[j].y, normalsVecArr[j].z);
+                #endif
 
                 copyTriangleData(projectedTri,&renderBufferArr[numOfTrisToRender]);
                 numOfTrisToRender++;
@@ -131,8 +138,6 @@ int main(void){
         {
             copyTriangleData(renderBufferArr[k],&trisToRender[k]);
         }
-
-        // quickSort(trisToRender, 0, (numOfTrisToRender -1));
 
         //select between vertex or rasterisation
         for (int tri = 0; tri < numOfTrisToRender; tri++)
@@ -158,12 +163,15 @@ int main(void){
         }
 
         #ifdef DEBUG_POINTS_RENDER
+        printf("Angle: %lf\n",(angle*(180/PI)));
         printf("Final Output:\n");
         #endif
 
-        displayScreen(&screen);
-
         angle = angle + 0.01745329;
+        displayScreen(&screen);
+        #ifdef DEBUG_POINTS_ZBUFFER
+        displayZBuffer(&screen);
+        #endif
         nanosleep((const struct timespec[]){{0, 41666667L}}, NULL);
         free(trisToRender);
     }

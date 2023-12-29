@@ -5,6 +5,7 @@
 // #define DEBUG_POINTS_NO_CLEARSCREEN
 // #define DEBUG_POINTS_BBs
 // #define DEBUG_POINTS_ZBUFFER
+// #define DEBUG_POINTS_LIGHT_LEVEL
 
 typedef struct
 {
@@ -69,8 +70,6 @@ void drawTriangleOnScreen(triangle inputTri, screenStruct screen);
 
 void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen);
 
-void scale2DPoints(mesh inputMesh, const double scaleFactor);
-
 void scaleTriangle(triangle *inputTriangle, screenStruct screen);
 
 void clearScreen(screenStruct *screen);
@@ -96,6 +95,10 @@ void plotLineLow(int x0, int y0, int x1, int y1, screenStruct screen);
 void plotLineHigh(int x0, int y0, int x1, int y1, screenStruct screen);
 
 void BresenhamPlotLine(vector pointA, vector pointB, screenStruct screen);
+
+void drawInScreen(screenStruct screen, int x, int y, const char ASCII);
+
+void displayZBuffer(screenStruct *screen);
 
 void displayScreen(screenStruct *screen);
 

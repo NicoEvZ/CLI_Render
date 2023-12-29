@@ -134,8 +134,7 @@ int pixelInTriangle(triangle inputTri, int x, int y, double* z)
     double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
     double c = 1 - a - b;
     
-    P.z = 1/(((1/A.z) * a) + ((1/B.z) * b) + ((C.z * c)));
-    // printf("P.x, P.y, P.z = %lf, %lf, %lf\n", P.x, P.y, P.z);
+    P.z = 1/(((1/A.z) * a) + ((1/B.z) * b) + ((1/C.z) * c));
     *z = P.z;
 
     // Check if all barycentric coordinates
@@ -152,11 +151,60 @@ int pixelInTriangle(triangle inputTri, int x, int y, double* z)
 
 void drawTriangleOnScreen(triangle inputTri, screenStruct screen)
 {
-    // printf("\033[H\033[J"); //clears the screen
+    vector bbmin = {INFINITY, INFINITY, 0};
+    vector bbmax = {-INFINITY, -INFINITY, 0};
 
     for (int i = 0; i < 3; i++)
     {
-       BresenhamPlotLine(inputTri.p[i],inputTri.p[((i+1)%3)],screen);
+        if (inputTri.p[i].x < bbmin.x)
+        {
+            bbmin.x = inputTri.p[i].x;
+        }
+        if (inputTri.p[i].y < bbmin.y)
+        {
+            bbmin.y = inputTri.p[i].y;
+        }
+        if (inputTri.p[i].x > bbmax.x)
+        {
+            bbmax.x = inputTri.p[i].x;
+        }
+        if (inputTri.p[i].y > bbmax.y)
+        {
+            bbmax.y = inputTri.p[i].y;
+        }
+    }
+
+    double z = 0;
+    for (int x = bbmin.x; x < bbmax.x; x++)
+    {
+        for (int y = bbmin.y; y < bbmax.y; y++)
+        {
+            if (pixelInTriangle(inputTri,x,y,&z))
+            {
+                #ifdef DEBUG_POINTS_ZBUFFER
+                printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
+                printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.zBuffer[x][y]);
+                #endif
+                if (z < screen.zBuffer[x][y])
+                {
+                    #ifdef DEBUG_POINTS_ZBUFFER
+                    printf("\t\tAnd it is! ");
+                    printf("\tComputed z = %lf\n",z);
+                    printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
+                    printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
+                    #endif;
+                    screen.zBuffer[x][y] = z;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        BresenhamPlotLine(inputTri.p[i],inputTri.p[((i+1)%3)],screen);
+                    }
+                    // drawInScreen(screen, x, y, inputTri.symbol);
+                    #ifdef DEBUG_POINTS_ZBUFFER
+                    printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
+                    #endif;
+                }
+            }
+        }
     }    
 }
 
@@ -199,18 +247,21 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
             {
                 #ifdef DEBUG_POINTS_ZBUFFER
                 printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
-                printf("z(%lf) needs to be smalled than: %lf...\n",z,screen.zBuffer[x][y]);
+                printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.zBuffer[x][y]);
                 #endif
                 if (z < screen.zBuffer[x][y])
                 {
                     #ifdef DEBUG_POINTS_ZBUFFER
-                    printf("And it is! ");
-                    printf("\t\tComputed z = %lf\n",z);
+                    printf("\t\tAnd it is! ");
+                    printf("\tComputed z = %lf\n",z);
                     printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
-                    printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n\n");
+                    printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
                     #endif;
                     screen.zBuffer[x][y] = z;
                     drawInScreen(screen, x, y, inputTri.symbol);
+                    #ifdef DEBUG_POINTS_ZBUFFER
+                    printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
+                    #endif;
                 }
             }
         }
@@ -265,38 +316,84 @@ char  getGrad(double lum)
 
     char outputChar;
     int grad = (int)9 * lum;
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
     switch (grad)
     {
     case 0:
-        outputChar = '.';
+        outputChar = '0';
         break;
     case 1:
-        outputChar = ':';
+        outputChar = '1';
         break;
     case 2:
-        outputChar = '-';
+        outputChar = '2';
         break;
     case 3: 
-        outputChar = '=';
+        outputChar = '3';
         break;
     case 4:
-        outputChar = '+';
+        outputChar = '4';
         break;
     case 5:
-        outputChar = '*';
+        outputChar = '5';
         break;
     case 6:
-        outputChar = '#';
+        outputChar = '6';
         break;
     case 7:
-        outputChar = '%';
+        outputChar = '7';
         break;
     case 8:
+        outputChar = '8';
+        break;
+    case 9:
+        outputChar = '9';
+        break;
+    default:
+        outputChar = '?';
+    }
+    printf("Lum: %lf\tGrad: %d\tChar: %c\n",lum, grad, outputChar);
+    #endif
+
+    #ifndef DEBUG_POINTS_LIGHT_LEVEL
+    switch (grad)
+    {
+    case 0:
+        outputChar = ' ';
+        break;
+    case 1:
+        outputChar = '.';
+        break;
+    case 2:
+        outputChar = ':';
+        break;
+    case 3: 
+        outputChar = '-';
+        break;
+    case 4:
+        outputChar = '=';
+        break;
+    case 5:
+        outputChar = '+';
+        break;
+    case 6:
+        outputChar = '*';
+        break;
+    case 7:
+        outputChar = '#';
+        break;
+    case 8:
+        outputChar = '%';
+        break;
+    case 9:
         outputChar = '@';
         break;
     default:
-        outputChar = '`';
+        outputChar = ' ';
     }
+    #endif
+    
+
     return outputChar;
 }
 
@@ -378,8 +475,8 @@ vector calculateTriangleNormal(triangle inputTri)
 {   
     vector U,V,normal;
     
-    U = (subVec(inputTri.p[1],inputTri.p[0]));
-    V = (subVec(inputTri.p[2],inputTri.p[0]));
+    U = (subVec(inputTri.p[2],inputTri.p[1]));
+    V = (subVec(inputTri.p[1],inputTri.p[0]));
 
     normal = vecCrossProduct(U, V);
 
@@ -438,7 +535,7 @@ void deleteScreen(screenStruct *screen)
     free(screen->zBuffer);
 }
 
-void drawInScreen(screenStruct screen, int x, int y, const char ASCII) 
+void drawInScreen(screenStruct screen, int x, int y, const char ASCII)
 {
     if (x < 0) 
     {
@@ -465,6 +562,28 @@ void drawInScreen(screenStruct screen, int x, int y, const char ASCII)
     }
 
     screen.screen[x][y] = ASCII;
+}
+
+void displayZBuffer(screenStruct *screen)
+{   
+    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
+    printf("\033[H\033[J"); //clears the screen
+    #endif
+    // Iterate over y axis
+    double outputString[screen->width+1];
+    for (int y = 0; y < screen->height; y++)
+    {
+        for (int x = 0; x < screen->width; x++)
+        {
+            // Store current value in array at point(x,y), as char in string
+            // String is length of screen.width
+            outputString[x]=screen->zBuffer[x][y];
+            printf("%lf,",outputString[x]);
+        }
+        // Display filled string, and new line character, before moving onto the next value of y
+        // outputString[screen->width]='\0';
+        printf("\n");
+    }
 }
 
 void displayScreen(screenStruct *screen)
