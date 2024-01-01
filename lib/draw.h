@@ -102,6 +102,8 @@ void displayZBuffer(screenStruct *screen);
 
 void displayScreen(screenStruct *screen);
 
+void drawScreenBorder(screenStruct *screen);
+
 void illuminateTriangle(triangle *inputTri, vector inputTriNorm, vector lightDirection);
 
 char getGrad(double lum);

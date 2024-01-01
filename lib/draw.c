@@ -181,11 +181,32 @@ void drawTriangleOnScreen(triangle inputTri, screenStruct screen)
         {
             if (pixelInTriangle(inputTri,x,y,&z))
             {
+                int xCheck = x;
+                int yCheck = y;
                 #ifdef DEBUG_POINTS_ZBUFFER
                 printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
                 printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.zBuffer[x][y]);
                 #endif
-                if (z < screen.zBuffer[x][y])
+
+                if (x < 0)
+                {
+                    xCheck = 0;
+                }
+                else if (x > (screen.width - 1))
+                {
+                    xCheck = (screen.width - 1); 
+                }
+
+                if (y < 0)
+                {
+                    yCheck = 0;
+                }
+                else if (y > (screen.height - 1))
+                {
+                    yCheck = (screen.height - 1);
+                }
+
+                if (z < screen.zBuffer[xCheck][yCheck])
                 {
                     #ifdef DEBUG_POINTS_ZBUFFER
                     printf("\t\tAnd it is! ");
@@ -193,12 +214,15 @@ void drawTriangleOnScreen(triangle inputTri, screenStruct screen)
                     printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
                     printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
                     #endif;
-                    screen.zBuffer[x][y] = z;
+                    screen.zBuffer[xCheck][yCheck] = z;
+                    // if ((x == (int)bbmin.x || x == (int)bbmax.x) || (y == (int)bbmin.y || y == (int)bbmax.y))
+                    // {
+                    //     drawInScreen(screen, x, y, LINE);
+                    // } 
                     for (int i = 0; i < 3; i++)
                     {
                         BresenhamPlotLine(inputTri.p[i],inputTri.p[((i+1)%3)],screen);
                     }
-                    // drawInScreen(screen, x, y, inputTri.symbol);
                     #ifdef DEBUG_POINTS_ZBUFFER
                     printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
                     #endif;
@@ -245,11 +269,31 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
         {
             if (pixelInTriangle(inputTri,x,y,&z))
             {
+                int xCheck = x;
+                int yCheck = y;
                 #ifdef DEBUG_POINTS_ZBUFFER
                 printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
                 printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.zBuffer[x][y]);
                 #endif
-                if (z < screen.zBuffer[x][y])
+                if (x < 0)
+                {
+                    xCheck = 0;
+                }
+                else if (x > (screen.width - 1))
+                {
+                    xCheck = (screen.width - 1); 
+                }
+
+                if (y < 0)
+                {
+                    yCheck = 0;
+                }
+                else if (y > (screen.height - 1))
+                {
+                    yCheck = (screen.height - 1);
+                }
+                
+                if (z < screen.zBuffer[xCheck][yCheck])
                 {
                     #ifdef DEBUG_POINTS_ZBUFFER
                     printf("\t\tAnd it is! ");
@@ -257,7 +301,7 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
                     printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
                     printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
                     #endif;
-                    screen.zBuffer[x][y] = z;
+                    screen.zBuffer[xCheck][yCheck] = z;
                     drawInScreen(screen, x, y, inputTri.symbol);
                     #ifdef DEBUG_POINTS_ZBUFFER
                     printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
@@ -497,6 +541,16 @@ void clearScreen(screenStruct *screen)
         {
             screen->screen[x][y]=BLANK;
             screen->zBuffer[x][y]=INFINITY;
+        }
+    }
+}
+
+void drawScreenBorder(screenStruct *screen)
+{
+    for (int x = 0; x < screen->width; x++) 
+    {
+        for (int y = 0; y < screen->height; y++) 
+        {
             if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
             {   
                 screen->screen[x][y]=BORDER;

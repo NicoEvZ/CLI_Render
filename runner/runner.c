@@ -168,6 +168,7 @@ int main(void){
         #endif
 
         angle = angle + 0.01745329;
+        drawScreenBorder(&screen);
         displayScreen(&screen);
         #ifdef DEBUG_POINTS_ZBUFFER
         displayZBuffer(&screen);
