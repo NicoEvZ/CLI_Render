@@ -20,17 +20,17 @@ typedef struct
 
 typedef struct
 {
-    triangle* tris;
+    triangle *tris;
     int numOfTris;
     int numOfVerts;
 }mesh;
 
 typedef struct
 { 
-    int** screen;
+    int **screen;
     int width;
     int height;
-    double** zBuffer;
+    double **zBuffer;
 } screenStruct;
 
 typedef struct
@@ -78,11 +78,11 @@ void initScreen(screenStruct *screen);
 
 void initProjectMat(renderConfig importData, mat4x4 *matProj);
 
-void initRotateXMat(mat4x4 * matX, double angle);
+void initRotateXMat(mat4x4 *matX, double angle);
 
-void initRotateYMat(mat4x4 * matY, double angle);
+void initRotateYMat(mat4x4 *matY, double angle);
 
-void initRotateZMat(mat4x4 * matZ, double angle);
+void initRotateZMat(mat4x4 *matZ, double angle);
 
 void translateTriangle(triangle *triToTranslate, double distance);
 
@@ -101,6 +101,8 @@ void drawInScreen(screenStruct screen, int x, int y, const char ASCII);
 void displayZBuffer(screenStruct *screen);
 
 void displayScreen(screenStruct *screen);
+
+void displayScreen2(screenStruct *screen);
 
 void drawScreenBorder(screenStruct *screen);
 

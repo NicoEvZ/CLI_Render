@@ -101,7 +101,7 @@ void initProjectMat(renderConfig importData, mat4x4 *matProj)
     double near = 0.1;
     double far = 1000;
     double fov = importData.fov;
-    double aspectRatio = (double)importData.screenHeightImprt / (double)importData.screenWidthImprt;
+    double aspectRatio = ((double)importData.screenHeightImprt / (double)importData.screenWidthImprt);
     double fovRad = 1 / tanf(fov * 0.5 / 180 * PI);
 
     for (int i = 0; i < 4; i++)
@@ -117,6 +117,7 @@ void initProjectMat(renderConfig importData, mat4x4 *matProj)
     matProj->m[2][2] = far / (far - near);
     matProj->m[3][2] = (-far * near) / (far - near);
     matProj->m[2][3] = 1;
+    matProj->m[3][3] = 0;
 }
 
 int pixelInTriangle(triangle inputTri, int x, int y, double* z)
@@ -213,7 +214,7 @@ void drawTriangleOnScreen(triangle inputTri, screenStruct screen)
                     printf("\tComputed z = %lf\n",z);
                     printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
                     printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
-                    #endif;
+                    #endif
                     screen.zBuffer[xCheck][yCheck] = z;
                     // if ((x == (int)bbmin.x || x == (int)bbmax.x) || (y == (int)bbmin.y || y == (int)bbmax.y))
                     // {
@@ -225,7 +226,7 @@ void drawTriangleOnScreen(triangle inputTri, screenStruct screen)
                     }
                     #ifdef DEBUG_POINTS_ZBUFFER
                     printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
-                    #endif;
+                    #endif
                 }
             }
         }
@@ -300,12 +301,12 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
                     printf("\tComputed z = %lf\n",z);
                     printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
                     printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
-                    #endif;
+                    #endif
                     screen.zBuffer[xCheck][yCheck] = z;
                     drawInScreen(screen, x, y, inputTri.symbol);
                     #ifdef DEBUG_POINTS_ZBUFFER
                     printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
-                    #endif;
+                    #endif
                 }
             }
         }
@@ -342,6 +343,11 @@ void illuminateTriangle(triangle *inputTri, vector inputTriNorm, vector lightDir
                 inputTriNorm.y * lightDirection.y + 
                 inputTriNorm.z * lightDirection.z;
 
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    printf("lightDirection: (%lf, %lf, %lf)\n", lightDirection.x, lightDirection.y, lightDirection.z);
+    printf("inputTriNorm: (%lf, %lf, %lf)\n\n", inputTriNorm.x, inputTriNorm.y, inputTriNorm.z);
+    #endif
+
     inputTri->symbol = getGrad(dp);
 }
 
@@ -359,9 +365,9 @@ char  getGrad(double lum)
     // @
 
     char outputChar;
-    int grad = (int)9 * lum;
+    double grad = (9 * lum);
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
-    switch (grad)
+    switch ((int)(rint(grad)))
     {
     case 0:
         outputChar = '0';
@@ -396,11 +402,11 @@ char  getGrad(double lum)
     default:
         outputChar = '?';
     }
-    printf("Lum: %lf\tGrad: %d\tChar: %c\n",lum, grad, outputChar);
+    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",lum, rint(9 * lum), outputChar);
     #endif
 
     #ifndef DEBUG_POINTS_LIGHT_LEVEL
-    switch (grad)
+    switch ((int)(rint(grad)))
     {
     case 0:
         outputChar = ' ';
@@ -523,6 +529,11 @@ vector calculateTriangleNormal(triangle inputTri)
     V = (subVec(inputTri.p[1],inputTri.p[0]));
 
     normal = vecCrossProduct(U, V);
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    printf("U: (%lf, %lf, %lf)\n", U.x, U.y, U.z);
+    printf("V: (%lf, %lf, %lf)\n", V.x, V.y, V.z);
+    printf("normal(before normalising): (%lf, %lf, %lf)\n", normal.x, normal.y, normal.z);
+    #endif
 
     //its normally normal to normalise the normal
     double l = sqrtl(normal.x * normal.x + 
@@ -530,6 +541,10 @@ vector calculateTriangleNormal(triangle inputTri)
                      normal.z * normal.z);
     normal = divVecByScalar(normal, l);
     
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    printf("normal(after normalising): (%lf, %lf, %lf)\n\n", normal.x, normal.y, normal.z);
+    #endif
+
     return normal;
 }
 
@@ -659,6 +674,48 @@ void displayScreen(screenStruct *screen)
         outputString[screen->width]='\0';
         printf("%s\n",outputString);
     }
+}
+
+void displayScreen2(screenStruct *screen)
+{   
+    size_t sizeOfScreen = (sizeof(char)*((screen->width+1) * screen->height));
+    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+    printf("Screen Area: %d x %d = %d (%ld bytes)\n",screen->width, screen->height, (screen->width * screen->height),sizeOfScreen);
+    printf("BUFFSIZ: %d\n",BUFSIZ);
+    #endif
+
+    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
+    printf("\033[H\033[J"); //clears the screen
+    #endif
+    // fflush(stdout);
+    setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
+
+    char outputStringArr[sizeOfScreen];
+    // char outputString[screen->width+1];
+    // setvbuf(stdout, outputString, _IOLBF, (screen->width+1)); // turn off buffering for stdout
+    for (int y = (screen->height-1); y >= 0; y--)
+    {
+        int invY = 0;
+        for (int x = 0; x < screen->width; x++)
+        {
+            // Store current value in array at point(x,y), as char in string
+            // String is length of screen.width
+            outputStringArr[(y * (screen->width+1))+x]=screen->screen[x][y];
+            // outputString[x]=screen->screen[x][y];
+
+            // if ((x * y) == BUFSIZ)
+            // {
+            //     outputString[BUFSIZ] = 'B';
+            // }
+        }
+        // Display filled string, and new line character, before moving onto the next value of y
+        outputStringArr[(y * (screen->width+1))+(screen->width)]='\n';
+        // outputString[screen->width]='\0';
+        // printf("%s\n",outputString);
+        invY++;
+    }
+    fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
+    fflush(stdout);
 }
 
 void plotLineLow(int x0, int y0, int x1, int y1, screenStruct screen)

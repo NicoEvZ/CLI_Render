@@ -9,8 +9,6 @@
 #include "draw.h"
 #include "runner.h"
 
-#include "quick_sort.h"
-
 // #define DEBUG_POINTS_IMPORT
 // #define DEBUG_POINTS_RENDER
 
@@ -18,6 +16,7 @@ int main(void){
     renderConfig importData;
     screenStruct screen;
     mat4x4 projMat;
+    vector lightDirection = {0, 0.5, 0.5};   
 
     const char jsonImportPath[] = "data/inputData.json";
 
@@ -35,11 +34,14 @@ int main(void){
     initProjectMat(importData, &projMat);
 
     double angle = 0;
+    double lightAngle = 0;
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
     if (baseMesh.numOfTris == 0)
     {
+        printf("Error: Import failed, or OBJ file contains no vertex data\n");
+        printf("Exiting...\n");
         return 0;
     }
 
@@ -51,6 +53,12 @@ int main(void){
     vector (*normalsVecArr) = malloc(baseMesh.numOfTris * sizeof(vector));
     triangle (*renderBufferArr) = malloc(baseMesh.numOfTris * sizeof(triangle));
 
+    // initRotateZMat(&rotateZ, (180*(PI/180)));
+    // for (int j = 0; j < baseMesh.numOfTris; j++)
+    // {
+    //     baseMesh.tris[j] = matrixVectorMultiply(baseMesh.tris[j], rotateZ);
+    // }
+
     //display 
     for (int i = 0; i < importData.i; i++)
     {
@@ -59,7 +67,7 @@ int main(void){
         initRotateXMat(&rotateX, angle);
         initRotateYMat(&rotateY, angle);
         initRotateZMat(&rotateZ, angle);
-
+ 
         for (int j = 0; j < baseMesh.numOfTris; j++)
         {
             triangle rotatedTri;
@@ -89,7 +97,7 @@ int main(void){
             //offest into screen
             translateTriangle(&translatedTri, importData.distance);
 
-            //calculate normals
+            //calculate face normals
             normalsVecArr[j] = calculateTriangleNormal(translatedTri);
 
            
@@ -99,12 +107,20 @@ int main(void){
             {    
 
                 //assign the "illumination" symbol based off normal
-                vector lightDirection = {0, 0.5, 0.5};
+                
+                // lightDirection.y = sin(lightAngle);
+                // lightDirection.z = cos(lightAngle);
+
                 illuminateTriangle(&translatedTri,normalsVecArr[j],lightDirection);
 
                 translatedTri.p[0].x *= CHARACHTER_RATIO;
                 translatedTri.p[1].x *= CHARACHTER_RATIO;
                 translatedTri.p[2].x *= CHARACHTER_RATIO;
+
+                // translatedTri.p[0].y = (translatedTri.p[0].y + 45);
+                // translatedTri.p[1].y = (translatedTri.p[1].y + 45);
+                // translatedTri.p[2].y = (translatedTri.p[2].y + 45);
+
 
                 copyTriangleData(translatedTri, &projectedTri);
 
@@ -119,13 +135,13 @@ int main(void){
                     projectedTri.p[triCopy].z = translatedTri.p[triCopy].z;
                 }
 
-                #ifdef DEBUG_POINTS_RENDER
-                printf("Triangle %d:\n",j+1);
-                printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTri.p[0].x, projectedTri.p[0].y, projectedTri.p[0].z);
-                printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTri.p[1].x, projectedTri.p[1].y, projectedTri.p[1].z);
-                printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTri.p[2].x, projectedTri.p[2].y, projectedTri.p[2].z);
-                printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVecArr[j].x, normalsVecArr[j].y, normalsVecArr[j].z);
-                #endif
+                // #ifdef DEBUG_POINTS_RENDER
+                // printf("Triangle %d:\n",j+1);
+                // printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTri.p[0].x, projectedTri.p[0].y, projectedTri.p[0].z);
+                // printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTri.p[1].x, projectedTri.p[1].y, projectedTri.p[1].z);
+                // printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTri.p[2].x, projectedTri.p[2].y, projectedTri.p[2].z);
+                // printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVecArr[j].x, normalsVecArr[j].y, normalsVecArr[j].z);
+                // #endif
 
                 copyTriangleData(projectedTri,&renderBufferArr[numOfTrisToRender]);
                 numOfTrisToRender++;
@@ -156,24 +172,26 @@ int main(void){
                 drawTriangleOnScreen(trisToRender[tri], screen);
             }
 
-            #ifdef DEBUG_POINTS_RENDER
-            displayScreen(&screen);
-            nanosleep((const struct timespec[]){{0, 125000000}}, NULL);
-            #endif
+            // #ifdef DEBUG_POINTS_RENDER
+            // displayScreen(&screen);
+            // nanosleep((const struct timespec[]){{0, 125000000}}, NULL);
+            // #endif
         }
 
-        #ifdef DEBUG_POINTS_RENDER
-        printf("Angle: %lf\n",(angle*(180/PI)));
-        printf("Final Output:\n");
-        #endif
+        // #ifdef DEBUG_POINTS_RENDER
+        // printf("Angle: %lf\n",(angle*(180/PI)));
+        // printf("Final Output:\n");
+        // #endif
 
         angle = angle + 0.01745329;
+        // lightAngle = lightAngle + 0.01745329;
         drawScreenBorder(&screen);
-        displayScreen(&screen);
+        // displayScreen(&screen);
+        displayScreen2(&screen);
         #ifdef DEBUG_POINTS_ZBUFFER
         displayZBuffer(&screen);
         #endif
-        nanosleep((const struct timespec[]){{0, 41666667L}}, NULL);
+        nanosleep((const struct timespec[]){{0, 83333333L}}, NULL);
         free(trisToRender);
     }
     free(normalsVecArr);
@@ -318,7 +336,6 @@ mesh importMeshFromOBJFile (char * pathToFile)
     char b[20];
     char c[20];
     char junk[MAX_LINE_LENGTH];
-    char buffChar[20];
     int vCount = 0;
     int fCount = 0;
     while (fgets(line, sizeof(line), obj) != NULL)
@@ -341,9 +358,9 @@ mesh importMeshFromOBJFile (char * pathToFile)
             sscanf(line,"f %s %s %s", a, b, c);
 
             //handle OBJs withe "f 00/00/00" format
-            sscanf(a, "%d/%s", &p0, &junk);
-            sscanf(b, "%d/%s", &p1, &junk);
-            sscanf(c, "%d/%s", &p2, &junk);
+            sscanf(a, "%d/%s", &p0, junk);
+            sscanf(b, "%d/%s", &p1, junk);
+            sscanf(c, "%d/%s", &p2, junk);
 
             newMesh.tris[fCount].p[0] = vectorArray[(p0-1)];
             newMesh.tris[fCount].p[1] = vectorArray[(p1-1)];
@@ -361,6 +378,8 @@ mesh importMeshFromOBJFile (char * pathToFile)
     }
     #endif
 
+
+    //averages the coords so that the object appears in the center of the screen
     average = divVecByScalar(runningTotal, vCount);
 
     for (int j = 0; j < fCount; j++) 
