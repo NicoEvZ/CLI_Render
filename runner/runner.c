@@ -20,7 +20,7 @@ int main(void){
     vector camera = {0, 0, 0};
     vector lightDirection = {0, -1, 0};   
 
-    const char jsonImportPath[] = "data/inputData.json";
+    const char jsonImportPath[] = "data/renderOptions.json";
 
     //failsafe that exits code if the importMeshFromOBJFile didn't succeed.
     if (importJSON(jsonImportPath, &importData))

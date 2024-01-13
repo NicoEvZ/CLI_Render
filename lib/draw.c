@@ -18,7 +18,7 @@ void copyTriangleData(triangle fromTri, triangle *toTri)
 }
 
 //vec1.elements plus vec2.elements
-vector addVec( vector vec1, vector vec2) 
+vector addVec(vector vec1, vector vec2) 
 {
     vector returnVec;
 
@@ -165,7 +165,7 @@ int pixelInTriangle(triangle inputTri, int x, int y, double* z)
     double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
     double c = 1 - a - b;
     
-    P.z = 1 / (((1/A.z) * a) + ((1/B.z) * b) + ((1/C.z) * c));
+    P.z = 1 / (((1 / A.z) * a) + ((1 / B.z) * b) + ((1 / C.z) * c));
     *z = P.z;
 
     // Check if all barycentric coordinates
@@ -560,26 +560,9 @@ void deleteScreen(screenStruct *screen)
 
 void drawInScreen(screenStruct screen, int x, int y, const char ASCII)
 {
-    if (x < 0) 
-    {
-        x = 0;
-    }
-
-    if (x > (screen.width-1)) 
-    {
-        x = screen.width-1;
-    }
-
-    if (y < 0) 
-    {
-        y = 0;
-    }
-
-    if (y > (screen.height-1)) 
-    {
-        y = screen.height-1;
-    }
-
+    x = clamp(x, 0, (screen.width - 1));
+    y = clamp(y, 0, (screen.height - 1));
+   
     screen.screen[x][y] = ASCII;
 }
 
