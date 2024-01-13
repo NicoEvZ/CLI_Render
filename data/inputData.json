@@ -1,12 +1,12 @@
 {
-    "distance":8.0,
-    "fov":65.0,
-    "objFile":"data/videoShip.obj",
+    "distance":30.0,
+    "fov":60.0,
+    "objFile":"data/orb.obj",
     "iterations":360,
     "rotateX":true,
     "rotateY":true,
-    "rotateZ":true,
-    "screenWidth":211,
-    "screenHeight":61,
+    "rotateZ":true,  
+    "screenWidth":220,
+    "screenHeight":55,
     "rasterise":true
 }

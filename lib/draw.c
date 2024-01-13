@@ -3,24 +3,10 @@
 #include <stdlib.h>
 #include "draw.h"
 
-#define BLANK ' ' //SPACE character ASCII code
-#define LINE '#' //'#' character ASCII code
+#define BLANK ' '
+#define LINE '#'
 #define DOT '@'
 #define BORDER '*'
-
-vector camera = {0,0,0};
-
-mesh copyMeshData(mesh fromMesh, mesh toMesh)
-{
-    toMesh.numOfTris = fromMesh.numOfTris;
-    toMesh.numOfVerts = fromMesh.numOfVerts;
-    toMesh.tris = (triangle*) malloc(toMesh.numOfTris * sizeof(triangle));
-    for (int i = 0; i < toMesh.numOfTris; i++)
-    {
-        toMesh.tris[i] = fromMesh.tris[i];
-    }
-    return toMesh;
-}
 
 void copyTriangleData(triangle fromTri, triangle *toTri)
 {
@@ -60,11 +46,22 @@ vector divVecByScalar(vector vec, double scalar)
 {
     vector returnVec;
 
-    returnVec.x = vec.x/scalar;
-    returnVec.y = vec.y/scalar;
-    returnVec.z = vec.z/scalar;
+    returnVec.x = vec.x / scalar;
+    returnVec.y = vec.y / scalar;
+    returnVec.z = vec.z / scalar;
 
     return returnVec;
+}
+
+vector mulVecByScalar(vector vec, double scalar)
+{
+    vector returnVec;
+
+    returnVec.x = vec.x * scalar;
+    returnVec.y = vec.y * scalar;
+    returnVec.z = vec.z * scalar;
+
+    return returnVec;   
 }
 
 vector vecCrossProduct(vector vec1, vector vec2)
@@ -75,6 +72,24 @@ vector vecCrossProduct(vector vec1, vector vec2)
     output.y = (vec1.z * vec2.x) - (vec1.x * vec2.z);
     output.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
 
+    return output;
+}
+
+vector vecNormaliseVector(vector inputVec)
+{
+    double length = sqrtl(vecDotProduct(inputVec, inputVec));
+
+    vector returnVec = divVecByScalar(inputVec, length);
+    
+    return returnVec;
+}
+
+double   vecDotProduct(vector vec1, vector vec2)
+{
+    double output = (vec1.x * vec2.x) +
+                    (vec1.y * vec2.y) +
+                    (vec1.z * vec2.z);
+    
     return output;
 }
 
@@ -92,6 +107,21 @@ triangle matrixVectorMultiply(triangle input, mat4x4 m)
         {
             output.p[i] = divVecByScalar(output.p[i],w);
         }
+    }
+    return output;
+}
+
+//output = input, unless it exceeds min or max
+int clamp(int input, int min, int max)
+{
+    int output = input;
+    if (input < min)
+    {
+        output = min;
+    }
+    else if (input > max)
+    {
+        output = max;
     }
     return output;
 }
@@ -135,7 +165,7 @@ int pixelInTriangle(triangle inputTri, int x, int y, double* z)
     double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
     double c = 1 - a - b;
     
-    P.z = 1/(((1/A.z) * a) + ((1/B.z) * b) + ((1/C.z) * c));
+    P.z = 1 / (((1/A.z) * a) + ((1/B.z) * b) + ((1/C.z) * c));
     *z = P.z;
 
     // Check if all barycentric coordinates
@@ -150,94 +180,16 @@ int pixelInTriangle(triangle inputTri, int x, int y, double* z)
     }
 }
 
-void drawTriangleOnScreen(triangle inputTri, screenStruct screen)
+void drawTriOutline(triangle inputTri, screenStruct screen)
 {
-    vector bbmin = {INFINITY, INFINITY, 0};
-    vector bbmax = {-INFINITY, -INFINITY, 0};
-
     for (int i = 0; i < 3; i++)
     {
-        if (inputTri.p[i].x < bbmin.x)
-        {
-            bbmin.x = inputTri.p[i].x;
-        }
-        if (inputTri.p[i].y < bbmin.y)
-        {
-            bbmin.y = inputTri.p[i].y;
-        }
-        if (inputTri.p[i].x > bbmax.x)
-        {
-            bbmax.x = inputTri.p[i].x;
-        }
-        if (inputTri.p[i].y > bbmax.y)
-        {
-            bbmax.y = inputTri.p[i].y;
-        }
+        BresenhamPlotLine(inputTri.p[i], inputTri.p[((i + 1) % 3)], screen);
     }
-
-    double z = 0;
-    for (int x = bbmin.x; x < bbmax.x; x++)
-    {
-        for (int y = bbmin.y; y < bbmax.y; y++)
-        {
-            if (pixelInTriangle(inputTri,x,y,&z))
-            {
-                int xCheck = x;
-                int yCheck = y;
-                #ifdef DEBUG_POINTS_ZBUFFER
-                printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
-                printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.zBuffer[x][y]);
-                #endif
-
-                if (x < 0)
-                {
-                    xCheck = 0;
-                }
-                else if (x > (screen.width - 1))
-                {
-                    xCheck = (screen.width - 1); 
-                }
-
-                if (y < 0)
-                {
-                    yCheck = 0;
-                }
-                else if (y > (screen.height - 1))
-                {
-                    yCheck = (screen.height - 1);
-                }
-
-                if (z < screen.zBuffer[xCheck][yCheck])
-                {
-                    #ifdef DEBUG_POINTS_ZBUFFER
-                    printf("\t\tAnd it is! ");
-                    printf("\tComputed z = %lf\n",z);
-                    printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
-                    printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
-                    #endif
-                    screen.zBuffer[xCheck][yCheck] = z;
-                    // if ((x == (int)bbmin.x || x == (int)bbmax.x) || (y == (int)bbmin.y || y == (int)bbmax.y))
-                    // {
-                    //     drawInScreen(screen, x, y, LINE);
-                    // } 
-                    for (int i = 0; i < 3; i++)
-                    {
-                        BresenhamPlotLine(inputTri.p[i],inputTri.p[((i+1)%3)],screen);
-                    }
-                    #ifdef DEBUG_POINTS_ZBUFFER
-                    printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
-                    #endif
-                }
-            }
-        }
-    }    
 }
 
-
-void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
+void drawTriangleOnScreen(triangle inputTri, screenStruct screen, int fillBool)
 {
-    // printf("\033[H\033[J"); //clears the screen
-
     vector bbmin = {INFINITY, INFINITY, 0};
     vector bbmax = {-INFINITY, -INFINITY, 0};
 
@@ -260,55 +212,60 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
             bbmax.y = inputTri.p[i].y;
         }
     }
+
     #ifdef DEBUG_POINTS_BBs
     printf("bbmin = (%lf,%lf)\tbbmax = (%lf,%lf)\n",bbmin.x,bbmin.y,bbmax.x,bbmax.y);
     #endif
+    
     double z = 0;
-    for (int x = bbmin.x; x < bbmax.x; x++)
+    for (int y = bbmin.y; y < bbmax.y; y++) 
     {
-        for (int y = bbmin.y; y < bbmax.y; y++)
+        for (int x = bbmin.x; x < bbmax.x; x++)
         {
-            if (pixelInTriangle(inputTri,x,y,&z))
+            int res = pixelInTriangle(inputTri,x,y,&z);
+            if (res == 0)
             {
-                int xCheck = x;
-                int yCheck = y;
-                #ifdef DEBUG_POINTS_ZBUFFER
-                printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
-                printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.zBuffer[x][y]);
-                #endif
-                if (x < 0)
-                {
-                    xCheck = 0;
-                }
-                else if (x > (screen.width - 1))
-                {
-                    xCheck = (screen.width - 1); 
-                }
-
-                if (y < 0)
-                {
-                    yCheck = 0;
-                }
-                else if (y > (screen.height - 1))
-                {
-                    yCheck = (screen.height - 1);
-                }
-                
-                if (z < screen.zBuffer[xCheck][yCheck])
-                {
-                    #ifdef DEBUG_POINTS_ZBUFFER
-                    printf("\t\tAnd it is! ");
-                    printf("\tComputed z = %lf\n",z);
-                    printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
-                    printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
-                    #endif
-                    screen.zBuffer[xCheck][yCheck] = z;
-                    drawInScreen(screen, x, y, inputTri.symbol);
-                    #ifdef DEBUG_POINTS_ZBUFFER
-                    printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
-                    #endif
-                }
+                continue;
             }
+                        
+            int xCheck = x;
+            int yCheck = y;
+
+            #ifdef DEBUG_POINTS_ZBUFFER
+            printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
+            printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.zBuffer[x][y]);
+            #endif
+            
+            //prevent segfault from attempting to draw outside screen bounds
+            xCheck = clamp(x, 0, (screen.width -1));
+            yCheck = clamp(y, 0, (screen.height -1));
+            
+            if (z > screen.zBuffer[xCheck][yCheck])
+            {
+                continue;;
+            }
+
+            #ifdef DEBUG_POINTS_ZBUFFER
+            printf("\t\tAnd it is! ");
+            printf("\tComputed z = %lf\n",z);
+            printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.zBuffer[x][y]);
+            printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
+            #endif
+
+            screen.zBuffer[xCheck][yCheck] = z;
+
+            if (fillBool)
+            {
+                drawInScreen(screen, x, y, inputTri.symbol);
+            }
+            else
+            {
+                drawTriOutline(inputTri,screen);
+            }
+
+            #ifdef DEBUG_POINTS_ZBUFFER
+            printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTri.symbol);
+            #endif
         }
     }
     #ifdef DEBUG_POINTS_BBs
@@ -333,15 +290,9 @@ void rasteriseTriangleOnScreen(triangle inputTri, screenStruct screen)
 
 void illuminateTriangle(triangle *inputTri, vector inputTriNorm, vector lightDirection)
 {
-    double l = sqrtl(lightDirection.x * lightDirection.x + 
-                     lightDirection.y * lightDirection.y + 
-                     lightDirection.z * lightDirection.z);
+    lightDirection = vecNormaliseVector(lightDirection);
 
-    lightDirection = divVecByScalar(lightDirection, l);
-
-    double dp = inputTriNorm.x * lightDirection.x + 
-                inputTriNorm.y * lightDirection.y + 
-                inputTriNorm.z * lightDirection.z;
+    double dp = vecDotProduct(inputTriNorm, lightDirection);
 
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
     printf("lightDirection: (%lf, %lf, %lf)\n", lightDirection.x, lightDirection.y, lightDirection.z);
@@ -353,17 +304,8 @@ void illuminateTriangle(triangle *inputTri, vector inputTriNorm, vector lightDir
 
 char  getGrad(double lum)
 {
-    // 
-    // .
-    // :
-    // -
-    // =
-    // +
-    // *
-    // #
-    // %
-    // @
-
+    // " .:-=+*#%@"
+    
     char outputChar;
     double grad = (9 * lum);
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
@@ -442,7 +384,6 @@ char  getGrad(double lum)
         outputChar = ' ';
     }
     #endif
-    
 
     return outputChar;
 }
@@ -513,7 +454,23 @@ void initRotateZMat(mat4x4 * matZ, double angle)
     matZ->m[3][3] = 1;
 }
 
-void translateTriangle(triangle *triToTranslate, double distance)
+void translateTriangleX(triangle *triToTranslate, double distance)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        triToTranslate->p[i].x = triToTranslate->p[i].x + distance;
+    }
+}
+
+void translateTriangleY(triangle *triToTranslate, double distance)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        triToTranslate->p[i].y = triToTranslate->p[i].y + distance;
+    }
+}
+
+void translateTriangleZ(triangle *triToTranslate, double distance)
 {
     for (int i = 0; i < 3; i++)
     {
@@ -536,10 +493,7 @@ vector calculateTriangleNormal(triangle inputTri)
     #endif
 
     //its normally normal to normalise the normal
-    double l = sqrtl(normal.x * normal.x + 
-                     normal.y * normal.y + 
-                     normal.z * normal.z);
-    normal = divVecByScalar(normal, l);
+    normal = vecNormaliseVector(normal);
     
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
     printf("normal(after normalising): (%lf, %lf, %lf)\n\n", normal.x, normal.y, normal.z);
@@ -608,25 +562,21 @@ void drawInScreen(screenStruct screen, int x, int y, const char ASCII)
 {
     if (x < 0) 
     {
-
         x = 0;
     }
 
     if (x > (screen.width-1)) 
     {
-
         x = screen.width-1;
     }
 
     if (y < 0) 
     {
-
         y = 0;
     }
 
     if (y > (screen.height-1)) 
     {
-
         y = screen.height-1;
     }
 
@@ -657,27 +607,6 @@ void displayZBuffer(screenStruct *screen)
 
 void displayScreen(screenStruct *screen)
 {   
-    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("\033[H\033[J"); //clears the screen
-    #endif
-    // Iterate over y axis
-    char outputString[screen->width+1];
-    for (int y = 0; y < screen->height; y++)
-    {
-        for (int x = 0; x < screen->width; x++)
-        {
-            // Store current value in array at point(x,y), as char in string
-            // String is length of screen.width
-            outputString[x]=screen->screen[x][y];
-        }
-        // Display filled string, and new line character, before moving onto the next value of y
-        outputString[screen->width]='\0';
-        printf("%s\n",outputString);
-    }
-}
-
-void displayScreen2(screenStruct *screen)
-{   
     size_t sizeOfScreen = (sizeof(char)*((screen->width+1) * screen->height));
     #ifdef DEBUG_POINTS_NO_CLEARSCREEN
     printf("Screen Area: %d x %d = %d (%ld bytes)\n",screen->width, screen->height, (screen->width * screen->height),sizeOfScreen);
@@ -685,35 +614,26 @@ void displayScreen2(screenStruct *screen)
     #endif
 
     #ifndef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("\033[H\033[J"); //clears the screen
+    //clears screen escape code sequence
+    printf("\033[H\033[J"); 
     #endif
-    // fflush(stdout);
+
     setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
 
     char outputStringArr[sizeOfScreen];
-    // char outputString[screen->width+1];
-    // setvbuf(stdout, outputString, _IOLBF, (screen->width+1)); // turn off buffering for stdout
+    int invY = 0;
     for (int y = (screen->height-1); y >= 0; y--)
     {
-        int invY = 0;
         for (int x = 0; x < screen->width; x++)
         {
-            // Store current value in array at point(x,y), as char in string
-            // String is length of screen.width
-            outputStringArr[(y * (screen->width+1))+x]=screen->screen[x][y];
-            // outputString[x]=screen->screen[x][y];
-
-            // if ((x * y) == BUFSIZ)
-            // {
-            //     outputString[BUFSIZ] = 'B';
-            // }
+            //fancy maths to work out index of 1d array from 2d.
+            outputStringArr[(invY * (screen->width+1))+x]=screen->screen[x][y];
         }
-        // Display filled string, and new line character, before moving onto the next value of y
-        outputStringArr[(y * (screen->width+1))+(screen->width)]='\n';
-        // outputString[screen->width]='\0';
-        // printf("%s\n",outputString);
+        //add newline char for each y incriment
+        outputStringArr[(invY * (screen->width+1))+(screen->width)]='\n';
         invY++;
     }
+    //write tring to print buffer, and fluse to screen.
     fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
     fflush(stdout);
 }
