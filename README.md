@@ -1,6 +1,8 @@
 # CLI_Render
-Simple rendering of triangle mesh objects using C.
+Simple rendering of triangle mesh objects.
 
-Rendering is done on the CLI with simple ascii characters.
+Rendering is done on the CLI with ascii characters.
 
-![output-onlinegiftools](https://github.com/NicoEvZ/Cube/assets/35323277/7652324c-2cc0-443f-9173-52d10951a2a4)
+Written in C.
+
+![ascii skull](https://github.com/NicoEvZ/CLI_Render/assets/35323277/0ec9f517-c23c-445f-8b32-af6a0b633f45)
