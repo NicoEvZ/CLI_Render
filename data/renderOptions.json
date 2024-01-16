@@ -1,6 +1,6 @@
 {
     "distance":30.0,
-    "fov":15.0,
+    "fov":60.0,
     "objFile":"data/orb.obj",
     "iterations":360,
     "rotateX":true,
