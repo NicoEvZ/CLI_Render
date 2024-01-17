@@ -1,59 +1,133 @@
 #pragma once
 
-#define MAX_X 111 //best if odd
-#define MAX_Y 43 //best if odd
-
 #define PI 3.14159
+#define CHARACHTER_RATIO 2.2
+// #define DEBUG_POINTS_NO_CLEARSCREEN
+// #define DEBUG_POINTS_BBs
+// #define DEBUG_POINTS_ZBUFFER
+// #define DEBUG_POINTS_LIGHT_LEVEL
 
-typedef struct vector
+typedef struct
+{
+    char character;
+    int colour;
+}visual;
+
+
+typedef struct
 {
     double x, y, z;
 }vector;
 
-typedef struct triangle
+typedef struct
 {
-    vector p[3];
+    vector point[3];
+    visual symbol;
 }triangle;
 
-typedef struct mesh
+typedef struct
 {
-    triangle* tris;
-    int numOfTris;
-    int numOfVerts;
+    triangle *trianglePointer;
+    int numberOfTriangles;
+    int numberOfVertices;
 }mesh;
 
-mesh importMeshFromOBJFile (char * pathToFile);
+typedef struct
+{ 
+    int **characterBuffer;
+    int width;
+    int height;
+    double **depthBuffer;
+    int **colourBuffer;
+} frameBuffer;
 
-mesh copyMeshData(mesh fromMesh, mesh toMesh);
+typedef struct
+{
+    double distance;
+    double fov;
+    char objPathBuffer[64];
+    int iterations;
+    int rotationX;
+    int rotationY;
+    int rotationZ;
+    int screenWidthImport;
+    int screenHeightImport;
+    int rasteriseBool;
+} renderConfig;
 
-vector addVec( vector vec1, vector vec2);
+typedef struct
+{
+    double matrix[4][4];
+}matrix4x4;
 
-vector subVec(vector vec1, vector vec2);
+void copyTriangleData(triangle fromTriangle, triangle *toTriagle);
 
-vector divVecByScalar(vector vec, int scalar);
+vector addVector(vector vector1, vector vector2);
 
-vector crossProduct(vector vec1, vector vec2);
+vector subtractVector(vector vector1, vector vector2);
 
-void projectMeshTo2D(mesh inputMesh, const double distance);
+vector divideVectorByScalar(vector vector, double scalar);
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]);
+vector multiplyVectorByScalar(vector vector, double scalar);
 
-void scale2DPoints(mesh inputMesh);
+vector CrossProduct(vector vector1, vector vector2);
 
-void initScreen(int screenArr[MAX_X][MAX_Y]);
+vector normaliseVector(vector inputVector);
 
-mesh rotateMeshAroundX(mesh inputMesh, const double angle);
+double dotProduct(vector vector1, vector vector2);
 
-mesh rotateMeshAroundY(mesh inputMesh, const double angle);
+triangle matrixVectorMultiply(triangle inputTriangle, matrix4x4 matrix);
 
-mesh rotateMeshAroundZ(mesh inputMesh, const double angle);
+int clamp(int input, int min, int max);
 
-vector calculateTriangleNormal(triangle inputTri);
+void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *projectionMatrix);
 
-void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
+int checkPixelInTriangle(triangle inputTriangle, int x, int y, double* z);
 
-void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y]);
+void drawTriangleOutline(triangle inputTriangle, frameBuffer screen);
 
-void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y]);
+void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBool);
 
-void displayScreen(int arr[MAX_X][MAX_Y]);
+void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vector lightDirection);
+
+char getGradient(double luminamce);
+
+visual getGradient2(double luminamce);
+
+void scaleTriangle(triangle *inputTriangle, frameBuffer screen);
+
+void initialiseRotateXMatrix(matrix4x4 *matrixX, double angle);
+
+void initialiseRotateYMatrix(matrix4x4 *matrixY, double angle);
+
+void initialiseRotateZMatrix(matrix4x4 *matrixZ, double angle);
+
+void translateTriangleX(triangle *triToTranslate, double distance);
+
+void translateTriangleY(triangle *triToTranslate, double distance);
+
+void translateTriangleZ(triangle *triToTranslate, double distance);
+
+vector calculateTriangleNormal(triangle inputTriangle);
+
+void clearFrameBuffer(frameBuffer *screen);
+
+void drawScreenBorder(frameBuffer *screen);
+
+void initialiseFrameBuffer(frameBuffer *screen);
+
+void deleteFrameBuffer(frameBuffer *screen);
+
+void drawInScreen(frameBuffer screen, int x, int y, visual symbol);
+
+void displayDepthBuffer(frameBuffer *screen);
+
+void displayFrameBuffer(frameBuffer *screen);
+
+void displayFrameBuffer2(frameBuffer *screen);
+
+void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen);
+
+void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen);
+
+void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer screen);

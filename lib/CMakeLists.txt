@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 
-add_library(CubeLib draw.c)
-target_include_directories(CubeLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(CubeLib PRIVATE m)
+add_library(CLI_RenderLib draw.c)
+target_include_directories(CLI_RenderLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(CLI_RenderLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/private)
+target_link_libraries(CLI_RenderLib PRIVATE m)
 
 find_package(Threads REQUIRED)
-target_link_libraries(CubeLib PRIVATE Threads::Threads)
+target_link_libraries(CLI_RenderLib PRIVATE Threads::Threads)

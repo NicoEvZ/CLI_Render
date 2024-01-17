@@ -5,27 +5,105 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <draw.h>
 
 double epsilon = 0.0001;
 
-static void test_addVec(void /***state*/)
+static void test_addVector(void **state)
 {   
-    vector vec1 = {1,2,3};
-    vector vec2 = {4,5,6};
-    vector output = {5,7,9};
+    (void) state;
+    vector vector1 = {1,2,3};
+    vector vector2 = {4,5,6};
+    vector expected = {5,7,9};
     
-    assert_float_equal(output.x, addVec(vec1,vec2).x, epsilon);
-    assert_float_equal(output.y, addVec(vec1,vec2).y, epsilon);
-    assert_float_equal(output.z, addVec(vec1,vec2).z, epsilon);
+    assert_float_equal(expected.x, addVector(vector1,vector2).x, epsilon);
+    assert_float_equal(expected.y, addVector(vector1,vector2).y, epsilon);
+    assert_float_equal(expected.z, addVector(vector1,vector2).z, epsilon);
+}
+
+static void test_subtractVector(void **state)
+{   
+    (void) state;
+    vector vector1 = {5,7,9};
+    vector vector2 = {4,5,6};
+    vector expected = {1,2,3};
+    
+    assert_float_equal(expected.x, subtractVector(vector1,vector2).x, epsilon);
+    assert_float_equal(expected.y, subtractVector(vector1,vector2).y, epsilon);
+    assert_float_equal(expected.z, subtractVector(vector1,vector2).z, epsilon);
+}
+
+static void test_CrossProduct(void **state)
+{
+    (void) state;
+    vector vector1 = {1,2,3};
+    vector vector2 = {4,5,6};
+    vector expected = {-3,6,-3};
+
+    assert_float_equal(expected.x, CrossProduct(vector1,vector2).x, epsilon);
+    assert_float_equal(expected.y, CrossProduct(vector1,vector2).y, epsilon);
+    assert_float_equal(expected.z, CrossProduct(vector1,vector2).z, epsilon);
+}
+
+static void test_divideVectorByScalar(void **state)
+{
+    (void) state;
+    vector vector1 = {4,8,16};
+    double scalar = 2;
+    vector expected = {2,4,8};
+
+    assert_float_equal(expected.x, divideVectorByScalar(vector1, scalar).x, epsilon);
+    assert_float_equal(expected.y, divideVectorByScalar(vector1, scalar).y, epsilon);
+    assert_float_equal(expected.z, divideVectorByScalar(vector1, scalar).z, epsilon);
+}
+
+static void test_copyTriangleData(void **state)
+{
+    (void) state;
+    triangle testTriangle = { {{1,2,3}, {4,5,6}, {7,8,9}}, 65 };
+    triangle output = { {{0,0,0}, {0,0,0}, {0,0,0}}, 0 };
+
+    copyTriangleData(testTriangle, &output);
+
+    for (int i = 0; i < 3; i++)
+    {
+        assert_float_equal(output.point[i].x, testTriangle.point[i].x, epsilon);
+        assert_float_equal(output.point[i].y, testTriangle.point[i].y, epsilon);
+        assert_float_equal(output.point[i].z, testTriangle.point[i].z, epsilon);
+    }
 }
 
 int main(void)
 {
+    mesh test_mesh;
+    test_mesh.numberOfTriangles = 2;
+    test_mesh.numberOfVertices = 4;
+    test_mesh.trianglePointer = (triangle*) malloc(test_mesh.numberOfTriangles * sizeof(triangle));
+    triangle test_triangle_A = {{{0, 1, 1}, {0, 0, 1}, {1, 0, 1}}, 65};
+    triangle test_triangle_B = {{{1, 0, 1}, {1, 1, 1}, {0, 1, 1}}, 66};
+    test_mesh.trianglePointer[0] = test_triangle_A;
+    test_mesh.trianglePointer[1] = test_triangle_B;
+
+    printf("Test_Mesh:\n");
+    for (int i = 0; i < test_mesh.numberOfTriangles; i++)
+    {
+        printf("Triangle[%d of %d]:\n",i+1,test_mesh.numberOfTriangles);
+        for (int j = 0; j < 3; j++)
+        {
+            printf("\tpoint[%d]: (%lf, %lf, %lf)\n",j,test_mesh.trianglePointer[i].point[j].x, test_mesh.trianglePointer[i].point[j].y, test_mesh.trianglePointer[i].point[j].z);
+        }
+        printf("\tchar: %c\n\n",test_mesh.trianglePointer[i].symbol);
+    }
     const struct CMUnitTest tests[] = 
     {
-        cmocka_unit_test(test_addVec)
+        cmocka_unit_test(test_addVector),
+        cmocka_unit_test(test_subtractVector),
+        cmocka_unit_test(test_CrossProduct),
+        cmocka_unit_test(test_copyTriangleData),
+        cmocka_unit_test(test_divideVectorByScalar)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

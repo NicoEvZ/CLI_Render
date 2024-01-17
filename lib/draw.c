@@ -3,370 +3,699 @@
 #include <stdlib.h>
 #include "draw.h"
 
-#define SCALE_FACTOR 500
-#define BLANK ' ' //SPACE character ASCII code
-#define LINE '#' //'#' character ASCII code
+#define BLANK ' '
+#define LINE '#'
 #define DOT '@'
 #define BORDER '*'
 
-//#define DEBUG_POINTS
-
-#define MAX_LINE_LENGTH 256
-
-mesh importMeshFromOBJFile (char * pathToFile) 
+void copyTriangleData(triangle fromTriangle, triangle *toTriangle)
 {
-    FILE *obj = fopen(pathToFile, "r");
-
-    mesh newMesh;
-    newMesh.numOfTris = 0;
-
-    if (NULL == obj) 
+    for (int i = 0; i < 3; i++)
     {
-        printf("Error: .OBJ file not found\n");
-        printf("Try to run the program from top level \"Cube/\" dir\n");
-        return newMesh;
+        toTriangle->point[i] = fromTriangle.point[i];
     }
-
-    char line[MAX_LINE_LENGTH];
-    int verts = 0;
-    int faces = 0;
-    vector pointCoords;
-    vector average;
-    vector runningTotal;
-    int p0, p1, p2;
-    
-    //counts faces and verticies.
-    while (fgets(line, sizeof(line), obj) != NULL) 
-    {
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            verts++;
-        }
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            faces++;
-        }
-    }
-
-    newMesh.numOfTris = faces;
-    newMesh.numOfVerts = verts;
-
-    vector (*vectorArray) = malloc(newMesh.numOfVerts * sizeof(vector)); //dynamically allocates an array of vectors, based off the number verticies.
-
-    newMesh.tris = (triangle*) malloc(newMesh.numOfTris * sizeof(triangle)); //dynamically allocates memory for the number of triangles
-
-    rewind(obj);
-
-    int vCount = 0;
-    int fCount = 0;
-    while (fgets(line, sizeof(line), obj) != NULL)
-    {
-        //reads all lines of obj that start with "v " into the dynamically assigned array of vectors.
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            sscanf(line,"v %lf %lf %lf", &pointCoords.x, &pointCoords.y, &pointCoords.z);
-
-            vectorArray[vCount] = pointCoords;
-
-            vCount++;
-
-            runningTotal = addVec(runningTotal, pointCoords);
-        }
-        //reads all lines of obj that start with "f ".
-        //each int after 'f ' represents an index (starting at 1), of the vector array of verticies.
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            sscanf(line,"f %d %d %d", &p0, &p1, &p2);
-
-            newMesh.tris[fCount].p[0] = vectorArray[(p0-1)];
-            newMesh.tris[fCount].p[1] = vectorArray[(p1-1)];
-            newMesh.tris[fCount].p[2] = vectorArray[(p2-1)];
-
-            fCount++;
-        }
-    }
-
-    #ifdef DEBUG_POINTS
-    //Handy debug for seeing if points were imported properly
-    for (int i = 0; i < vCount; i++) 
-    {
-          printf("%d: %lf, %lf, %lf\n", i, vectorArray[i].x, vectorArray[i].y, vectorArray[i].z);
-    }
-    #endif
-
-    average = divVecByScalar(runningTotal, vCount);
-
-    for (int j = 0; j < fCount; j++) 
-    {
-        for (int i = 0; i < 3; i++) 
-        {
-            newMesh.tris[j].p[i] = subVec(newMesh.tris[j].p[i], average);
-        }
-    }
-
-    free(vectorArray);
-    fclose(obj);
-
-    return newMesh;
+    toTriangle->symbol.character = fromTriangle.symbol.character;
+    toTriangle->symbol.colour = fromTriangle.symbol.colour;
 }
 
-mesh copyMeshData(mesh fromMesh, mesh toMesh)
+//vector1.elements plus vector2.elements
+vector addVector(vector vector1, vector vector2) 
 {
-    toMesh.numOfTris = fromMesh.numOfTris;
-    toMesh.numOfVerts = fromMesh.numOfVerts;
-    toMesh.tris = (triangle*) malloc(toMesh.numOfTris * sizeof(triangle));
-    for (int i = 0; i < toMesh.numOfTris; i++)
-    {
-        toMesh.tris[i] = fromMesh.tris[i];
-    }
-    return toMesh;
+    vector returnVector;
+
+    returnVector.x = vector1.x + vector2.x;
+    returnVector.y = vector1.y + vector2.y;
+    returnVector.z = vector1.z + vector2.z;
+
+    return returnVector;
 }
 
-//vec1.elements plus vec2.elements
-vector addVec( vector vec1, vector vec2) 
+//vector1.elements minus vector2.elements
+vector subtractVector(vector vector1, vector vector2) 
 {
-    vector returnVec;
+    vector returnVector;
 
-    returnVec.x = vec1.x + vec2.x;
-    returnVec.y = vec1.y + vec2.y;
-    returnVec.z = vec1.z + vec2.z;
+    returnVector.x = vector1.x - vector2.x;
+    returnVector.y = vector1.y - vector2.y;
+    returnVector.z = vector1.z - vector2.z;
 
-    return returnVec;
-}
-
-//vec1.elements minus vec2.elements
-vector subVec(vector vec1, vector vec2) 
-{
-    vector returnVec;
-
-    returnVec.x = vec1.x - vec2.x;
-    returnVec.y = vec1.y - vec2.y;
-    returnVec.z = vec1.z - vec2.z;
-
-    return returnVec;
+    return returnVector;
 }
 
 //devides each element of the vector by the value given
-vector divVecByScalar(vector vec, int scalar) 
+vector divideVectorByScalar(vector inputVector, double scalar) 
 {
-    vector returnVec;
+    vector returnVector;
 
-    returnVec.x = vec.x/scalar;
-    returnVec.y = vec.y/scalar;
-    returnVec.z = vec.z/scalar;
+    returnVector.x = inputVector.x / scalar;
+    returnVector.y = inputVector.y / scalar;
+    returnVector.z = inputVector.z / scalar;
 
-    return returnVec;
+    return returnVector;
 }
 
-vector crossProduct(vector vec1, vector vec2)
+vector multiplyVectorByScalar(vector inputVector, double scalar)
+{
+    vector returnVector;
+
+    returnVector.x = inputVector.x * scalar;
+    returnVector.y = inputVector.y * scalar;
+    returnVector.z = inputVector.z * scalar;
+
+    return returnVector;   
+}
+
+vector CrossProduct(vector vector1, vector vector2)
 {
     vector output;
 
-    output.x = (vec1.y * vec2.z) - (vec1.z * vec2.y);
-    output.y = (vec1.z * vec2.x) - (vec1.x * vec2.z);
-    output.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
+    output.x = (vector1.y * vector2.z) - (vector1.z * vector2.y);
+    output.y = (vector1.z * vector2.x) - (vector1.x * vector2.z);
+    output.z = (vector1.x * vector2.y) - (vector1.y * vector2.x);
 
     return output;
 }
 
-void projectMeshTo2D(mesh inputMesh, const double distance) 
+vector normaliseVector(vector inputVec)
 {
-    vector tempVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
+    double length = sqrtl(dotProduct(inputVec, inputVec));
+
+    vector returnVector = divideVectorByScalar(inputVec, length);
+    
+    return returnVector;
+}
+
+double dotProduct(vector vector1, vector vector2)
+{
+    double output = (vector1.x * vector2.x) +
+                    (vector1.y * vector2.y) +
+                    (vector1.z * vector2.z);
+    
+    return output;
+}
+
+triangle matrixVectorMultiply(triangle input, matrix4x4 inputMatrix)
+{
+    triangle output = input;
+    for (int i = 0; i < 3; i++)
     {
-        for (int j = 0; j < 3; j++)
+        output.point[i].x = (input.point[i].x * inputMatrix.matrix[0][0]) + 
+                            (input.point[i].y * inputMatrix.matrix[1][0]) + 
+                            (input.point[i].z * inputMatrix.matrix[2][0]) + 
+                            (inputMatrix.matrix[3][0]);
+
+        output.point[i].y = (input.point[i].x * inputMatrix.matrix[0][1]) + 
+                            (input.point[i].y * inputMatrix.matrix[1][1]) + 
+                            (input.point[i].z * inputMatrix.matrix[2][1]) + 
+                            (inputMatrix.matrix[3][1]);
+
+        output.point[i].z = (input.point[i].x * inputMatrix.matrix[0][2]) + 
+                            (input.point[i].y * inputMatrix.matrix[1][2]) + 
+                            (input.point[i].z * inputMatrix.matrix[2][2]) + 
+                            (inputMatrix.matrix[3][2]);
+
+        double w      = (input.point[i].x * inputMatrix.matrix[0][3]) + 
+                        (input.point[i].y * inputMatrix.matrix[1][3]) + 
+                        (input.point[i].z * inputMatrix.matrix[2][3]) + 
+                        (inputMatrix.matrix[3][3]);
+
+        if (w != 0.0)
         {
-        tempVec = inputMesh.tris[i].p[j];
-
-        double zPerspective = 1/(distance - tempVec.z);
-
-        double p_Mat[2][3] = {{zPerspective,0,0},{0,zPerspective,0}};
-        
-        double x_p = (p_Mat[0][0]*tempVec.x)+(p_Mat[0][1]*tempVec.y)+(p_Mat[0][2]*tempVec.z);
-        double y_p = (p_Mat[1][0]*tempVec.x)+(p_Mat[1][1]*tempVec.y)+(p_Mat[1][2]*tempVec.z);
-        
-        inputMesh.tris[i].p[j].x = x_p;
-        inputMesh.tris[i].p[j].y = y_p;
-
+            output.point[i] = divideVectorByScalar(output.point[i],w);
         }
+    }
+    return output;
+}
+
+//output = input, unless it exceeds min or max
+int clamp(int input, int min, int max)
+{
+    int output = input;
+    if (input < min)
+    {
+        output = min;
+    }
+    else if (input > max)
+    {
+        output = max;
+    }
+    return output;
+}
+
+void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *ProjectionMatrix)
+{
+    double near = 0.1;
+    double far = 1000;
+    double fov = importData.fov;
+    double aspectRatio = ((double)importData.screenHeightImport / (double)importData.screenWidthImport);
+    double fovRadians = 1 / tanf(fov * 0.5 / 180 * PI);
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            ProjectionMatrix->matrix[i][j] = 0;
+        }
+    }
+
+    ProjectionMatrix->matrix[0][0] = aspectRatio * fovRadians;
+    ProjectionMatrix->matrix[1][1] = fovRadians;
+    ProjectionMatrix->matrix[2][2] = far / (far - near);
+    ProjectionMatrix->matrix[3][2] = (-far * near) / (far - near);
+    ProjectionMatrix->matrix[2][3] = 1;
+    ProjectionMatrix->matrix[3][3] = 0;
+}
+
+int checkPixelInTriangle(triangle inputTriangle, int x, int y, double* z)
+{
+    vector A = inputTriangle.point[0];
+    vector B = inputTriangle.point[1];
+    vector C = inputTriangle.point[2];
+    vector P;
+    P.x = x;
+    P.y = y;
+    // Calculate the barycentric coordinates
+    // of point P with respect to triangle ABC
+    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
+    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
+    double c = 1 - a - b;
+    
+    P.z = 1 / (((1 / A.z) * a) + ((1 / B.z) * b) + ((1 / C.z) * c));
+    *z = P.z;
+
+    // Check if all barycentric coordinates
+    // are non-negative
+    if (a >= 0 && b >= 0 && c >= 0) 
+    {
+        return 1;
+    } 
+    else
+    {
+        return 0;
     }
 }
 
-void drawMeshOnScreen(mesh inputMesh, double origin[2], double ratio, int screen[MAX_X][MAX_Y]) 
+void drawTriangleOutline(triangle inputTriangle, frameBuffer screen)
 {
-    triangle output = {{{0,0,0}}};
-    vector normal= {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
+    for (int i = 0; i < 3; i++)
     {
-        normal = calculateTriangleNormal(inputMesh.tris[i]);
-        if (normal.z > 0)
+        BresenhamPlotLine(inputTriangle.point[i], inputTriangle.point[((i + 1) % 3)], screen);
+    }
+}
+
+void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBool)
+{
+    vector boundingBoxMin = {INFINITY, INFINITY, 0};
+    vector boundingBoxMax = {-INFINITY, -INFINITY, 0};
+
+    for (int i = 0; i < 3; i++)
+    {
+        if (inputTriangle.point[i].x < boundingBoxMin.x)
         {
-            for (int j = 0; j < 3; j++)
+            boundingBoxMin.x = inputTriangle.point[i].x;
+        }
+        if (inputTriangle.point[i].y < boundingBoxMin.y)
+        {
+            boundingBoxMin.y = inputTriangle.point[i].y;
+        }
+        if (inputTriangle.point[i].x > boundingBoxMax.x)
+        {
+            boundingBoxMax.x = inputTriangle.point[i].x;
+        }
+        if (inputTriangle.point[i].y > boundingBoxMax.y)
+        {
+            boundingBoxMax.y = inputTriangle.point[i].y;
+        }
+    }
+
+    #ifdef DEBUG_POINTS_BBs
+    printf("boundingBoxMin = (%lf,%lf)\tboundingBoxMax = (%lf,%lf)\n",boundingBoxMin.x,boundingBoxMin.y,boundingBoxMax.x,boundingBoxMax.y);
+    #endif
+    
+    double z = 0;
+    for (int y = boundingBoxMin.y; y < boundingBoxMax.y; y++) 
+    {
+        for (int x = boundingBoxMin.x; x < boundingBoxMax.x; x++)
+        {
+            int result = checkPixelInTriangle(inputTriangle,x,y,&z);
+            if (result == 0)
             {
-                //translates from unity to screenspace, and does aspect ratio adustment
-                output.p[j].x = origin[0] + (inputMesh.tris[i].p[j].x * ratio); 
-                output.p[j].y = origin[1] + inputMesh.tris[i].p[j].y;
-            
+                continue;
             }
-            BresenhamPlotLine(output.p[0],output.p[1],screen);
-            BresenhamPlotLine(output.p[1],output.p[2],screen);
-            BresenhamPlotLine(output.p[2],output.p[0],screen);
+                        
+            int xCheck = x;
+            int yCheck = y;
+
+            #ifdef DEBUG_POINTS_ZBUFFER
+            printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
+            printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen.depthBuffer[x][y]);
+            #endif
+            
+            //prevent segfault from attempting to draw outside screen bounds
+            xCheck = clamp(x, 0, (screen.width -1));
+            yCheck = clamp(y, 0, (screen.height -1));
+            
+            if (z > screen.depthBuffer[xCheck][yCheck])
+            {
+                continue;;
+            }
+
+            #ifdef DEBUG_POINTS_ZBUFFER
+            printf("\t\tAnd it is! ");
+            printf("\tComputed z = %lf\n",z);
+            printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen.depthBuffer[x][y]);
+            printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
+            #endif
+
+            screen.depthBuffer[xCheck][yCheck] = z;
+
+            if (fillBool)
+            {
+                drawInScreen(screen, x, y, inputTriangle.symbol);
+            }
+            else
+            {
+                drawTriangleOutline(inputTriangle,screen);
+            }
+
+            #ifdef DEBUG_POINTS_ZBUFFER
+            printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTriangle.symbol);
+            #endif
         }
     }
+    #ifdef DEBUG_POINTS_BBs
+    vector boundingBoxP1;
+    vector boundingBoxP2;
+    vector boundingBoxP3;
+    vector boundingBoxP4;
+    boundingBoxP1.x = boundingBoxMin.x;
+    boundingBoxP1.y = boundingBoxMin.y;
+    boundingBoxP2.x = boundingBoxMin.x;
+    boundingBoxP2.y = boundingBoxMax.y;
+    boundingBoxP3.x = boundingBoxMax.x;
+    boundingBoxP3.y = boundingBoxMax.y;
+    boundingBoxP4.x = boundingBoxMax.x;
+    boundingBoxP4.y = boundingBoxMin.y;
+    BresenhamPlotLine(boundingBoxP1, boundingBoxP2, screen);
+    BresenhamPlotLine(boundingBoxP2, boundingBoxP3, screen);
+    BresenhamPlotLine(boundingBoxP3, boundingBoxP4, screen);
+    BresenhamPlotLine(boundingBoxP4, boundingBoxP1, screen);
+    #endif
 }
 
-void scale2DPoints(mesh inputMesh) 
+void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vector lightDirection)
 {
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            //extract x and y from array.
-            double x = inputMesh.tris[i].p[j].x;
-            double y = inputMesh.tris[i].p[j].y;
+    lightDirection = normaliseVector(lightDirection);
 
-            x = x * SCALE_FACTOR;
-            y = y * SCALE_FACTOR;
+    double dotProductResult = dotProduct(inputTriangleNormal, lightDirection);
 
-            inputMesh.tris[i].p[j].x = x;
-            inputMesh.tris[i].p[j].y = y;
-        }
-    }
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    printf("lightDirection: (%lf, %lf, %lf)\n", lightDirection.x, lightDirection.y, lightDirection.z);
+    printf("inputTriangleNormal: (%lf, %lf, %lf)\n\n", inputTriangleNormal.x, inputTriangleNormal.y, inputTriangleNormal.z);
+    #endif
+
+    inputTriangle->symbol = getGradient2(dotProductResult);
 }
 
-mesh rotateMeshAroundX(mesh inputMesh, const double angle) 
+visual getGradient2(double luminance)
 {
-    vector rotatedVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
-    {
-        for (int j =0; j < 3; j++)
-        {
-            rotatedVec.x = inputMesh.tris[i].p[j].x;
-
-            rotatedVec.y = ((inputMesh.tris[i].p[j].y * cos(angle)) - (inputMesh.tris[i].p[j].z * sin(angle)));
-
-            rotatedVec.z = ((inputMesh.tris[i].p[j].y * sin(angle)) + (inputMesh.tris[i].p[j].z * cos(angle)));
-
-            inputMesh.tris[i].p[j] = rotatedVec;
-        }
-    }
-    return inputMesh;
+    visual outputSymbol;
+    double gradient = (24 * luminance);
+    outputSymbol.character = ' ';
+    outputSymbol.colour = clamp((int)(rint(gradient) + 232),232,255);
+    return outputSymbol;
 }
 
-mesh rotateMeshAroundY(mesh inputMesh, const double angle) 
+char  getGradient(double luminance)
 {
-    vector rotatedVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
+    // " .:-=+*#%@"
+    
+    char outputSymbol;
+    double gradient = (24 * luminance);
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    switch ((int)(rint(gradient)))
     {
-        for (int j =0; j < 3; j++)
-        {
-            rotatedVec.x = ((inputMesh.tris[i].p[j].x * cos(angle)) + (inputMesh.tris[i].p[j].z * sin(angle)));
-
-            rotatedVec.y = inputMesh.tris[i].p[j].y;
-
-            rotatedVec.z = ((inputMesh.tris[i].p[j].x * -1 * sin(angle)) + (inputMesh.tris[i].p[j].z * cos(angle)));
-
-            inputMesh.tris[i].p[j] = rotatedVec;
-        }
+    case 0:
+        outputSymbol = '0';
+        break;
+    case 1:
+        outputSymbol = '1';
+        break;
+    case 2:
+        outputSymbol = '2';
+        break;
+    case 3: 
+        outputSymbol = '3';
+        break;
+    case 4:
+        outputSymbol = '4';
+        break;
+    case 5:
+        outputSymbol = '5';
+        break;
+    case 6:
+        outputSymbol = '6';
+        break;
+    case 7:
+        outputSymbol = '7';
+        break;
+    case 8:
+        outputSymbol = '8';
+        break;
+    case 9:
+        outputSymbol = '9';
+        break;
+    default:
+        outputSymbol = '?';
     }
-    return inputMesh;
+    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",luminance, rint(9 * luminance), outputSymbol);
+    #endif
+
+    #ifndef DEBUG_POINTS_LIGHT_LEVEL
+    switch ((int)(rint(gradient)))
+    {
+    case 0:
+        outputSymbol = ' ';
+        break;
+    case 1:
+        outputSymbol = '.';
+        break;
+    case 2:
+        outputSymbol = ':';
+        break;
+    case 3: 
+        outputSymbol = '-';
+        break;
+    case 4:
+        outputSymbol = '=';
+        break;
+    case 5:
+        outputSymbol = '+';
+        break;
+    case 6:
+        outputSymbol = '*';
+        break;
+    case 7:
+        outputSymbol = '#';
+        break;
+    case 8:
+        outputSymbol = '%';
+        break;
+    case 9:
+        outputSymbol = '@';
+        break;
+    default:
+        outputSymbol = ' ';
+    }
+    #endif
+
+    return outputSymbol;
 }
 
-mesh rotateMeshAroundZ(mesh inputMesh, const double angle) 
+void scaleTriangle(triangle *inputTriangle, frameBuffer screen)
 {
-    vector rotatedVec = {0,0,0};
-    for (int i = 0; i < inputMesh.numOfTris; i++) 
+    for (int i = 0; i < 3; i++)
     {
-        for (int j =0; j < 3; j++)
-        {
-            rotatedVec.x = ((inputMesh.tris[i].p[j].x * cos(angle)) - (inputMesh.tris[i].p[j].y * sin(angle)));
+        inputTriangle->point[i].x += 1;
+        inputTriangle->point[i].y += 1;
 
-            rotatedVec.y = ((inputMesh.tris[i].p[j].x * sin(angle)) + (inputMesh.tris[i].p[j].y * cos(angle)));
-
-            rotatedVec.z = inputMesh.tris[i].p[j].z;
-
-            inputMesh.tris[i].p[j] = rotatedVec;
-        }
+        inputTriangle->point[i].x *= (0.5 * (double)screen.width);
+        inputTriangle->point[i].y *= (0.5 * (double)screen.height);
     }
-    return inputMesh;
 }
 
-vector calculateTriangleNormal(triangle inputTri)
+void initialiseRotateXMatrix(matrix4x4 * rotateX, double angle)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            rotateX->matrix[i][j] = 0;
+        }
+    }
+
+    rotateX->matrix[0][0] = 1;
+    rotateX->matrix[1][1] = cosf(angle);
+    rotateX->matrix[1][2] = sinf(angle);
+    rotateX->matrix[2][1] = -sinf(angle);
+    rotateX->matrix[2][2] = cosf(angle);
+    rotateX->matrix[3][3] = 1;
+}
+
+void initialiseRotateYMatrix(matrix4x4 * rotateY, double angle)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            rotateY->matrix[i][j] = 0;
+        }
+    }
+
+    rotateY->matrix[0][0] = cosf(angle);;
+    rotateY->matrix[0][2] = -sinf(angle);
+    rotateY->matrix[1][1] = 1;
+    rotateY->matrix[2][0] = sinf(angle);
+    rotateY->matrix[2][2] = cosf(angle);
+    rotateY->matrix[3][3] = 1;
+}
+
+void initialiseRotateZMatrix(matrix4x4 * rotateZ, double angle)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            rotateZ->matrix[i][j] = 0;
+        }
+    }
+
+    rotateZ->matrix[0][0] = cosf(angle);
+    rotateZ->matrix[0][1] = sinf(angle);
+    rotateZ->matrix[1][0] = -sinf(angle);
+    rotateZ->matrix[1][1] = cosf(angle);
+    rotateZ->matrix[2][2] = 1;
+    rotateZ->matrix[3][3] = 1;
+}
+
+void translateTriangleX(triangle *triangleToTranslate, double distance)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        triangleToTranslate->point[i].x = triangleToTranslate->point[i].x + distance;
+    }
+}
+
+void translateTriangleY(triangle *triangleToTranslate, double distance)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        triangleToTranslate->point[i].y = triangleToTranslate->point[i].y + distance;
+    }
+}
+
+void translateTriangleZ(triangle *triangleToTranslate, double distance)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        triangleToTranslate->point[i].z = triangleToTranslate->point[i].z + distance;
+    }
+}
+
+vector calculateTriangleNormal(triangle inputTriangle)
 {   
     vector U,V,normal;
     
-    U = (subVec(inputTri.p[1],inputTri.p[0]));
-    V = (subVec(inputTri.p[2],inputTri.p[1]));
+    U = (subtractVector(inputTriangle.point[2],inputTriangle.point[1]));
+    V = (subtractVector(inputTriangle.point[1],inputTriangle.point[0]));
 
-    normal = crossProduct(U, V);
+    normal = CrossProduct(U, V);
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    printf("U: (%lf, %lf, %lf)\n", U.x, U.y, U.z);
+    printf("V: (%lf, %lf, %lf)\n", V.x, V.y, V.z);
+    printf("normal(before normalising): (%lf, %lf, %lf)\n", normal.x, normal.y, normal.z);
+    #endif
+
+    //its normally normal to normalise the normal
+    normal = normaliseVector(normal);
     
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    printf("normal(after normalising): (%lf, %lf, %lf)\n\n", normal.x, normal.y, normal.z);
+    #endif
+
     return normal;
 }
 
-void initScreen(int screenArr[MAX_X][MAX_Y]) 
+void clearFrameBuffer(frameBuffer *screen) 
 {
-    for (int x = 0; x < MAX_X; x++) 
+    for (int x = 0; x < screen->width; x++) 
     {
-        for (int y = 0; y < MAX_Y; y++) 
+        for (int y = 0; y < screen->height; y++) 
         {
-            screenArr[x][y]=BLANK;
-            if ((x == 0) | (y == 0) | (x == (MAX_X-1)) | (y == (MAX_Y-1))) 
+            screen->characterBuffer[x][y]=BLANK;
+            screen->depthBuffer[x][y]=INFINITY;
+            screen->colourBuffer[x][y]=232;
+        }
+    }
+}
+
+void drawScreenBorder(frameBuffer *screen)
+{
+    for (int x = 0; x < screen->width; x++) 
+    {
+        for (int y = 0; y < screen->height; y++) 
+        {
+            if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
             {   
-                screenArr[x][y]=BORDER;
+                screen->characterBuffer[x][y]=BORDER;
             }
         }
     }
 }
 
-void drawInScreen(int screenArr[MAX_X][MAX_Y], int x, int y, const char ASCII) 
+void initialiseFrameBuffer(frameBuffer *screen)
 {
-    if (x < 0) 
+    screen->characterBuffer = malloc(screen->width * sizeof(int *));
+    screen->colourBuffer = malloc(screen->width * sizeof(int *));
+    screen->depthBuffer = malloc(screen->width* sizeof(double *));
+    for (int i = 0; i < screen->width; i++)
     {
-
-        x = 0;
+        screen->characterBuffer[i] = malloc(screen->height * sizeof(int));
+        screen->colourBuffer[i] = malloc(screen->height * sizeof(int));
+        screen->depthBuffer[i] = malloc(screen->height * sizeof(double));
     }
 
-    if (x > (MAX_X-1)) 
+    for (int x = 0; x < screen->width; x++)
     {
-
-        x = MAX_X-1;
+        for (int y = 0; y < screen->height; y++)
+        {
+            screen->colourBuffer[x][y] = 232;
+            screen->depthBuffer[x][y] = INFINITY;
+        }
     }
-
-    if (y < 0) 
-    {
-
-        y = 0;
-    }
-
-    if (y > (MAX_Y-1)) 
-    {
-
-        y = MAX_Y-1;
-    }
-
-    screenArr[x][y] = ASCII;
 }
 
-void displayScreen(int arr[MAX_X][MAX_Y])
+void deleteFrameBuffer(frameBuffer *screen)
 {
-    // Iterate over y axis
-    char outputString[MAX_X+1];
-    for (int y = 0; y < MAX_Y; y++)
+    for (int i = 0; i < screen->width; i++)
     {
-        for (int x = 0; x < MAX_X; x++)
+        free(screen->characterBuffer[i]);
+        free(screen->colourBuffer[i]);
+        free(screen->depthBuffer[i]);
+    }
+    free(screen->characterBuffer);
+    free(screen->colourBuffer);
+    free(screen->depthBuffer);
+}
+
+void drawInScreen(frameBuffer screen, int x, int y, visual symbol)
+{
+    x = clamp(x, 0, (screen.width - 1));
+    y = clamp(y, 0, (screen.height - 1));
+   
+    screen.characterBuffer[x][y] = symbol.character;
+    screen.colourBuffer[x][y] = symbol.colour;
+}
+
+void displayDepthBuffer(frameBuffer *screen)
+{   
+    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
+    printf("\033[H\033[J"); //clears the screen
+    #endif
+    // Iterate over y axis
+    double outputString[screen->width+1];
+    for (int y = 0; y < screen->height; y++)
+    {
+        for (int x = 0; x < screen->width; x++)
         {
             // Store current value in array at point(x,y), as char in string
-            // String is length of MAX_X
-            outputString[x]=arr[x][y];
+            // String is length of screen.width
+            outputString[x]=screen->depthBuffer[x][y];
+            printf("%lf,",outputString[x]);
         }
         // Display filled string, and new line character, before moving onto the next value of y
-        outputString[MAX_X]='\0';
-        printf("%s\n",outputString);
+        // outputString[screen->width]='\0';
+        printf("\n");
     }
 }
 
-void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
+void displayFrameBuffer2(frameBuffer *screen)
+{   
+    size_t sizeOfScreen = (sizeof(char)*((screen->width+1+17) * (screen->height+1)));
+    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+    printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen->width, screen->height, (screen->width + 18 * screen->height +1),sizeOfScreen);
+    printf("BUFFSIZ: %d\n",BUFSIZ);
+    #endif
+
+    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
+    //clears screen escape code sequence
+    printf("\033[H\033[J"); 
+    #endif
+
+    setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
+
+    char outputStringArr[sizeOfScreen];
+    int invertedY = 0;
+    for (int y = (screen->height-1); y >= 0; y--)
+    {
+        int invertedX = 0;
+        for (int x = (screen->width-1); x >= 0; x--)
+        {
+            printf("\e[48;5;%dm\e[38;5;%dm%c",screen->colourBuffer[x][y],255,(char)screen->characterBuffer[x][y]);
+            invertedX++;
+        }
+        //add newline char for each y incriment
+        printf("\n");
+        // outputStringArr[(invertedY * (screen->width+1))+(screen->width)]='\n';
+        invertedY++;
+    }
+    printf("\033[m");
+    fflush(stdout);
+    //write tring to print buffer, and fluse to screen.
+    // fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
+    // fflush(stdout);
+}
+
+void displayFrameBuffer(frameBuffer *screen)
+{   
+    size_t sizeOfScreen = (sizeof(char)*((screen->width+1) * screen->height));
+    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+    printf("Screen Area: (%d + 1) x %d = %d (%ld bytes)\n",screen->width + 1, screen->height, (screen->width +1 * screen->height),sizeOfScreen);
+    printf("BUFFSIZ: %d\n",BUFSIZ);
+    #endif
+
+    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
+    //clears screen escape code sequence
+    printf("\033[H\033[J"); 
+    #endif
+
+    setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
+
+    char outputStringArr[sizeOfScreen];
+    int invertedY = 0;
+    for (int y = (screen->height-1); y >= 0; y--)
+    {
+        int invertedX = 0;
+        for (int x = (screen->width-1); x >= 0; x--)
+        {
+            //fancy maths to work out index of 1d array from 2d.
+            outputStringArr[(invertedY * (screen->width+1))+invertedX]=screen->characterBuffer[x][y];
+            invertedX++;
+        }
+        //add newline char for each y incriment
+        outputStringArr[(invertedY * (screen->width+1))+(screen->width)]='\n';
+        invertedY++;
+    }
+    //write tring to print buffer, and fluse to screen.
+    fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
+    fflush(stdout);
+}
+
+void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
 {
+    visual outputSymbol;
+    outputSymbol.colour = 232;
     int dx = x1 - x0;
     int dy = y1 - y0;
     int yi = 1;
@@ -381,13 +710,15 @@ void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
 
     for (int x = x0; x <= x1; x++)
     {
-        if ((x <= 0) | (y <= 0) | (x >= (MAX_X-1)) | (y >= (MAX_Y-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
-            drawInScreen(screen,x,y,BORDER);
+            outputSymbol.character = BORDER;
+            drawInScreen(screen,x,y,outputSymbol);
         }
         else
         {
-            drawInScreen(screen,x,y,LINE);
+            outputSymbol.character = LINE;
+            drawInScreen(screen,x,y,outputSymbol);
         }
             
         if (D > 0) 
@@ -402,8 +733,10 @@ void plotLineLow(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
     }
 }
 
-void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
+void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen)
 {
+    visual outputSymbol;
+    outputSymbol.colour = 232;
     int dx = x1 - x0;
     int dy = y1 - y0;
     int xi = 1;
@@ -417,13 +750,15 @@ void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
 
     for (int y = y0; y <= y1; y++) 
     {
-        if ((x <= 0) | (y <= 0) | (x >= (MAX_X-1)) | (y >= (MAX_Y-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
-            drawInScreen(screen,x,y,BORDER);
+            outputSymbol.character = BORDER;
+            drawInScreen(screen,x,y,outputSymbol);
         }
         else
         {
-            drawInScreen(screen,x,y,LINE);
+            outputSymbol.character = LINE;
+            drawInScreen(screen,x,y,outputSymbol);
         }
         
         if (D > 0) 
@@ -438,7 +773,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, int screen[MAX_X][MAX_Y])
     }
 }
 
-void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y])
+void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer screen)
 {
     // Initialise points as doubles to do maths nicer
     int x0 = (int)pointA.x;
@@ -470,4 +805,3 @@ void BresenhamPlotLine(vector pointA, vector pointB, int screen[MAX_X][MAX_Y])
         }
     }
 }
-
