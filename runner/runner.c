@@ -18,7 +18,7 @@ int main(void){
     frameBuffer screen;
     matrix4x4 projectionMatrix;
     vector camera = {0, 0, 0};
-    vector lightDirection = {0, -1, 0};   
+    vector lightDirection = {0, -0.5, 0.5};   
 
     const char jsonImportPath[] = "data/renderOptions.json";
 
@@ -167,11 +167,13 @@ int main(void){
         // lightAngle = lightAngle + 0.01745329;
         drawScreenBorder(&screen);
         
-        displayFrameBufer(&screen);
+        displayFrameBuffer2(&screen);
+        // displayFrameBuffer(&screen);
         #ifdef DEBUG_POINTS_ZBUFFER
         displayZBuffer(&screen);
         #endif
-        nanosleep((const struct timespec[]){{0, 83333333L}}, NULL);
+        // nanosleep((const struct timespec[]){{1, 0L}}, NULL);
+        nanosleep((const struct timespec[]){{0, 83333333}}, NULL);
         free(trisToRender);
     }
     free(normalsVectorArray);

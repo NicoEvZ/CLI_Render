@@ -14,7 +14,8 @@ void copyTriangleData(triangle fromTriangle, triangle *toTriangle)
     {
         toTriangle->point[i] = fromTriangle.point[i];
     }
-    toTriangle->symbol = fromTriangle.symbol;
+    toTriangle->symbol.character = fromTriangle.symbol.character;
+    toTriangle->symbol.colour = fromTriangle.symbol.colour;
 }
 
 //vector1.elements plus vector2.elements
@@ -314,93 +315,102 @@ void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vec
     printf("inputTriangleNormal: (%lf, %lf, %lf)\n\n", inputTriangleNormal.x, inputTriangleNormal.y, inputTriangleNormal.z);
     #endif
 
-    inputTriangle->symbol = getGradient(dotProductResult);
+    inputTriangle->symbol = getGradient2(dotProductResult);
+}
+
+visual getGradient2(double luminance)
+{
+    visual outputSymbol;
+    double gradient = (24 * luminance);
+    outputSymbol.character = ' ';
+    outputSymbol.colour = clamp((int)(rint(gradient) + 232),232,255);
+    return outputSymbol;
 }
 
 char  getGradient(double luminance)
 {
     // " .:-=+*#%@"
     
-    char outputChar;
-    double gradient = (9 * luminance);
+    char outputSymbol;
+    double gradient = (24 * luminance);
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
     switch ((int)(rint(gradient)))
     {
     case 0:
-        outputChar = '0';
+        outputSymbol = '0';
         break;
     case 1:
-        outputChar = '1';
+        outputSymbol = '1';
         break;
     case 2:
-        outputChar = '2';
+        outputSymbol = '2';
         break;
     case 3: 
-        outputChar = '3';
+        outputSymbol = '3';
         break;
     case 4:
-        outputChar = '4';
+        outputSymbol = '4';
         break;
     case 5:
-        outputChar = '5';
+        outputSymbol = '5';
         break;
     case 6:
-        outputChar = '6';
+        outputSymbol = '6';
         break;
     case 7:
-        outputChar = '7';
+        outputSymbol = '7';
         break;
     case 8:
-        outputChar = '8';
+        outputSymbol = '8';
         break;
     case 9:
-        outputChar = '9';
+        outputSymbol = '9';
         break;
     default:
-        outputChar = '?';
+        outputSymbol = '?';
     }
-    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",luminance, rint(9 * luminance), outputChar);
+    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",luminance, rint(9 * luminance), outputSymbol);
     #endif
 
     #ifndef DEBUG_POINTS_LIGHT_LEVEL
     switch ((int)(rint(gradient)))
     {
     case 0:
-        outputChar = ' ';
+        outputSymbol = ' ';
         break;
     case 1:
-        outputChar = '.';
+        outputSymbol = '.';
         break;
     case 2:
-        outputChar = ':';
+        outputSymbol = ':';
         break;
     case 3: 
-        outputChar = '-';
+        outputSymbol = '-';
         break;
     case 4:
-        outputChar = '=';
+        outputSymbol = '=';
         break;
     case 5:
-        outputChar = '+';
+        outputSymbol = '+';
         break;
     case 6:
-        outputChar = '*';
+        outputSymbol = '*';
         break;
     case 7:
-        outputChar = '#';
+        outputSymbol = '#';
         break;
     case 8:
-        outputChar = '%';
+        outputSymbol = '%';
         break;
     case 9:
-        outputChar = '@';
+        outputSymbol = '@';
         break;
     default:
-        outputChar = ' ';
+        outputSymbol = ' ';
     }
     #endif
 
-    return outputChar;
+    return outputSymbol;
 }
 
 void scaleTriangle(triangle *inputTriangle, frameBuffer screen)
@@ -571,18 +581,21 @@ void deleteFrameBuffer(frameBuffer *screen)
     for (int i = 0; i < screen->width; i++)
     {
         free(screen->characterBuffer[i]);
+        free(screen->colourBuffer[i]);
         free(screen->depthBuffer[i]);
     }
     free(screen->characterBuffer);
+    free(screen->colourBuffer);
     free(screen->depthBuffer);
 }
 
-void drawInScreen(frameBuffer screen, int x, int y, const char ASCII)
+void drawInScreen(frameBuffer screen, int x, int y, visual symbol)
 {
     x = clamp(x, 0, (screen.width - 1));
     y = clamp(y, 0, (screen.height - 1));
    
-    screen.characterBuffer[x][y] = ASCII;
+    screen.characterBuffer[x][y] = symbol.character;
+    screen.colourBuffer[x][y] = symbol.colour;
 }
 
 void displayDepthBuffer(frameBuffer *screen)
@@ -609,9 +622,9 @@ void displayDepthBuffer(frameBuffer *screen)
 
 void displayFrameBuffer2(frameBuffer *screen)
 {   
-    size_t sizeOfScreen = (sizeof(char)*((screen->width+1) * screen->height));
+    size_t sizeOfScreen = (sizeof(char)*((screen->width+1+17) * (screen->height+1)));
     #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("Screen Area: %d x %d = %d (%ld bytes)\n",screen->width, screen->height, (screen->width * screen->height),sizeOfScreen);
+    printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen->width, screen->height, (screen->width + 18 * screen->height +1),sizeOfScreen);
     printf("BUFFSIZ: %d\n",BUFSIZ);
     #endif
 
@@ -623,31 +636,32 @@ void displayFrameBuffer2(frameBuffer *screen)
     setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
 
     char outputStringArr[sizeOfScreen];
-    int invY = 0;
+    int invertedY = 0;
     for (int y = (screen->height-1); y >= 0; y--)
     {
-        for (int x = 0; x < screen->width; x++)
+        int invertedX = 0;
+        for (int x = (screen->width-1); x >= 0; x--)
         {
-            //fancy maths to work out index of 1d array from 2d.
-            // outputStringArr[(invY * (screen->width+1))+x]=screen->characterBuffer[x][y];
-            printf("\033[48;5;%dm\033[38;5;%dm%c",255,232,(char)screen->characterBuffer[x][y]);
+            printf("\e[48;5;%dm\e[38;5;%dm%c",screen->colourBuffer[x][y],255,(char)screen->characterBuffer[x][y]);
+            invertedX++;
         }
         //add newline char for each y incriment
         printf("\n");
-        // outputStringArr[(invY * (screen->width+1))+(screen->width)]='\n';
-        invY++;
+        // outputStringArr[(invertedY * (screen->width+1))+(screen->width)]='\n';
+        invertedY++;
     }
-    printf("\033[matrix");
+    printf("\033[m");
+    fflush(stdout);
     //write tring to print buffer, and fluse to screen.
     // fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
     // fflush(stdout);
 }
 
-void displayFrameBufer(frameBuffer *screen)
+void displayFrameBuffer(frameBuffer *screen)
 {   
     size_t sizeOfScreen = (sizeof(char)*((screen->width+1) * screen->height));
     #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("Screen Area: %d x %d = %d (%ld bytes)\n",screen->width, screen->height, (screen->width * screen->height),sizeOfScreen);
+    printf("Screen Area: (%d + 1) x %d = %d (%ld bytes)\n",screen->width + 1, screen->height, (screen->width +1 * screen->height),sizeOfScreen);
     printf("BUFFSIZ: %d\n",BUFSIZ);
     #endif
 
@@ -659,17 +673,19 @@ void displayFrameBufer(frameBuffer *screen)
     setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
 
     char outputStringArr[sizeOfScreen];
-    int invY = 0;
+    int invertedY = 0;
     for (int y = (screen->height-1); y >= 0; y--)
     {
-        for (int x = 0; x < screen->width; x++)
+        int invertedX = 0;
+        for (int x = (screen->width-1); x >= 0; x--)
         {
             //fancy maths to work out index of 1d array from 2d.
-            outputStringArr[(invY * (screen->width+1))+x]=screen->characterBuffer[x][y];
+            outputStringArr[(invertedY * (screen->width+1))+invertedX]=screen->characterBuffer[x][y];
+            invertedX++;
         }
         //add newline char for each y incriment
-        outputStringArr[(invY * (screen->width+1))+(screen->width)]='\n';
-        invY++;
+        outputStringArr[(invertedY * (screen->width+1))+(screen->width)]='\n';
+        invertedY++;
     }
     //write tring to print buffer, and fluse to screen.
     fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
@@ -678,6 +694,8 @@ void displayFrameBufer(frameBuffer *screen)
 
 void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
 {
+    visual outputSymbol;
+    outputSymbol.colour = 232;
     int dx = x1 - x0;
     int dy = y1 - y0;
     int yi = 1;
@@ -694,11 +712,13 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
     {
         if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
-            drawInScreen(screen,x,y,BORDER);
+            outputSymbol.character = BORDER;
+            drawInScreen(screen,x,y,outputSymbol);
         }
         else
         {
-            drawInScreen(screen,x,y,LINE);
+            outputSymbol.character = LINE;
+            drawInScreen(screen,x,y,outputSymbol);
         }
             
         if (D > 0) 
@@ -715,6 +735,8 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
 
 void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen)
 {
+    visual outputSymbol;
+    outputSymbol.colour = 232;
     int dx = x1 - x0;
     int dy = y1 - y0;
     int xi = 1;
@@ -730,11 +752,13 @@ void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen)
     {
         if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
         {
-            drawInScreen(screen,x,y,BORDER);
+            outputSymbol.character = BORDER;
+            drawInScreen(screen,x,y,outputSymbol);
         }
         else
         {
-            drawInScreen(screen,x,y,LINE);
+            outputSymbol.character = LINE;
+            drawInScreen(screen,x,y,outputSymbol);
         }
         
         if (D > 0) 

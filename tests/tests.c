@@ -12,7 +12,7 @@
 
 double epsilon = 0.0001;
 
-static void test_addVec(void **state)
+static void test_addVector(void **state)
 {   
     (void) state;
     vector vector1 = {1,2,3};
@@ -24,7 +24,7 @@ static void test_addVec(void **state)
     assert_float_equal(expected.z, addVector(vector1,vector2).z, epsilon);
 }
 
-static void test_subVec(void **state)
+static void test_subtractVector(void **state)
 {   
     (void) state;
     vector vector1 = {5,7,9};
@@ -36,7 +36,7 @@ static void test_subVec(void **state)
     assert_float_equal(expected.z, subtractVector(vector1,vector2).z, epsilon);
 }
 
-static void test_vecCrossProduct(void **state)
+static void test_CrossProduct(void **state)
 {
     (void) state;
     vector vector1 = {1,2,3};
@@ -48,7 +48,7 @@ static void test_vecCrossProduct(void **state)
     assert_float_equal(expected.z, CrossProduct(vector1,vector2).z, epsilon);
 }
 
-static void test_divVecByScalar(void **state)
+static void test_divideVectorByScalar(void **state)
 {
     (void) state;
     vector vector1 = {4,8,16};
@@ -82,10 +82,10 @@ int main(void)
     test_mesh.numberOfTriangles = 2;
     test_mesh.numberOfVertices = 4;
     test_mesh.trianglePointer = (triangle*) malloc(test_mesh.numberOfTriangles * sizeof(triangle));
-    triangle test_tri_A = {{{0, 1, 1}, {0, 0, 1}, {1, 0, 1}}, 65};
-    triangle test_tri_B = {{{1, 0, 1}, {1, 1, 1}, {0, 1, 1}}, 66};
-    test_mesh.trianglePointer[0] = test_tri_A;
-    test_mesh.trianglePointer[1] = test_tri_B;
+    triangle test_triangle_A = {{{0, 1, 1}, {0, 0, 1}, {1, 0, 1}}, 65};
+    triangle test_triangle_B = {{{1, 0, 1}, {1, 1, 1}, {0, 1, 1}}, 66};
+    test_mesh.trianglePointer[0] = test_triangle_A;
+    test_mesh.trianglePointer[1] = test_triangle_B;
 
     printf("Test_Mesh:\n");
     for (int i = 0; i < test_mesh.numberOfTriangles; i++)
@@ -93,17 +93,17 @@ int main(void)
         printf("Triangle[%d of %d]:\n",i+1,test_mesh.numberOfTriangles);
         for (int j = 0; j < 3; j++)
         {
-            printf("\tp[%d]: (%lf, %lf, %lf)\n",j,test_mesh.trianglePointer[i].point[j].x, test_mesh.trianglePointer[i].point[j].y, test_mesh.trianglePointer[i].point[j].z);
+            printf("\tpoint[%d]: (%lf, %lf, %lf)\n",j,test_mesh.trianglePointer[i].point[j].x, test_mesh.trianglePointer[i].point[j].y, test_mesh.trianglePointer[i].point[j].z);
         }
         printf("\tchar: %c\n\n",test_mesh.trianglePointer[i].symbol);
     }
     const struct CMUnitTest tests[] = 
     {
-        cmocka_unit_test(test_addVec),
-        cmocka_unit_test(test_subVec),
-        cmocka_unit_test(test_vecCrossProduct),
+        cmocka_unit_test(test_addVector),
+        cmocka_unit_test(test_subtractVector),
+        cmocka_unit_test(test_CrossProduct),
         cmocka_unit_test(test_copyTriangleData),
-        cmocka_unit_test(test_divVecByScalar)
+        cmocka_unit_test(test_divideVectorByScalar)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

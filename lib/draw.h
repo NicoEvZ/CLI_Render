@@ -9,13 +9,20 @@
 
 typedef struct
 {
+    char character;
+    int colour;
+}visual;
+
+
+typedef struct
+{
     double x, y, z;
 }vector;
 
 typedef struct
 {
     vector point[3];
-    char symbol;
+    visual symbol;
 }triangle;
 
 typedef struct
@@ -85,6 +92,8 @@ void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vec
 
 char getGradient(double luminamce);
 
+visual getGradient2(double luminamce);
+
 void scaleTriangle(triangle *inputTriangle, frameBuffer screen);
 
 void initialiseRotateXMatrix(matrix4x4 *matrixX, double angle);
@@ -109,11 +118,11 @@ void initialiseFrameBuffer(frameBuffer *screen);
 
 void deleteFrameBuffer(frameBuffer *screen);
 
-void drawInScreen(frameBuffer screen, int x, int y, const char ASCII);
+void drawInScreen(frameBuffer screen, int x, int y, visual symbol);
 
 void displayDepthBuffer(frameBuffer *screen);
 
-void displayFrameBufer(frameBuffer *screen);
+void displayFrameBuffer(frameBuffer *screen);
 
 void displayFrameBuffer2(frameBuffer *screen);
 
