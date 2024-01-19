@@ -90,9 +90,11 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBo
 
 void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vector lightDirection);
 
-char getGradient(double luminamce);
+char getGradientCharacter(double luminamce);
 
 visual getGradient2(double luminamce);
+
+visual getGradientColour(double luminamce);
 
 void scaleTriangle(triangle *inputTriangle, frameBuffer screen);
 
@@ -119,6 +121,8 @@ void initialiseFrameBuffer(frameBuffer *screen);
 void deleteFrameBuffer(frameBuffer *screen);
 
 void drawInScreen(frameBuffer screen, int x, int y, visual symbol);
+
+void drawInScreen2(frameBuffer screen, int x, int y, int z, visual symbol);
 
 void displayDepthBuffer(frameBuffer *screen);
 

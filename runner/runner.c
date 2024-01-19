@@ -54,6 +54,8 @@ int main(void){
     vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
+    angle += (180 * 0.01745329);
+
     //display loop
     for (int i = 0; i < importData.iterations; i++)
     {
@@ -91,6 +93,8 @@ int main(void){
 
             //offest into screen
             translateTriangleZ(&translatedTriangle, importData.distance);
+
+            // translateTriangleY(&translatedTriangle, -20);
 
             //calculate face normals
             normalsVectorArray[j] = calculateTriangleNormal(translatedTriangle);
@@ -163,7 +167,7 @@ int main(void){
         printf("Final Output:\n");
         #endif
 
-        angle = angle + 0.01745329;
+        angle += 0.01745329;
         // lightAngle = lightAngle + 0.01745329;
         drawScreenBorder(&screen);
         

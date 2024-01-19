@@ -42,7 +42,7 @@ vector subtractVector(vector vector1, vector vector2)
     return returnVector;
 }
 
-//devides each element of the vector by the value given
+//divides each element of the vector by the value given
 vector divideVectorByScalar(vector inputVector, double scalar) 
 {
     vector returnVector;
@@ -166,6 +166,36 @@ void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *ProjectionMa
     ProjectionMatrix->matrix[3][3] = 0;
 }
 
+int checkColourOfPixelInTriangle(triangle inputTriangle, int x, int y, double* z)
+{
+    vector A = inputTriangle.point[0];
+    vector B = inputTriangle.point[1];
+    vector C = inputTriangle.point[2];
+    vector P;
+    P.x = x;
+    P.y = y;
+    // Calculate the barycentric coordinates
+    // of point P with respect to triangle ABC
+    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
+    double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
+    double c = 1 - a - b;
+    
+    P.z = 1 / (((1 / A.z) * a) + ((1 / B.z) * b) + ((1 / C.z) * c));
+    *z = P.z;
+
+    // Check if all barycentric coordinates
+    // are non-negative
+    if (a >= 0 && b >= 0 && c >= 0) 
+    {
+        return 1;
+    } 
+    else
+    {
+        return 0;
+    }
+}
+
 int checkPixelInTriangle(triangle inputTriangle, int x, int y, double* z)
 {
     vector A = inputTriangle.point[0];
@@ -272,7 +302,7 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBo
 
             if (fillBool)
             {
-                drawInScreen(screen, x, y, inputTriangle.symbol);
+                drawInScreen2(screen, x, y, z, inputTriangle.symbol);
             }
             else
             {
@@ -318,99 +348,118 @@ void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vec
     inputTriangle->symbol = getGradient2(dotProductResult);
 }
 
-visual getGradient2(double luminance)
+visual getGradientColour(double luminance)
 {
     visual outputSymbol;
     double gradient = (24 * luminance);
-    outputSymbol.character = ' ';
+    outputSymbol.character = getGradientCharacter(luminance);
     outputSymbol.colour = clamp((int)(rint(gradient) + 232),232,255);
     return outputSymbol;
 }
 
-char  getGradient(double luminance)
+visual getGradient2(double luminance)
+{
+    visual outputSymbol;
+    double gradient = (100 * luminance);
+    outputSymbol.character = getGradientCharacter(luminance);
+    outputSymbol.colour = clamp((int)(rint(gradient)),0,100);
+    
+    if (outputSymbol.colour > 50)
+    {
+        outputSymbol.colour = 11;
+    }
+    else
+    {
+        outputSymbol.colour = 2;
+    }
+    
+    return outputSymbol;
+}
+
+char  getGradientCharacter(double luminance)
 {
     // " .:-=+*#%@"
     
-    char outputSymbol;
-    double gradient = (24 * luminance);
+    char outputCharacter;
+    double gradient = (9 * luminance);
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
     switch ((int)(rint(gradient)))
     {
     case 0:
-        outputSymbol = '0';
+        outputCharacter = '0';
         break;
     case 1:
-        outputSymbol = '1';
+        outputCharacter = '1';
         break;
     case 2:
-        outputSymbol = '2';
+        outputCharacter = '2';
         break;
     case 3: 
-        outputSymbol = '3';
+        outputCharacter = '3';
         break;
     case 4:
-        outputSymbol = '4';
+        outputCharacter = '4';
         break;
     case 5:
-        outputSymbol = '5';
+        outputCharacter = '5';
         break;
     case 6:
-        outputSymbol = '6';
+        outputCharacter = '6';
         break;
     case 7:
-        outputSymbol = '7';
+        outputCharacter = '7';
         break;
     case 8:
-        outputSymbol = '8';
+        outputCharacter = '8';
         break;
     case 9:
-        outputSymbol = '9';
+        outputCharacter = '9';
         break;
     default:
-        outputSymbol = '?';
+        outputCharacter = '?';
     }
-    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",luminance, rint(9 * luminance), outputSymbol);
+    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",luminance, rint(9 * luminance), outputCharacter);
     #endif
 
     #ifndef DEBUG_POINTS_LIGHT_LEVEL
     switch ((int)(rint(gradient)))
     {
     case 0:
-        outputSymbol = ' ';
+        outputCharacter = ' ';
         break;
     case 1:
-        outputSymbol = '.';
+        outputCharacter = '.';
         break;
     case 2:
-        outputSymbol = ':';
+        outputCharacter = ':';
         break;
     case 3: 
-        outputSymbol = '-';
+        outputCharacter = '-';
         break;
     case 4:
-        outputSymbol = '=';
+        outputCharacter = '=';
         break;
     case 5:
-        outputSymbol = '+';
+        outputCharacter = '+';
         break;
     case 6:
-        outputSymbol = '*';
+        outputCharacter = '*';
         break;
     case 7:
-        outputSymbol = '#';
+        outputCharacter = '#';
         break;
     case 8:
-        outputSymbol = '%';
+        outputCharacter = '%';
         break;
     case 9:
-        outputSymbol = '@';
+        outputCharacter = '@';
         break;
     default:
-        outputSymbol = ' ';
+        outputCharacter = ' ';
     }
     #endif
 
-    return outputSymbol;
+    return outputCharacter;
 }
 
 void scaleTriangle(triangle *inputTriangle, frameBuffer screen)
@@ -549,6 +598,7 @@ void drawScreenBorder(frameBuffer *screen)
             if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
             {   
                 screen->characterBuffer[x][y]=BORDER;
+                screen->colourBuffer[x][y] = 255;
             }
         }
     }
@@ -598,6 +648,28 @@ void drawInScreen(frameBuffer screen, int x, int y, visual symbol)
     screen.colourBuffer[x][y] = symbol.colour;
 }
 
+void drawInScreen2(frameBuffer screen, int x, int y, int z, visual symbol)
+{
+    x = clamp(x, 0, (screen.width - 1));
+    y = clamp(y, 0, (screen.height - 1));
+
+    vector colourSpace = {x,y,z};
+    colourSpace = normaliseVector(colourSpace);
+    printf("Normalised vector: {%lf,%lf,%lf}\n",colourSpace.x,colourSpace.y,colourSpace.z);
+
+    colourSpace = multiplyVectorByScalar(colourSpace,5.0);
+
+    int r = clamp((int)colourSpace.x,0,5);
+    int g = clamp((int)colourSpace.y,0,5);
+    int b = clamp((int)colourSpace.z,0,5);
+
+    printf("r,g,b: {%d,%d,%d}\n",r,g,b);
+   
+    screen.characterBuffer[x][y] = symbol.character;
+    screen.colourBuffer[x][y] = (16 + 36 * r + 6 * g + b);
+    printf("colour is: %d\n", screen.colourBuffer[x][y]);
+}
+
 void displayDepthBuffer(frameBuffer *screen)
 {   
     #ifndef DEBUG_POINTS_NO_CLEARSCREEN
@@ -642,7 +714,8 @@ void displayFrameBuffer2(frameBuffer *screen)
         int invertedX = 0;
         for (int x = (screen->width-1); x >= 0; x--)
         {
-            printf("\e[48;5;%dm\e[38;5;%dm%c",screen->colourBuffer[x][y],255,(char)screen->characterBuffer[x][y]);
+            // printf("\e[48;5;%dm\e[38;5;%dm%c",screen->colourBuffer[x][y],255,' ');
+            printf("\e[38;5;%dm%c",screen->colourBuffer[x][y],(char)screen->characterBuffer[x][y]);
             invertedX++;
         }
         //add newline char for each y incriment
@@ -695,7 +768,7 @@ void displayFrameBuffer(frameBuffer *screen)
 void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
 {
     visual outputSymbol;
-    outputSymbol.colour = 232;
+    outputSymbol.colour = 255;
     int dx = x1 - x0;
     int dy = y1 - y0;
     int yi = 1;
@@ -736,7 +809,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
 void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen)
 {
     visual outputSymbol;
-    outputSymbol.colour = 232;
+    outputSymbol.colour = 255;
     int dx = x1 - x0;
     int dy = y1 - y0;
     int xi = 1;

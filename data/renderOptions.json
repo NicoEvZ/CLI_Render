@@ -1,12 +1,12 @@
 {
-    "distance":300.0,
-    "fov":20.0,
-    "objFile":"data/skull_tri.obj",
-    "iterations":180,
+    "distance":30.0,
+    "fov":40.0,
+    "objFile":"data/orb.obj",
+    "iterations":1,
     "rotateX":false,
     "rotateY":false,
     "rotateZ":true,  
-    "screenWidth":311,
-    "screenHeight":80,
+    "screenWidth":111,
+    "screenHeight":40,
     "rasterise":true
 }
