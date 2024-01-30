@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <time.h>   
 #include "draw.h"
 
 #define BLANK ' '
@@ -13,9 +14,36 @@ void copyTriangleData(triangle fromTriangle, triangle *toTriangle)
     for (int i = 0; i < 3; i++)
     {
         toTriangle->point[i] = fromTriangle.point[i];
+        toTriangle->symbol.colour[i] = fromTriangle.symbol.colour[i];
     }
     toTriangle->symbol.character = fromTriangle.symbol.character;
-    toTriangle->symbol.colour = fromTriangle.symbol.colour;
+    toTriangle->symbol.brightness = fromTriangle.symbol.brightness;
+}
+
+void copyFrameBufferData(frameBuffer fromScreen, frameBuffer *toScreen)
+{
+    toScreen->height = fromScreen.height;
+    toScreen->width = fromScreen.width;
+    for (int x = 0; x < fromScreen.width; x++)
+    {
+        for (int y = 0; y < fromScreen.height; y++)
+        {
+            toScreen->characterBuffer[x][y] = fromScreen.characterBuffer[x][y];
+            toScreen->depthBuffer[x][y] = fromScreen.depthBuffer[x][y];
+            for (int i = 0; i < 3; i++)
+            {
+                toScreen->colourBuffer[x][y][i] = fromScreen.colourBuffer[x][y][i];
+            }
+        }
+    }
+}
+
+void inheritColourFromMesh(int fromMeshColour[3], triangle *toTriangle)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        toTriangle->symbol.colour[i] = fromMeshColour[i];
+    }
 }
 
 //vector1.elements plus vector2.elements
@@ -78,7 +106,13 @@ vector CrossProduct(vector vector1, vector vector2)
 
 vector normaliseVector(vector inputVec)
 {
+    if (inputVec.x == 0 && inputVec.y == 0 && inputVec.z == 0)
+    {
+        return inputVec;
+    }
     double length = sqrtl(dotProduct(inputVec, inputVec));
+
+    // printf("normaliseVector length = %lf\n", length);
 
     vector returnVector = divideVectorByScalar(inputVec, length);
     
@@ -142,6 +176,20 @@ int clamp(int input, int min, int max)
     return output;
 }
 
+double clampDouble(double input, double min, double max)
+{
+    double output = input;
+    if (input < min)
+    {
+        output = min;
+    }
+    else if (input > max)
+    {
+        output = max;
+    }
+    return output;
+}
+
 void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *ProjectionMatrix)
 {
     double near = 0.1;
@@ -166,23 +214,33 @@ void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *ProjectionMa
     ProjectionMatrix->matrix[3][3] = 0;
 }
 
-int checkColourOfPixelInTriangle(triangle inputTriangle, int x, int y, double* z)
+int checkColourOfPixelInTriangle(triangle *inputTriangle, int x, int y, double* z)
 {
-    vector A = inputTriangle.point[0];
-    vector B = inputTriangle.point[1];
-    vector C = inputTriangle.point[2];
+    vector A = inputTriangle->point[0];
+    vector B = inputTriangle->point[1];
+    vector C = inputTriangle->point[2];
     vector P;
     P.x = x;
     P.y = y;
     // Calculate the barycentric coordinates
     // of point P with respect to triangle ABC
-    double denominator = ((B.y- C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+    double denominator = ((B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
     double a = ((B.y - C.y) * (P.x - C.x) + (C.x - B.x) * (P.y - C.y)) / denominator;
     double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
     double c = 1 - a - b;
     
-    P.z = 1 / (((1 / A.z) * a) + ((1 / B.z) * b) + ((1 / C.z) * c));
-    *z = P.z;
+    *z = 1 / (((1 / A.z) * a) + ((1 / B.z) * b) + ((1 / C.z) * c));
+
+    // int rgbArray[3];
+
+    // rgbArray[0] = (int)rint(a * 255);
+    // rgbArray[1] = (int)rint(b * 255);
+    // rgbArray[2] = (int)rint(c * 255);
+
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     inputTriangle->symbol.colour[i] = clamp(rgbArray[i], 0, 255);
+    // }
 
     // Check if all barycentric coordinates
     // are non-negative
@@ -226,7 +284,7 @@ int checkPixelInTriangle(triangle inputTriangle, int x, int y, double* z)
     }
 }
 
-void drawTriangleOutline(triangle inputTriangle, frameBuffer screen)
+void drawTriangleOutline(triangle inputTriangle, frameBuffer *screen)
 {
     for (int i = 0; i < 3; i++)
     {
@@ -234,7 +292,7 @@ void drawTriangleOutline(triangle inputTriangle, frameBuffer screen)
     }
 }
 
-void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBool)
+void drawTriangleOnScreen(triangle inputTriangle, frameBuffer *screen, int fillBool)
 {
     vector boundingBoxMin = {INFINITY, INFINITY, 0};
     vector boundingBoxMax = {-INFINITY, -INFINITY, 0};
@@ -268,7 +326,7 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBo
     {
         for (int x = boundingBoxMin.x; x < boundingBoxMax.x; x++)
         {
-            int result = checkPixelInTriangle(inputTriangle,x,y,&z);
+            int result = checkColourOfPixelInTriangle(&inputTriangle,x,y,&z);
             if (result == 0)
             {
                 continue;
@@ -283,10 +341,10 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBo
             #endif
             
             //prevent segfault from attempting to draw outside screen bounds
-            xCheck = clamp(x, 0, (screen.width -1));
-            yCheck = clamp(y, 0, (screen.height -1));
+            xCheck = clamp(x, 0, (screen->width -1));
+            yCheck = clamp(y, 0, (screen->height -1));
             
-            if (z > screen.depthBuffer[xCheck][yCheck])
+            if (z > screen->depthBuffer[xCheck][yCheck])
             {
                 continue;;
             }
@@ -298,15 +356,15 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer screen, int fillBo
             printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
             #endif
 
-            screen.depthBuffer[xCheck][yCheck] = z;
+            screen->depthBuffer[xCheck][yCheck] = z;
 
             if (fillBool)
             {
-                drawInScreen2(screen, x, y, z, inputTriangle.symbol);
+                drawInScreen(screen, x, y, inputTriangle.symbol);
             }
             else
             {
-                drawTriangleOutline(inputTriangle,screen);
+                drawTriangleOutline(inputTriangle, screen);
             }
 
             #ifdef DEBUG_POINTS_ZBUFFER
@@ -338,42 +396,27 @@ void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vec
 {
     lightDirection = normaliseVector(lightDirection);
 
-    double dotProductResult = dotProduct(inputTriangleNormal, lightDirection);
+    double luminance = dotProduct(inputTriangleNormal, lightDirection);
 
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
     printf("lightDirection: (%lf, %lf, %lf)\n", lightDirection.x, lightDirection.y, lightDirection.z);
     printf("inputTriangleNormal: (%lf, %lf, %lf)\n\n", inputTriangleNormal.x, inputTriangleNormal.y, inputTriangleNormal.z);
     #endif
 
-    inputTriangle->symbol = getGradient2(dotProductResult);
+    // int colour[3] = {255, 0, 0};
+
+    getGradient(luminance, &inputTriangle->symbol);
+
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     inputTriangle->symbol.colour[i] = colour[i];
+    // }
 }
 
-visual getGradientColour(double luminance)
+void getGradient (double luminance, visual *inputSymbol)
 {
-    visual outputSymbol;
-    double gradient = (24 * luminance);
-    outputSymbol.character = getGradientCharacter(luminance);
-    outputSymbol.colour = clamp((int)(rint(gradient) + 232),232,255);
-    return outputSymbol;
-}
-
-visual getGradient2(double luminance)
-{
-    visual outputSymbol;
-    double gradient = (100 * luminance);
-    outputSymbol.character = getGradientCharacter(luminance);
-    outputSymbol.colour = clamp((int)(rint(gradient)),0,100);
-    
-    if (outputSymbol.colour > 50)
-    {
-        outputSymbol.colour = 11;
-    }
-    else
-    {
-        outputSymbol.colour = 2;
-    }
-    
-    return outputSymbol;
+    inputSymbol->character = getGradientCharacter(luminance);
+    inputSymbol->brightness = clampDouble(luminance, 0, 1);
 }
 
 char  getGradientCharacter(double luminance)
@@ -381,82 +424,30 @@ char  getGradientCharacter(double luminance)
     // " .:-=+*#%@"
     
     char outputCharacter;
+
     double gradient = (9 * luminance);
     #ifdef DEBUG_POINTS_LIGHT_LEVEL
-    switch ((int)(rint(gradient)))
-    {
-    case 0:
-        outputCharacter = '0';
-        break;
-    case 1:
-        outputCharacter = '1';
-        break;
-    case 2:
-        outputCharacter = '2';
-        break;
-    case 3: 
-        outputCharacter = '3';
-        break;
-    case 4:
-        outputCharacter = '4';
-        break;
-    case 5:
-        outputCharacter = '5';
-        break;
-    case 6:
-        outputCharacter = '6';
-        break;
-    case 7:
-        outputCharacter = '7';
-        break;
-    case 8:
-        outputCharacter = '8';
-        break;
-    case 9:
-        outputCharacter = '9';
-        break;
-    default:
-        outputCharacter = '?';
-    }
-    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",luminance, rint(9 * luminance), outputCharacter);
+    char gradientString[] = "0123456789";
+    char defaultChar = '?';
     #endif
 
     #ifndef DEBUG_POINTS_LIGHT_LEVEL
-    switch ((int)(rint(gradient)))
+    char gradientString[] = " .:-=+*#%@";
+    char defaultChar = ' ';
+    #endif
+
+    if (luminance < 0)
     {
-    case 0:
-        outputCharacter = ' ';
-        break;
-    case 1:
-        outputCharacter = '.';
-        break;
-    case 2:
-        outputCharacter = ':';
-        break;
-    case 3: 
-        outputCharacter = '-';
-        break;
-    case 4:
-        outputCharacter = '=';
-        break;
-    case 5:
-        outputCharacter = '+';
-        break;
-    case 6:
-        outputCharacter = '*';
-        break;
-    case 7:
-        outputCharacter = '#';
-        break;
-    case 8:
-        outputCharacter = '%';
-        break;
-    case 9:
-        outputCharacter = '@';
-        break;
-    default:
-        outputCharacter = ' ';
+        outputCharacter = defaultChar;
     }
+    else
+    {
+        // printf("gradient = %lf\n", gradient);
+        outputCharacter = gradientString[(int)(rint(gradient))];
+    }
+
+    #ifdef DEBUG_POINTS_LIGHT_LEVEL
+    printf("Lum: %lf\tGrad: %lf\tChar: %c\n\n",luminance, rint(9 * luminance), outputCharacter);
     #endif
 
     return outputCharacter;
@@ -584,7 +575,10 @@ void clearFrameBuffer(frameBuffer *screen)
         {
             screen->characterBuffer[x][y]=BLANK;
             screen->depthBuffer[x][y]=INFINITY;
-            screen->colourBuffer[x][y]=232;
+            for (int i = 0; i < 3; i++)
+            {
+                screen->colourBuffer[x][y][i] = 127;
+            }
         }
     }
 }
@@ -598,38 +592,57 @@ void drawScreenBorder(frameBuffer *screen)
             if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
             {   
                 screen->characterBuffer[x][y]=BORDER;
-                screen->colourBuffer[x][y] = 255;
+                for (int i = 0; i < 3; i++)
+                {
+                    screen->colourBuffer[x][y][i]=255;
+                }
             }
         }
     }
 }
 
-void initialiseFrameBuffer(frameBuffer *screen)
+void initialiseFrameBuffer(frameBuffer *screen, renderConfig importData)
 {
+    screen->width = importData.screenWidthImport;
+    screen->height = importData.screenHeightImport;
+
     screen->characterBuffer = malloc(screen->width * sizeof(int *));
-    screen->colourBuffer = malloc(screen->width * sizeof(int *));
+    screen->colourBuffer = malloc(screen->width * sizeof(int **));
     screen->depthBuffer = malloc(screen->width* sizeof(double *));
     for (int i = 0; i < screen->width; i++)
     {
         screen->characterBuffer[i] = malloc(screen->height * sizeof(int));
-        screen->colourBuffer[i] = malloc(screen->height * sizeof(int));
+        screen->colourBuffer[i] = malloc(screen->height * sizeof(int *));
         screen->depthBuffer[i] = malloc(screen->height * sizeof(double));
+        for (int j = 0; j < screen->height; j++)
+        {
+            screen->colourBuffer[i][j] =  malloc(3 * sizeof(int));
+        }
     }
 
     for (int x = 0; x < screen->width; x++)
     {
         for (int y = 0; y < screen->height; y++)
         {
-            screen->colourBuffer[x][y] = 232;
+            for (int j = 0; j < 3; j++)
+            {
+                screen->colourBuffer[x][y][j] = 232;
+            }
             screen->depthBuffer[x][y] = INFINITY;
         }
     }
+
+    clearFrameBuffer(screen);
 }
 
 void deleteFrameBuffer(frameBuffer *screen)
 {
     for (int i = 0; i < screen->width; i++)
     {
+        for (int j = 0; j < screen->height; j++)
+        {
+            free(screen->colourBuffer[i][j]);
+        }
         free(screen->characterBuffer[i]);
         free(screen->colourBuffer[i]);
         free(screen->depthBuffer[i]);
@@ -639,35 +652,25 @@ void deleteFrameBuffer(frameBuffer *screen)
     free(screen->depthBuffer);
 }
 
-void drawInScreen(frameBuffer screen, int x, int y, visual symbol)
+void drawInScreen(frameBuffer *screen, int x, int y, visual symbol)
 {
-    x = clamp(x, 0, (screen.width - 1));
-    y = clamp(y, 0, (screen.height - 1));
-   
-    screen.characterBuffer[x][y] = symbol.character;
-    screen.colourBuffer[x][y] = symbol.colour;
-}
+    x = clamp(x, 0, (screen->width - 1));
+    y = clamp(y, 0, (screen->height - 1));
 
-void drawInScreen2(frameBuffer screen, int x, int y, int z, visual symbol)
-{
-    x = clamp(x, 0, (screen.width - 1));
-    y = clamp(y, 0, (screen.height - 1));
+    // if ((screen->characterBuffer[x][y] == symbol.character) && 
+    //     (screen->colourBuffer[x][y][0] == ((int)rint(symbol.colour[0] * symbol.brightness))) &&
+    //     (screen->colourBuffer[x][y][1] == ((int)rint(symbol.colour[1] * symbol.brightness))) &&
+    //     (screen->colourBuffer[x][y][2] == ((int)rint(symbol.colour[2] * symbol.brightness))))
+    // {
+    //     return;
+    // }
 
-    vector colourSpace = {x,y,z};
-    colourSpace = normaliseVector(colourSpace);
-    printf("Normalised vector: {%lf,%lf,%lf}\n",colourSpace.x,colourSpace.y,colourSpace.z);
-
-    colourSpace = multiplyVectorByScalar(colourSpace,5.0);
-
-    int r = clamp((int)colourSpace.x,0,5);
-    int g = clamp((int)colourSpace.y,0,5);
-    int b = clamp((int)colourSpace.z,0,5);
-
-    printf("r,g,b: {%d,%d,%d}\n",r,g,b);
-   
-    screen.characterBuffer[x][y] = symbol.character;
-    screen.colourBuffer[x][y] = (16 + 36 * r + 6 * g + b);
-    printf("colour is: %d\n", screen.colourBuffer[x][y]);
+    screen->characterBuffer[x][y] = symbol.character;
+    
+    for (int i = 0; i < 3; i++)
+    {
+        screen->colourBuffer[x][y][i] = clamp(((int)rint(symbol.colour[i] * symbol.brightness)), 0, 255);
+    }
 }
 
 void displayDepthBuffer(frameBuffer *screen)
@@ -692,9 +695,11 @@ void displayDepthBuffer(frameBuffer *screen)
     }
 }
 
-void displayFrameBuffer2(frameBuffer *screen)
+void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen)
 {   
-    size_t sizeOfScreen = (sizeof(char)*((screen->width+1+17) * (screen->height+1)));
+    // size_t sizeOfScreen = (sizeof(char)*((screen->width) * (screen->height) * 30));
+    // int *a = malloc(sizeOfScreen);
+    // char outputStringArr[sizeOfScreen];
     #ifdef DEBUG_POINTS_NO_CLEARSCREEN
     printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen->width, screen->height, (screen->width + 18 * screen->height +1),sizeOfScreen);
     printf("BUFFSIZ: %d\n",BUFSIZ);
@@ -702,37 +707,98 @@ void displayFrameBuffer2(frameBuffer *screen)
 
     #ifndef DEBUG_POINTS_NO_CLEARSCREEN
     //clears screen escape code sequence
-    printf("\033[H\033[J"); 
+    // printf("\e[H\e[J");
     #endif
 
-    setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
+    //hide cursor
+    // printf("\e[6 q");
+    printf("\e[?25l");
+    // printf("\e[2 q");
 
-    char outputStringArr[sizeOfScreen];
+
+    // size_t sizeOfScreen = (sizeof(char)*((screen->width) * (screen->height) * 30));
+    // int *a = malloc(sizeOfScreen);
+
+    // if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
+    // {
+    //     printf("Error setting buffer\n");
+    //     fflush(stdout);
+    // }
+    // __u_int numOfBytes = 0;
+
+    int invertedY = 0;
+    for (int y = (screen.height-1); y >= 0; y--)
+    {
+        int invertedX = 0;
+        for (int x = (screen.width-1); x >= 0; x--)
+        {
+            if ((screen.colourBuffer[x][y][0] != oldScreen.colourBuffer[x][y][0]) ||
+                (screen.colourBuffer[x][y][1] != oldScreen.colourBuffer[x][y][1]) ||
+                (screen.colourBuffer[x][y][2] != oldScreen.colourBuffer[x][y][2]))
+            {
+                printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, 
+                                                           invertedX+1, 
+                                                           screen.colourBuffer[x][y][0], 
+                                                           screen.colourBuffer[x][y][1], 
+                                                           screen.colourBuffer[x][y][2], 
+                                                           ' ');
+            }
+            // numOfBytes += printf("\e[%d;%dH", invertedY + 1, invertedX + 1);
+            // numOfBytes += printf("\e[48;2;%d;%d;%dm", screen->colourBuffer[x][y][0], screen->colourBuffer[x][y][1], screen->colourBuffer[x][y][2]);
+            // numOfBytes += printf("%c", ' ');
+            // numOfBytes += printf("\e[m");
+            invertedX++;
+            // fflush(stdout);
+        }
+        //add newline char for each y incriment
+        // printf("\n");
+        invertedY++;
+    }
+    //reset cursor and style, and flush the buffer.
+    printf("\e[%d;%dH", screen.height, screen.width);
+    printf("\e[m\e[?25h");
+    fflush(stdout);
+}
+
+void displayFrameBuffer2(frameBuffer *screen, frameBuffer *oldScreen)
+{   
+    // size_t sizeOfScreen = (sizeof(char)*((screen->width+1+17) * (screen->height+1)));
+    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+    printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen->width, screen->height, (screen->width + 18 * screen->height +1),sizeOfScreen);
+    printf("BUFFSIZ: %d\n",BUFSIZ);
+    #endif
+
+    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
+    //clears screen escape code sequence
+    // printf("\e[H\e[J");
+    #endif
+
+    // setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
+
+    //hide cursor
+    printf("\e[?25l");
+
     int invertedY = 0;
     for (int y = (screen->height-1); y >= 0; y--)
     {
         int invertedX = 0;
         for (int x = (screen->width-1); x >= 0; x--)
         {
-            // printf("\e[48;5;%dm\e[38;5;%dm%c",screen->colourBuffer[x][y],255,' ');
-            printf("\e[38;5;%dm%c",screen->colourBuffer[x][y],(char)screen->characterBuffer[x][y]);
+            printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, invertedX+1, screen->colourBuffer[x][y][0], screen->colourBuffer[x][y][1], screen->colourBuffer[x][y][2], ' ');
             invertedX++;
         }
         //add newline char for each y incriment
         printf("\n");
-        // outputStringArr[(invertedY * (screen->width+1))+(screen->width)]='\n';
         invertedY++;
     }
-    printf("\033[m");
+    //reset cursor and style, and flush the buffer.
+    printf("\e[m\e[?25h");
     fflush(stdout);
-    //write tring to print buffer, and fluse to screen.
-    // fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
-    // fflush(stdout);
 }
 
 void displayFrameBuffer(frameBuffer *screen)
 {   
-    size_t sizeOfScreen = (sizeof(char)*((screen->width+1) * screen->height));
+    size_t sizeOfScreen = (sizeof(char) * ((screen->width + 1) * screen->height));
     #ifdef DEBUG_POINTS_NO_CLEARSCREEN
     printf("Screen Area: (%d + 1) x %d = %d (%ld bytes)\n",screen->width + 1, screen->height, (screen->width +1 * screen->height),sizeOfScreen);
     printf("BUFFSIZ: %d\n",BUFSIZ);
@@ -740,35 +806,40 @@ void displayFrameBuffer(frameBuffer *screen)
 
     #ifndef DEBUG_POINTS_NO_CLEARSCREEN
     //clears screen escape code sequence
-    printf("\033[H\033[J"); 
+    // printf("\033[H\033[J"); 
     #endif
 
     setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
 
     char outputStringArr[sizeOfScreen];
     int invertedY = 0;
-    for (int y = (screen->height-1); y >= 0; y--)
+    for (int y = (screen->height - 1); y >= 0; y--)
     {
         int invertedX = 0;
-        for (int x = (screen->width-1); x >= 0; x--)
+        for (int x = (screen->width - 1); x >= 0; x--)
         {
             //fancy maths to work out index of 1d array from 2d.
-            outputStringArr[(invertedY * (screen->width+1))+invertedX]=screen->characterBuffer[x][y];
+            outputStringArr[(invertedY * (screen->width + 1)) + invertedX] = screen->characterBuffer[x][y];
             invertedX++;
         }
         //add newline char for each y incriment
-        outputStringArr[(invertedY * (screen->width+1))+(screen->width)]='\n';
+        outputStringArr[(invertedY * (screen->width + 1)) + (screen->width)] = '\n';
         invertedY++;
     }
     //write tring to print buffer, and fluse to screen.
-    fwrite(outputStringArr,sizeof(char),sizeOfScreen,stdout);
+    printf("\e[1;1;H");
+    fwrite(outputStringArr, sizeof(char), sizeOfScreen, stdout);
     fflush(stdout);
 }
 
-void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
+void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer *screen)
 {
     visual outputSymbol;
-    outputSymbol.colour = 255;
+
+    outputSymbol.colour[0] = 255;
+    outputSymbol.colour[1] = 255;
+    outputSymbol.colour[2] = 255;
+
     int dx = x1 - x0;
     int dy = y1 - y0;
     int yi = 1;
@@ -783,15 +854,15 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
 
     for (int x = x0; x <= x1; x++)
     {
-        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen->width-1)) | (y >= (screen->height-1))) 
         {
             outputSymbol.character = BORDER;
-            drawInScreen(screen,x,y,outputSymbol);
+            drawInScreen(screen, x, y, outputSymbol);
         }
         else
         {
             outputSymbol.character = LINE;
-            drawInScreen(screen,x,y,outputSymbol);
+            drawInScreen(screen, x, y, outputSymbol);
         }
             
         if (D > 0) 
@@ -806,10 +877,14 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer screen)
     }
 }
 
-void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen)
+void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer *screen)
 {
     visual outputSymbol;
-    outputSymbol.colour = 255;
+
+    outputSymbol.colour[0] = 255;
+    outputSymbol.colour[1] = 255;
+    outputSymbol.colour[2] = 255;
+
     int dx = x1 - x0;
     int dy = y1 - y0;
     int xi = 1;
@@ -823,15 +898,15 @@ void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen)
 
     for (int y = y0; y <= y1; y++) 
     {
-        if ((x <= 0) | (y <= 0) | (x >= (screen.width-1)) | (y >= (screen.height-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (screen->width-1)) | (y >= (screen->height-1))) 
         {
             outputSymbol.character = BORDER;
-            drawInScreen(screen,x,y,outputSymbol);
+            drawInScreen(screen, x, y, outputSymbol);
         }
         else
         {
             outputSymbol.character = LINE;
-            drawInScreen(screen,x,y,outputSymbol);
+            drawInScreen(screen, x, y, outputSymbol);
         }
         
         if (D > 0) 
@@ -846,7 +921,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer screen)
     }
 }
 
-void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer screen)
+void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer *screen)
 {
     // Initialise points as doubles to do maths nicer
     int x0 = (int)pointA.x;
@@ -877,4 +952,20 @@ void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer screen)
             plotLineHigh(x0, y0, x1, y1, screen);
         }
     }
+}
+
+void frameDelay(double framesPerSecond)
+{   
+    long int delayTimeNanoSeconds = 0;
+    long int delayTimeSeconds = 0;
+    if (framesPerSecond > 1)
+    {
+        delayTimeNanoSeconds = (long)rint((1 / framesPerSecond) * 1000000000);
+    }
+    else
+    {
+        delayTimeSeconds = (long)rint(1 / framesPerSecond);
+    }
+
+    nanosleep((const struct timespec[]){{delayTimeSeconds, delayTimeNanoSeconds}}, NULL);
 }

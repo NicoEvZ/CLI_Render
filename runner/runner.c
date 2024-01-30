@@ -1,5 +1,4 @@
 #include <math.h>
-#include <time.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,9 +15,10 @@
 int main(void){
     renderConfig importData;
     frameBuffer screen;
+    frameBuffer oldScreen;
     matrix4x4 projectionMatrix;
     vector camera = {0, 0, 0};
-    vector lightDirection = {0, -0.5, 0.5};   
+    vector lightDirection = {0, -0.60, 0.40 };   
 
     const char jsonImportPath[] = "data/renderOptions.json";
 
@@ -29,10 +29,19 @@ int main(void){
         return 1;
     }
 
-    screen.width = importData.screenWidthImport;
-    screen.height = importData.screenHeightImport;
+    initialiseFrameBuffer(&screen, importData);
+    initialiseFrameBuffer(&oldScreen, importData);
 
-    initialiseFrameBuffer(&screen);
+    for(int i = 0; i < oldScreen.width; i++)
+    {
+        for(int j = 0; j < oldScreen.height; j++)
+        {
+            for(int k = 0; k < 3; k++)
+            {
+                oldScreen.colourBuffer[i][j][k] = 0;
+            }
+        }
+    }
     initialiseProjectionMatrix(importData, &projectionMatrix);
 
     double angle = 0;
@@ -47,6 +56,13 @@ int main(void){
         return 0;
     }
 
+    int meshColour[3] = {0,255,0};
+
+    for (int i = 0; i < 3; i++)
+    {
+        baseMesh.colour[i] = meshColour[i];
+    }
+    
     matrix4x4 rotateX;
     matrix4x4 rotateY;
     matrix4x4 rotateZ;
@@ -54,13 +70,26 @@ int main(void){
     vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
-    angle += (180 * 0.01745329);
-
+    //set an innitial condition
+    // angle += (180 * 0.01745329);
     //display loop
+
+    size_t sizeOfScreen = (sizeof(char)*((screen.width) * (screen.height) * 30));
+    char *a = malloc(sizeOfScreen);
+
+    if (setvbuf(stdout, a, _IONBF, sizeOfScreen))
+    {
+        printf("Error setting buffer\n");
+        fflush(stdout);
+    }
+
+    printf("\e[H\e[J");
+
+
     for (int i = 0; i < importData.iterations; i++)
     {
         int numberOfTrianglessToRender = 0;
-        clearFrameBuffer(&screen);
+        // clearFrameBuffer(&screen);
         initialiseRotateXMatrix(&rotateX, angle);
         initialiseRotateYMatrix(&rotateY, angle);
         initialiseRotateZMatrix(&rotateZ, angle);
@@ -72,6 +101,8 @@ int main(void){
             triangle translatedTriangle;
 
             copyTriangleData(baseMesh.trianglePointer[j], &rotatedTriangle);
+
+            inheritColourFromMesh(baseMesh.colour, &rotatedTriangle);
 
             // rotate around axes
             if(importData.rotationX)
@@ -94,7 +125,7 @@ int main(void){
             //offest into screen
             translateTriangleZ(&translatedTriangle, importData.distance);
 
-            // translateTriangleY(&translatedTriangle, -20);
+            // translateTriangleY(&translatedTriangle, -22);
 
             //calculate face normals
             normalsVectorArray[j] = calculateTriangleNormal(translatedTriangle);
@@ -154,11 +185,11 @@ int main(void){
             printf("Drawing (%d/%d)\n",tri+1,numberOfTrianglessToRender);
             #endif
 
-            drawTriangleOnScreen(trisToRender[tri], screen, importData.rasteriseBool);
+            drawTriangleOnScreen(trisToRender[tri], &screen, importData.rasteriseBool);
 
             #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-            displayScreen2(&screen);
-            nanosleep((const struct timespec[]){{0, 125000000}}, NULL);
+            displayFrameBuffer2(&screen, &oldScreen);
+            frameDelay(60);
             #endif
         }
 
@@ -171,17 +202,25 @@ int main(void){
         // lightAngle = lightAngle + 0.01745329;
         drawScreenBorder(&screen);
         
-        displayFrameBuffer2(&screen);
+        // displayFrameBuffer(&screen);
+        displayFrameBuffer3(screen, oldScreen);
+
+        //screen becomes oldScreen
+        copyFrameBufferData(screen, &oldScreen);
+        clearFrameBuffer(&screen);
+
         // displayFrameBuffer(&screen);
         #ifdef DEBUG_POINTS_ZBUFFER
         displayZBuffer(&screen);
         #endif
-        // nanosleep((const struct timespec[]){{1, 0L}}, NULL);
-        nanosleep((const struct timespec[]){{0, 83333333}}, NULL);
+        frameDelay(importData.framesPerSecond);
         free(trisToRender);
     }
+    printf("\n");
+    free(a);
     free(normalsVectorArray);
     deleteFrameBuffer(&screen);
+    deleteFrameBuffer(&oldScreen);
     return 0;
 }
 
@@ -227,6 +266,7 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     cJSON *screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
     cJSON *screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
     cJSON *rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
+    cJSON *framesperSecondJSON = cJSON_GetObjectItemCaseSensitive(root, "FPSTarget");
 
 
     if(cJSON_IsNumber(distanceJSON))
@@ -266,6 +306,11 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     if (cJSON_IsBool(rasteriseBoolJSON))
     {
         importData_struct->rasteriseBool = rasteriseBoolJSON->valueint;
+    }
+
+    if (cJSON_IsNumber(framesperSecondJSON))
+    {
+        importData_struct->framesPerSecond = framesperSecondJSON->valuedouble;
     }
     
     // Don't forget to free the cJSON object and the buffer when you're done with them
@@ -381,4 +426,3 @@ mesh importMeshFromOBJFile (char * pathToFile)
 
     return newMesh;
 }
-

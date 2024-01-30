@@ -1,12 +1,13 @@
 {
-    "distance":30.0,
-    "fov":40.0,
-    "objFile":"data/orb.obj",
-    "iterations":1,
-    "rotateX":false,
+    "distance":20.0,
+    "fov":11.0,
+    "objFile":"data/teapot.obj",
+    "iterations":360,
+    "rotateX":true,
     "rotateY":false,
     "rotateZ":true,  
-    "screenWidth":111,
-    "screenHeight":40,
-    "rasterise":true
+    "screenWidth":200,
+    "screenHeight":55,
+    "rasterise":true,
+    "FPSTarget":100
 }
