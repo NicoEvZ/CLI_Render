@@ -143,7 +143,7 @@ int main(void){
 
             for (int point = 0; point < 3; point++)
             {
-                translatedTriangle.point[point].x *= CHARACHTER_RATIO; 
+                translatedTriangle.point[point].x *= importData.characterRatio; 
             }
 
             copyTriangleData(translatedTriangle, &projectedTriangle);
@@ -204,7 +204,7 @@ int main(void){
         
         // displayFrameBuffer(&screen);
         displayFrameBuffer2(screen, oldScreen);
-        //:displayDepthBuffer(screen, oldScreen);
+        // displayDepthBuffer(screen, oldScreen);
 
         //screen becomes oldScreen
         copyFrameBufferData(screen, &oldScreen);
@@ -267,7 +267,7 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     cJSON *screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
     cJSON *rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
     cJSON *framesperSecondJSON = cJSON_GetObjectItemCaseSensitive(root, "FPSTarget");
-
+    cJSON *characterRatioJSON = cJSON_GetObjectItemCaseSensitive(root, "characterRatio");
 
     if(cJSON_IsNumber(distanceJSON))
     {
@@ -311,6 +311,11 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     if (cJSON_IsNumber(framesperSecondJSON))
     {
         importData_struct->framesPerSecond = framesperSecondJSON->valuedouble;
+    }
+
+    if (cJSON_IsNumber(characterRatioJSON))
+    {
+        importData_struct->characterRatio = characterRatioJSON->valuedouble;
     }
     
     // Don't forget to free the cJSON object and the buffer when you're done with them

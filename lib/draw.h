@@ -2,7 +2,6 @@
 
 #define PI 3.14159
 #define RAD 0.01745329
-#define CHARACHTER_RATIO 1.8
 // #define DEBUG_POINTS_NO_CLEARSCREEN
 // #define DEBUG_POINTS_BBs
 // #define DEBUG_POINTS_ZBUFFER
@@ -57,6 +56,7 @@ typedef struct
     int screenHeightImport;
     int rasteriseBool;
     double framesPerSecond;
+    double characterRatio;
 } renderConfig;
 
 typedef struct
@@ -128,13 +128,11 @@ void deleteFrameBuffer(frameBuffer *screen);
 
 void drawInScreen(frameBuffer *screen, int x, int y, visual symbol);
 
-void displayDepthBuffer(frameBuffer *screen);
+void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen);
 
 void displayFrameBuffer(frameBuffer *screen);
 
-void displayFrameBuffer2(frameBuffer *screen, frameBuffer *oldScreen);
-
-void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen);
+void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen);
 
 void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer *screen);
 

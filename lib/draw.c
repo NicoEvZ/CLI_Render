@@ -657,13 +657,13 @@ void drawInScreen(frameBuffer *screen, int x, int y, visual symbol)
     x = clamp(x, 0, (screen->width - 1));
     y = clamp(y, 0, (screen->height - 1));
 
-    // if ((screen->characterBuffer[x][y] == symbol.character) && 
-    //     (screen->colourBuffer[x][y][0] == ((int)rint(symbol.colour[0] * symbol.brightness))) &&
-    //     (screen->colourBuffer[x][y][1] == ((int)rint(symbol.colour[1] * symbol.brightness))) &&
-    //     (screen->colourBuffer[x][y][2] == ((int)rint(symbol.colour[2] * symbol.brightness))))
-    // {
-    //     return;
-    // }
+    if ((screen->characterBuffer[x][y] == symbol.character) && 
+        (screen->colourBuffer[x][y][0] == ((int)rint(symbol.colour[0] * symbol.brightness))) &&
+        (screen->colourBuffer[x][y][1] == ((int)rint(symbol.colour[1] * symbol.brightness))) &&
+        (screen->colourBuffer[x][y][2] == ((int)rint(symbol.colour[2] * symbol.brightness))))
+    {
+        return;
+    }
 
     screen->characterBuffer[x][y] = symbol.character;
     
@@ -673,58 +673,69 @@ void drawInScreen(frameBuffer *screen, int x, int y, visual symbol)
     }
 }
 
-void displayDepthBuffer(frameBuffer *screen)
+void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen)
 {   
-    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("\033[H\033[J"); //clears the screen
-    #endif
-    // Iterate over y axis
-    double outputString[screen->width+1];
-    for (int y = 0; y < screen->height; y++)
+    // #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+    // printf("\033[H\033[J"); //clears the screen
+    // #endif
+    // // Iterate over y axis
+    // double outputString[screen->width+1];
+    // for (int y = 0; y < screen->height; y++)
+    // {
+    //     for (int x = 0; x < screen->width; x++)
+    //     {
+    //         // Store current value in array at point(x,y), as char in string
+    //         // String is length of screen.width
+    //         outputString[x]=screen->depthBuffer[x][y];
+    //         printf("%lf,",outputString[x]);
+    //     }
+    //     // Display filled string, and new line character, before moving onto the next value of y
+    //     // outputString[screen->width]='\0';
+    //     printf("\n");
+    // }
+
+    printf("\e[?25l");
+
+    visual outputSymbol;
+    int invertedY = 0;
+    for (int y = (screen.height-1); y >= 0; y--)
     {
-        for (int x = 0; x < screen->width; x++)
+        int invertedX = 0;
+        for (int x = (screen.width-1); x >= 0; x--)
         {
-            // Store current value in array at point(x,y), as char in string
-            // String is length of screen.width
-            outputString[x]=screen->depthBuffer[x][y];
-            printf("%lf,",outputString[x]);
+            outputSymbol.colour[0] = (int)rint(clampDouble((screen.depthBuffer[x][y]),0,255));
+            outputSymbol.colour[1] = (int)rint(clampDouble((screen.depthBuffer[x][y]),0,255));
+            outputSymbol.colour[2] = (int)rint(clampDouble((screen.depthBuffer[x][y]),0,255));
+
+            if (screen.depthBuffer[x][y] != oldScreen.depthBuffer[x][y])
+            {
+                //escape code sequence for moving cursor, and printing a coloured ' '
+                printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, 
+                                                           invertedX+1, 
+                                                           outputSymbol.colour[0], 
+                                                           outputSymbol.colour[1], 
+                                                           outputSymbol.colour[2], 
+                                                           ' ');
+            }
+            invertedX++;
         }
-        // Display filled string, and new line character, before moving onto the next value of y
-        // outputString[screen->width]='\0';
-        printf("\n");
+        invertedY++;
     }
+    //reset cursor and style, and flush the buffer.
+    printf("\e[%d;%dH", screen.height, screen.width);
+    printf("\e[m\e[?25h");
+    fflush(stdout);
 }
 
-void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen)
+void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen)
 {   
-    // size_t sizeOfScreen = (sizeof(char)*((screen->width) * (screen->height) * 30));
-    // int *a = malloc(sizeOfScreen);
-    // char outputStringArr[sizeOfScreen];
     #ifdef DEBUG_POINTS_NO_CLEARSCREEN
     printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen->width, screen->height, (screen->width + 18 * screen->height +1),sizeOfScreen);
     printf("BUFFSIZ: %d\n",BUFSIZ);
     #endif
 
-    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
-    //clears screen escape code sequence
-    // printf("\e[H\e[J");
-    #endif
-
     //hide cursor
-    // printf("\e[6 q");
     printf("\e[?25l");
-    // printf("\e[2 q");
-
-
-    // size_t sizeOfScreen = (sizeof(char)*((screen->width) * (screen->height) * 30));
-    // int *a = malloc(sizeOfScreen);
-
-    // if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
-    // {
-    //     printf("Error setting buffer\n");
-    //     fflush(stdout);
-    // }
-    // __u_int numOfBytes = 0;
 
     int invertedY = 0;
     for (int y = (screen.height-1); y >= 0; y--)
@@ -736,6 +747,7 @@ void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen)
                 (screen.colourBuffer[x][y][1] != oldScreen.colourBuffer[x][y][1]) ||
                 (screen.colourBuffer[x][y][2] != oldScreen.colourBuffer[x][y][2]))
             {
+                //escape code sequence for moving cursor, and printing a coloured ' '
                 printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, 
                                                            invertedX+1, 
                                                            screen.colourBuffer[x][y][0], 
@@ -743,55 +755,12 @@ void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen)
                                                            screen.colourBuffer[x][y][2], 
                                                            ' ');
             }
-            // numOfBytes += printf("\e[%d;%dH", invertedY + 1, invertedX + 1);
-            // numOfBytes += printf("\e[48;2;%d;%d;%dm", screen->colourBuffer[x][y][0], screen->colourBuffer[x][y][1], screen->colourBuffer[x][y][2]);
-            // numOfBytes += printf("%c", ' ');
-            // numOfBytes += printf("\e[m");
             invertedX++;
-            // fflush(stdout);
         }
-        //add newline char for each y incriment
-        // printf("\n");
         invertedY++;
     }
     //reset cursor and style, and flush the buffer.
     printf("\e[%d;%dH", screen.height, screen.width);
-    printf("\e[m\e[?25h");
-    fflush(stdout);
-}
-
-void displayFrameBuffer2(frameBuffer *screen, frameBuffer *oldScreen)
-{   
-    // size_t sizeOfScreen = (sizeof(char)*((screen->width+1+17) * (screen->height+1)));
-    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen->width, screen->height, (screen->width + 18 * screen->height +1),sizeOfScreen);
-    printf("BUFFSIZ: %d\n",BUFSIZ);
-    #endif
-
-    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
-    //clears screen escape code sequence
-    // printf("\e[H\e[J");
-    #endif
-
-    // setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
-
-    //hide cursor
-    printf("\e[?25l");
-
-    int invertedY = 0;
-    for (int y = (screen->height-1); y >= 0; y--)
-    {
-        int invertedX = 0;
-        for (int x = (screen->width-1); x >= 0; x--)
-        {
-            printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, invertedX+1, screen->colourBuffer[x][y][0], screen->colourBuffer[x][y][1], screen->colourBuffer[x][y][2], ' ');
-            invertedX++;
-        }
-        //add newline char for each y incriment
-        printf("\n");
-        invertedY++;
-    }
-    //reset cursor and style, and flush the buffer.
     printf("\e[m\e[?25h");
     fflush(stdout);
 }
@@ -808,9 +777,6 @@ void displayFrameBuffer(frameBuffer *screen)
     //clears screen escape code sequence
     // printf("\033[H\033[J"); 
     #endif
-
-    setvbuf(stdout,NULL,_IOFBF,sizeOfScreen);
-
     char outputStringArr[sizeOfScreen];
     int invertedY = 0;
     for (int y = (screen->height - 1); y >= 0; y--)
