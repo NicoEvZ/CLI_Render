@@ -1,6 +1,7 @@
 #pragma once
 
 #define PI 3.14159
+#define RAD 0.01745329
 #define CHARACHTER_RATIO 1.8
 // #define DEBUG_POINTS_NO_CLEARSCREEN
 // #define DEBUG_POINTS_BBs

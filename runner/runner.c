@@ -93,6 +93,10 @@ int main(void){
         initialiseRotateXMatrix(&rotateX, angle);
         initialiseRotateYMatrix(&rotateY, angle);
         initialiseRotateZMatrix(&rotateZ, angle);
+
+        baseMesh.colour[0] = 125.5*sin((i/((double)importData.iterations))*2*PI)+125.5;
+        baseMesh.colour[1] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(1.33*PI))+125.5;
+        baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5;
  
         for (int j = 0; j < baseMesh.numberOfTriangles; j++)
         {
@@ -198,7 +202,7 @@ int main(void){
         printf("Final Output:\n");
         #endif
 
-        angle += 0.01745329;
+        angle += RAD;
         // lightAngle = lightAngle + 0.01745329;
         drawScreenBorder(&screen);
         
