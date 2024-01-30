@@ -70,14 +70,10 @@ int main(void){
     vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
-    //set an innitial condition
-    // angle += (180 * 0.01745329);
-    //display loop
-
     size_t sizeOfScreen = (sizeof(char)*((screen.width) * (screen.height) * 30));
     char *a = malloc(sizeOfScreen);
 
-    if (setvbuf(stdout, a, _IONBF, sizeOfScreen))
+    if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
     {
         printf("Error setting buffer\n");
         fflush(stdout);
@@ -94,6 +90,7 @@ int main(void){
         initialiseRotateYMatrix(&rotateY, angle);
         initialiseRotateZMatrix(&rotateZ, angle);
 
+        //3-phase thransform of r,g and b. Cycle through all colours once, regardless of max number of rotations
         baseMesh.colour[0] = 125.5*sin((i/((double)importData.iterations))*2*PI)+125.5;
         baseMesh.colour[1] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(1.33*PI))+125.5;
         baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5;
@@ -181,7 +178,6 @@ int main(void){
             copyTriangleData(renderBufferArray[k],&trisToRender[k]);
         }
 
-        //select between vertex or rasterisation
         for (int tri = 0; tri < numberOfTrianglessToRender; tri++)
         {   
             #ifdef DEBUG_POINTS_RENDER
@@ -207,15 +203,15 @@ int main(void){
         drawScreenBorder(&screen);
         
         // displayFrameBuffer(&screen);
-        displayFrameBuffer3(screen, oldScreen);
+        displayFrameBuffer2(screen, oldScreen);
+        //:displayDepthBuffer(screen, oldScreen);
 
         //screen becomes oldScreen
         copyFrameBufferData(screen, &oldScreen);
         clearFrameBuffer(&screen);
 
-        // displayFrameBuffer(&screen);
         #ifdef DEBUG_POINTS_ZBUFFER
-        displayZBuffer(&screen);
+        displayDepthBuffer(&screen);
         #endif
         frameDelay(importData.framesPerSecond);
         free(trisToRender);
