@@ -9,6 +9,6 @@
     "screenWidth":200,
     "screenHeight":55,
     "rasterise":true,
-    "FPSTarget":100,
+    "FPSTarget":24,
     "characterRatio":1.8
 }

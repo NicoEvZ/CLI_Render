@@ -45,7 +45,7 @@ int main(void){
     initialiseProjectionMatrix(importData, &projectionMatrix);
 
     double angle = 0;
-    // double lightAngle = 0;
+    double lightAngle = 0;
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
@@ -95,6 +95,9 @@ int main(void){
         baseMesh.colour[0] = 125.5*sin((i/((double)importData.iterations))*2*PI)+125.5;
         baseMesh.colour[1] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(1.33*PI))+125.5;
         baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5;
+
+        lightDirection.y = sin(-lightAngle);
+        lightDirection.z = cos(lightAngle);  
  
         for (int j = 0; j < baseMesh.numberOfTriangles; j++)
         {
@@ -199,8 +202,8 @@ int main(void){
         printf("Final Output:\n");
         #endif
 
-        angle += RAD;
-        // lightAngle = lightAngle + RAD;
+        // angle += RAD;
+        lightAngle = lightAngle + RAD;
         drawScreenBorder(&screen);
         
         // displayFrameBuffer(&screen);
