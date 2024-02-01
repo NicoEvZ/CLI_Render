@@ -45,7 +45,7 @@ int main(void){
     initialiseProjectionMatrix(importData, &projectionMatrix);
 
     double angle = 0;
-    double lightAngle = 0;
+    // double lightAngle = 0;
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
@@ -79,8 +79,9 @@ int main(void){
         fflush(stdout);
     }
 
-    printf("\e[H\e[J");
-
+    //escape code sequence for clearing the screen, and hiding cursor.
+    printf("\e[H\e[J\e[?25l");
+    fflush(stdout);
 
     for (int i = 0; i < importData.iterations; i++)
     {
@@ -199,7 +200,7 @@ int main(void){
         #endif
 
         angle += RAD;
-        // lightAngle = lightAngle + 0.01745329;
+        // lightAngle = lightAngle + RAD;
         drawScreenBorder(&screen);
         
         // displayFrameBuffer(&screen);
@@ -216,7 +217,9 @@ int main(void){
         frameDelay(importData.framesPerSecond);
         free(trisToRender);
     }
-    printf("\n");
+    //escape code sequence for returning cursor below drawn frame, and replacing it to standard cursor.
+    printf("\n\e[m\e[?25h\e[?12h");
+    fflush(stdout);
     free(a);
     free(normalsVectorArray);
     deleteFrameBuffer(&screen);

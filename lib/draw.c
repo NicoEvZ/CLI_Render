@@ -734,9 +734,6 @@ void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen)
     printf("BUFFSIZ: %d\n",BUFSIZ);
     #endif
 
-    //hide cursor
-    printf("\e[?25l");
-
     int invertedY = 0;
     for (int y = (screen.height-1); y >= 0; y--)
     {
@@ -761,7 +758,6 @@ void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen)
     }
     //reset cursor and style, and flush the buffer.
     printf("\e[%d;%dH", screen.height, screen.width);
-    printf("\e[m\e[?25h");
     fflush(stdout);
 }
 
@@ -772,7 +768,7 @@ void displayFrameBuffer(frameBuffer *screen)
     printf("Screen Area: (%d + 1) x %d = %d (%ld bytes)\n",screen->width + 1, screen->height, (screen->width +1 * screen->height),sizeOfScreen);
     printf("BUFFSIZ: %d\n",BUFSIZ);
     #endif
-
+    printf("\e[?25l");
     #ifndef DEBUG_POINTS_NO_CLEARSCREEN
     //clears screen escape code sequence
     // printf("\033[H\033[J"); 
@@ -796,6 +792,7 @@ void displayFrameBuffer(frameBuffer *screen)
     printf("\e[1;1;H");
     fwrite(outputStringArr, sizeof(char), sizeOfScreen, stdout);
     fflush(stdout);
+    printf("\e[m\e[?25h");
 }
 
 void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer *screen)
