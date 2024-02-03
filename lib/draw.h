@@ -70,6 +70,8 @@ void copyFrameBufferData(frameBuffer fromScreen, frameBuffer *toScreen);
 
 void inheritColourFromMesh(int fromMeshColour[3], triangle *toTriangle);
 
+void cycleMeshColour(mesh *object, int incriment, int totalSteps);
+
 vector addVector(vector vector1, vector vector2);
 
 vector subtractVector(vector vector1, vector vector2);

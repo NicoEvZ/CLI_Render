@@ -46,6 +46,20 @@ void inheritColourFromMesh(int fromMeshColour[3], triangle *toTriangle)
     }
 }
 
+void cycleMeshColour(mesh *object, int incriment, int totalSteps)
+{
+    object->colour[0] = 125.5 * sin(( incriment / ((double)totalSteps)) * 2 * PI) + 125.5;
+    object->colour[1] = 125.5 * sin((( incriment / ((double)totalSteps)) * 2 * PI) + (1.33 * PI)) + 125.5;
+    object->colour[2] = 125.5 * sin((( incriment / ((double)totalSteps)) * 2 * PI) + (0.66 * PI)) + 125.5; 
+
+    /*
+    when this was in runner.c it looked like:
+    baseMesh.colour[0] = 125.5*sin((i/((double)importData.iterations))*2*PI)+125.5;
+    baseMesh.colour[1] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(1.33*PI))+125.5;
+    baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5; 
+    */
+}
+
 //vector1.elements plus vector2.elements
 vector addVector(vector vector1, vector vector2) 
 {

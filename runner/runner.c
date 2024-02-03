@@ -88,7 +88,7 @@ int main(void){
     
     for (int i = 0; i < importData.iterations; i++)
     {
-        vector lightDirection = {0, -1, 0};   
+        vector lightDirection = {0, -0.6, 0.4};   
         int numberOfTrianglessToRender = 0;
         // clearFrameBuffer(&screen);
         initialiseRotateXMatrix(&rotateX, angle);
@@ -100,17 +100,12 @@ int main(void){
         initialiseRotateZMatrix(&rotateLightZ, lightAngle);
 
         //3-phase thransform of r,g and b. Cycle through all colours once, regardless of max number of rotations
-        baseMesh.colour[0] = 125.5*sin((i/((double)importData.iterations))*2*PI)+125.5;
-        baseMesh.colour[1] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(1.33*PI))+125.5;
-        baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5; 
+        cycleMeshColour(&baseMesh, i, importData.iterations);
 
-        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightX);
-        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
+        lightDirection = matrixVectorMultiply(lightDirection, rotateLightX);
+        lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
         lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
 
-        
-        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
- 
         for (int j = 0; j < baseMesh.numberOfTriangles; j++)
         {
             triangle rotatedTriangle;
