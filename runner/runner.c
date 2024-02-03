@@ -18,7 +18,6 @@ int main(void){
     frameBuffer oldScreen;
     matrix4x4 projectionMatrix;
     vector camera = {0, 0, 0};
-    vector lightDirection = {0, -0.60, 0.40 };   
 
     const char jsonImportPath[] = "data/renderOptions.json";
 
@@ -66,6 +65,10 @@ int main(void){
     matrix4x4 rotateX;
     matrix4x4 rotateY;
     matrix4x4 rotateZ;
+    
+    matrix4x4 rotateLightX;
+    matrix4x4 rotateLightY;
+    matrix4x4 rotateLightZ;
 
     vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
@@ -82,22 +85,31 @@ int main(void){
     //escape code sequence for clearing the screen, and hiding cursor.
     printf("\e[H\e[J\e[?25l");
     fflush(stdout);
-
+    
     for (int i = 0; i < importData.iterations; i++)
     {
+        vector lightDirection = {0, -1, 0};   
         int numberOfTrianglessToRender = 0;
         // clearFrameBuffer(&screen);
         initialiseRotateXMatrix(&rotateX, angle);
         initialiseRotateYMatrix(&rotateY, angle);
         initialiseRotateZMatrix(&rotateZ, angle);
 
+        initialiseRotateXMatrix(&rotateLightX, lightAngle);
+        initialiseRotateYMatrix(&rotateLightY, lightAngle);
+        initialiseRotateZMatrix(&rotateLightZ, lightAngle);
+
         //3-phase thransform of r,g and b. Cycle through all colours once, regardless of max number of rotations
         baseMesh.colour[0] = 125.5*sin((i/((double)importData.iterations))*2*PI)+125.5;
         baseMesh.colour[1] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(1.33*PI))+125.5;
-        baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5;
+        baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5; 
 
-        lightDirection.y = sin(-lightAngle);
-        lightDirection.z = cos(lightAngle);  
+        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightX);
+        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
+        lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
+
+        
+        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
  
         for (int j = 0; j < baseMesh.numberOfTriangles; j++)
         {
@@ -112,17 +124,17 @@ int main(void){
             // rotate around axes
             if(importData.rotationX)
             {
-                rotatedTriangle = matrixVectorMultiply(rotatedTriangle, rotateX);
+                rotatedTriangle = matrixTriangleMultiply(rotatedTriangle, rotateX);
             }
 
             if(importData.rotationY)
             {
-                rotatedTriangle = matrixVectorMultiply(rotatedTriangle, rotateY);
+                rotatedTriangle = matrixTriangleMultiply(rotatedTriangle, rotateY);
             }
 
             if(importData.rotationZ)
             {
-                rotatedTriangle = matrixVectorMultiply(rotatedTriangle, rotateZ);
+                rotatedTriangle = matrixTriangleMultiply(rotatedTriangle, rotateZ);
             }
 
             copyTriangleData(rotatedTriangle, &translatedTriangle);
@@ -143,7 +155,7 @@ int main(void){
             }
 
             //assign the "illumination" symbol based off normal
-            illuminateTriangle(&translatedTriangle,normalsVectorArray[j],lightDirection);
+            illuminateTriangle(&translatedTriangle, normalsVectorArray[j], lightDirection);
 
             for (int point = 0; point < 3; point++)
             {
@@ -153,7 +165,7 @@ int main(void){
             copyTriangleData(translatedTriangle, &projectedTriangle);
 
             //project 3D --> 2D
-            projectedTriangle = matrixVectorMultiply(translatedTriangle, projectionMatrix);
+            projectedTriangle = matrixTriangleMultiply(translatedTriangle, projectionMatrix);
 
             //scale points
             scaleTriangle(&projectedTriangle, screen);
@@ -192,7 +204,7 @@ int main(void){
             drawTriangleOnScreen(trisToRender[tri], &screen, importData.rasteriseBool);
 
             #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-            displayFrameBuffer2(&screen, &oldScreen);
+            displayFrameBuffer2(screen, oldScreen);
             frameDelay(60);
             #endif
         }
@@ -202,8 +214,8 @@ int main(void){
         printf("Final Output:\n");
         #endif
 
-        // angle += RAD;
-        lightAngle = lightAngle + RAD;
+        angle += RAD;
+        lightAngle = ((i / ((double)importData.iterations)) * 2 * PI) ;
         drawScreenBorder(&screen);
         
         // displayFrameBuffer(&screen);

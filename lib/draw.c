@@ -128,7 +128,7 @@ double dotProduct(vector vector1, vector vector2)
     return output;
 }
 
-triangle matrixVectorMultiply(triangle input, matrix4x4 inputMatrix)
+triangle matrixTriangleMultiply(triangle input, matrix4x4 inputMatrix)
 {
     triangle output = input;
     for (int i = 0; i < 3; i++)
@@ -158,6 +158,38 @@ triangle matrixVectorMultiply(triangle input, matrix4x4 inputMatrix)
             output.point[i] = divideVectorByScalar(output.point[i],w);
         }
     }
+    return output;
+}
+
+vector matrixVectorMultiply(vector input, matrix4x4 inputMatrix)
+{
+    vector output;
+    
+    output.x = (input.x * inputMatrix.matrix[0][0]) + 
+                (input.y * inputMatrix.matrix[1][0]) + 
+                (input.z * inputMatrix.matrix[2][0]) + 
+                (inputMatrix.matrix[3][0]);
+
+    output.y = (input.x * inputMatrix.matrix[0][1]) + 
+                (input.y * inputMatrix.matrix[1][1]) + 
+                (input.z * inputMatrix.matrix[2][1]) + 
+                (inputMatrix.matrix[3][1]);
+
+    output.z = (input.x * inputMatrix.matrix[0][2]) + 
+                (input.y * inputMatrix.matrix[1][2]) + 
+                (input.z * inputMatrix.matrix[2][2]) + 
+                (inputMatrix.matrix[3][2]);
+
+    double w = (input.x * inputMatrix.matrix[0][3]) + 
+                (input.y * inputMatrix.matrix[1][3]) + 
+                (input.z * inputMatrix.matrix[2][3]) + 
+                (inputMatrix.matrix[3][3]);
+
+    if (w != 0.0)
+    {
+        output = divideVectorByScalar(output,w);
+    }
+    
     return output;
 }
 

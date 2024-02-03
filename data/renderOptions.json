@@ -3,12 +3,12 @@
     "fov":11.0,
     "objFile":"data/teapot.obj",
     "iterations":360,
-    "rotateX":true,
+    "rotateX":false,
     "rotateY":false,
-    "rotateZ":true,  
+    "rotateZ":false,  
     "screenWidth":200,
     "screenHeight":55,
     "rasterise":true,
-    "FPSTarget":24,
+    "FPSTarget":100,
     "characterRatio":1.8
 }

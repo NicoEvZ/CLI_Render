@@ -84,7 +84,9 @@ vector normaliseVector(vector inputVector);
 
 double dotProduct(vector vector1, vector vector2);
 
-triangle matrixVectorMultiply(triangle inputTriangle, matrix4x4 matrix);
+triangle matrixTriangleMultiply(triangle inputTriangle, matrix4x4 matrix);
+
+vector matrixVectorMultiply(vector inputVector, matrix4x4 matrix);
 
 int clamp(int input, int min, int max);
 
