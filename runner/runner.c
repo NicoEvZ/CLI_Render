@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "cJson-w.h"
 #include "draw.h"
@@ -11,6 +12,7 @@
 // #define DEBUG_POINTS_RENDER
 // #define DEBUG_POINTS_RENDER_INDIVIDUAL
 // #define DEBUG_POINTS_TRI_DATA
+#define DEBUG_POINTS_FRAME_TIMER
 
 int main(void){
     renderConfig importData;
@@ -18,6 +20,12 @@ int main(void){
     frameBuffer oldScreen;
     matrix4x4 projectionMatrix;
     vector camera = {0, 0, 0};
+    
+    #ifdef DEBUG_POINTS_FRAME_TIMER
+    clock_t accumulatedDrawTime = 0;
+    clock_t accumulatedCalcTime = 0;
+    clock_t frameTimer;
+    #endif
 
     const char jsonImportPath[] = "data/renderOptions.json";
 
@@ -55,7 +63,7 @@ int main(void){
         return 0;
     }
 
-    int meshColour[3] = {0,255,0};
+    int meshColour[3] = {0, 255, 0};
 
     for (int i = 0; i < 3; i++)
     {
@@ -73,7 +81,7 @@ int main(void){
     vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
-    size_t sizeOfScreen = (sizeof(char)*((screen.width) * (screen.height) * 30));
+    size_t sizeOfScreen = (sizeof(char) * ((screen.width) * (screen.height) * 40));
     char *a = malloc(sizeOfScreen);
 
     if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
@@ -88,6 +96,11 @@ int main(void){
     
     for (int i = 0; i < importData.iterations; i++)
     {
+        #ifdef DEBUG_POINTS_FRAME_TIMER
+        //grab current time i.e. "starts the timing"
+        frameTimer = clock();
+        #endif
+
         vector lightDirection = {0, -0.6, 0.4};   
         int numberOfTrianglessToRender = 0;
         // clearFrameBuffer(&screen);
@@ -210,16 +223,50 @@ int main(void){
         #endif
 
         angle += RAD;
-        lightAngle = ((i / ((double)importData.iterations)) * 2 * PI) ;
+        lightAngle = ((i / ((double)importData.iterations)) * 2 * PI);
+        #ifdef DEBUG_POINTS_FRAME_TIMER
+        //finds diff between previous time and current time, i.e. "measure time taken"
+        frameTimer = clock() - frameTimer;
+        accumulatedCalcTime += (frameTimer);
+
+        clock_t displayTimer;
+        displayTimer = clock();
+        #endif
         drawScreenBorder(&screen);
-        
+
         // displayFrameBuffer(&screen);
         displayFrameBuffer2(screen, oldScreen);
         // displayDepthBuffer(screen, oldScreen);
+        #ifdef DEBUG_POINTS_FRAME_TIMER
+        displayTimer = clock() - displayTimer;
+        accumulatedDrawTime += displayTimer;
 
+        printf("\e7\e[1;1H\e[48;5;255m\e[38;5;9m"
+        "Frame: %3d / %3d\t"
+        "Calc Time: %3.3lfms\t"
+        "Running Avg: %3.3lfms\t"
+        "Draw Time: %3.3lfms\t"
+        "Running Avg: %3.3lfms"
+        "\e8\e[m",
+        i + 1,
+        importData.iterations, 
+        ((double)frameTimer / CLOCKS_PER_SEC) * 1000,
+        ((double)(accumulatedCalcTime / (i + 1)) / CLOCKS_PER_SEC) * 1000,
+        ((double)displayTimer / CLOCKS_PER_SEC) * 1000,
+        ((double)(accumulatedDrawTime  / (i + 1)) / CLOCKS_PER_SEC) * 1000);
+
+        #endif
         //screen becomes oldScreen
         copyFrameBufferData(screen, &oldScreen);
         clearFrameBuffer(&screen);
+
+        #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+        for (int newlines = 0; newlines <= importData.screenHeightImport+2; newlines++)
+        {
+            printf("\n");
+        }
+        fflush(stdout);
+        #endif
 
         #ifdef DEBUG_POINTS_ZBUFFER
         displayDepthBuffer(&screen);
@@ -229,6 +276,13 @@ int main(void){
     }
     //escape code sequence for returning cursor below drawn frame, and replacing it to standard cursor.
     printf("\n\e[m\e[?25h\e[?12h");
+    #ifdef DEBUG_POINTS_FRAME_TIMER
+    printf("Total Calc Time: %3.3lfms\tAverage: %3.3lfms\tTotal Draw Time: %3.3lfms\tAverage: %3.3lfms\n",
+    ((double)accumulatedCalcTime / CLOCKS_PER_SEC) * 1000,
+    ((double)(accumulatedCalcTime / (importData.iterations)) / CLOCKS_PER_SEC) * 1000,
+    ((double)accumulatedDrawTime / CLOCKS_PER_SEC) * 1000,
+    ((double)(accumulatedDrawTime  / (importData.iterations)) / CLOCKS_PER_SEC) * 1000);
+    #endif
     fflush(stdout);
     free(a);
     free(normalsVectorArray);

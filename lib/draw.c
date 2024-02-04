@@ -776,8 +776,8 @@ void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen)
 void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen)
 {   
     #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen->width, screen->height, (screen->width + 18 * screen->height +1),sizeOfScreen);
-    printf("BUFFSIZ: %d\n",BUFSIZ);
+    // printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen.width, screen.height, (screen.width + 18 * screen.height +1),sizeOfScreen);
+    // printf("BUFFSIZ: %d\n",BUFSIZ);
     #endif
 
     int invertedY = 0;
