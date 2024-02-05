@@ -49,6 +49,7 @@ typedef struct
     double fov;
     char objPathBuffer[64];
     int iterations;
+    int startFrame;
     int rotationX;
     int rotationY;
     int rotationZ;

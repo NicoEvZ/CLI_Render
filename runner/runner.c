@@ -12,7 +12,7 @@
 // #define DEBUG_POINTS_RENDER
 // #define DEBUG_POINTS_RENDER_INDIVIDUAL
 // #define DEBUG_POINTS_TRI_DATA
-#define DEBUG_POINTS_FRAME_TIMER
+// #define DEBUG_POINTS_FRAME_TIMER
 
 int main(void){
     renderConfig importData;
@@ -24,7 +24,7 @@ int main(void){
     #ifdef DEBUG_POINTS_FRAME_TIMER
     clock_t accumulatedDrawTime = 0;
     clock_t accumulatedCalcTime = 0;
-    clock_t frameTimer;
+    clock_t calcTimer;
     #endif
 
     const char jsonImportPath[] = "data/renderOptions.json";
@@ -84,6 +84,8 @@ int main(void){
     size_t sizeOfScreen = (sizeof(char) * ((screen.width) * (screen.height) * 40));
     char *a = malloc(sizeOfScreen);
 
+    double *frameDrawTimes = malloc(sizeof(double) * importData.iterations);
+
     if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
     {
         printf("Error setting buffer\n");
@@ -94,11 +96,16 @@ int main(void){
     printf("\e[H\e[J\e[?25l");
     fflush(stdout);
     
-    for (int i = 0; i < importData.iterations; i++)
+    int framesRendered = 0;
+
+    for (int i = importData.startFrame; i < importData.iterations; i++)
     {
+        angle = i * RAD;
+        // lightAngle = ((i / ((double)importData.iterations)) * 2 * PI);
+        lightAngle = i * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
         //grab current time i.e. "starts the timing"
-        frameTimer = clock();
+        calcTimer = clock();
         #endif
 
         vector lightDirection = {0, -0.6, 0.4};   
@@ -222,15 +229,14 @@ int main(void){
         printf("Final Output:\n");
         #endif
 
-        angle += RAD;
-        lightAngle = ((i / ((double)importData.iterations)) * 2 * PI);
+        // angle = (i + 1) * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
         //finds diff between previous time and current time, i.e. "measure time taken"
-        frameTimer = clock() - frameTimer;
-        accumulatedCalcTime += (frameTimer);
+        calcTimer = clock() - calcTimer;
+        accumulatedCalcTime += (calcTimer);
 
-        clock_t displayTimer;
-        displayTimer = clock();
+        clock_t drawTimer;
+        drawTimer = clock();
         #endif
         drawScreenBorder(&screen);
 
@@ -238,40 +244,43 @@ int main(void){
         displayFrameBuffer2(screen, oldScreen);
         // displayDepthBuffer(screen, oldScreen);
         #ifdef DEBUG_POINTS_FRAME_TIMER
-        displayTimer = clock() - displayTimer;
-        accumulatedDrawTime += displayTimer;
+        framesRendered++;
+        drawTimer = clock() - drawTimer;
+        accumulatedDrawTime += drawTimer;
 
-        printf("\e7\e[1;1H\e[48;5;255m\e[38;5;9m"
+        printf("\e7\e[1;1H\e[48;5;255m\e[38;5;9m\e[4m"
         "Frame: %3d / %3d\t"
         "Calc Time: %3.3lfms\t"
         "Running Avg: %3.3lfms\t"
         "Draw Time: %3.3lfms\t"
         "Running Avg: %3.3lfms"
         "\e8\e[m",
-        i + 1,
-        importData.iterations, 
-        ((double)frameTimer / CLOCKS_PER_SEC) * 1000,
-        ((double)(accumulatedCalcTime / (i + 1)) / CLOCKS_PER_SEC) * 1000,
-        ((double)displayTimer / CLOCKS_PER_SEC) * 1000,
-        ((double)(accumulatedDrawTime  / (i + 1)) / CLOCKS_PER_SEC) * 1000);
-
+        i,
+        importData.iterations -1, 
+        ((double)calcTimer / CLOCKS_PER_SEC) * 1000,
+        ((double)(accumulatedCalcTime / (framesRendered)) / CLOCKS_PER_SEC) * 1000,
+        ((double)drawTimer / CLOCKS_PER_SEC) * 1000,
+        ((double)(accumulatedDrawTime  / (framesRendered)) / CLOCKS_PER_SEC) * 1000);
+        fflush(stdout);
+        frameDrawTimes[i] = (((double)drawTimer / CLOCKS_PER_SEC) * 1000);
         #endif
         //screen becomes oldScreen
         copyFrameBufferData(screen, &oldScreen);
         clearFrameBuffer(&screen);
 
+        #ifdef DEBUG_POINTS_ZBUFFER
+        displayDepthBuffer(&screen);
+        #endif
+        frameDelay(importData.framesPerSecond);
+        
         #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-        for (int newlines = 0; newlines <= importData.screenHeightImport+2; newlines++)
+        for (int newlines = 0; newlines <= importData.screenHeightImport + 10; newlines++)
         {
             printf("\n");
         }
         fflush(stdout);
         #endif
 
-        #ifdef DEBUG_POINTS_ZBUFFER
-        displayDepthBuffer(&screen);
-        #endif
-        frameDelay(importData.framesPerSecond);
         free(trisToRender);
     }
     //escape code sequence for returning cursor below drawn frame, and replacing it to standard cursor.
@@ -279,9 +288,17 @@ int main(void){
     #ifdef DEBUG_POINTS_FRAME_TIMER
     printf("Total Calc Time: %3.3lfms\tAverage: %3.3lfms\tTotal Draw Time: %3.3lfms\tAverage: %3.3lfms\n",
     ((double)accumulatedCalcTime / CLOCKS_PER_SEC) * 1000,
-    ((double)(accumulatedCalcTime / (importData.iterations)) / CLOCKS_PER_SEC) * 1000,
+    ((double)(accumulatedCalcTime / (framesRendered)) / CLOCKS_PER_SEC) * 1000,
     ((double)accumulatedDrawTime / CLOCKS_PER_SEC) * 1000,
-    ((double)(accumulatedDrawTime  / (importData.iterations)) / CLOCKS_PER_SEC) * 1000);
+    ((double)(accumulatedDrawTime  / (framesRendered)) / CLOCKS_PER_SEC) * 1000);
+    for (int num = importData.startFrame; num < importData.iterations; num++)
+    {
+        if (frameDrawTimes[num] > 1.15)
+        {
+            continue;
+        }
+        printf("Frame: %d\tDraw Time: %3.3lf\n", num, frameDrawTimes[num]);
+    }
     #endif
     fflush(stdout);
     free(a);
@@ -327,6 +344,7 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     cJSON *fovJSON = cJSON_GetObjectItemCaseSensitive(root, "fov");
     cJSON *objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
     cJSON *iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
+    cJSON *startFrameJSON = cJSON_GetObjectItemCaseSensitive(root, "startFrame");
     cJSON *rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
     cJSON *rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
     cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
@@ -346,9 +364,10 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
         importData_struct->fov = fovJSON->valuedouble;
     }
 
-    if(cJSON_IsNumber(iterationsJSON))
+    if(cJSON_IsNumber(iterationsJSON) & cJSON_IsNumber(startFrameJSON))
     {
         importData_struct->iterations = iterationsJSON->valueint;
+        importData_struct->startFrame = startFrameJSON->valueint;
     }
 
     if(cJSON_IsBool(rotateXJSON) & cJSON_IsBool(rotateYJSON) & cJSON_IsBool(rotateZJSON))
