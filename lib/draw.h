@@ -6,6 +6,9 @@
 // #define DEBUG_POINTS_BBs
 // #define DEBUG_POINTS_ZBUFFER
 // #define DEBUG_POINTS_LIGHT_LEVEL
+// #define DEBUG_POINTS_TRI_DATA
+// #define DEBUG_POINTS_RENDER_INDIVIDUAL
+
 
 typedef struct
 {
@@ -17,7 +20,7 @@ typedef struct
 
 typedef struct
 {
-    double x, y, z;
+    double x, y, z, w;
 }vector;
 
 typedef struct
@@ -40,6 +43,8 @@ typedef struct
     int width;
     int height;
     double **depthBuffer;
+    double depthMinimum;
+    double depthMaximum;
     int ***colourBuffer; 
 } frameBuffer;
 
@@ -65,6 +70,8 @@ typedef struct
     double matrix[4][4];
 }matrix4x4;
 
+//draw.c:
+
 void copyTriangleData(triangle fromTriangle, triangle *toTriagle);
 
 void copyFrameBufferData(frameBuffer fromScreen, frameBuffer *toScreen);
@@ -72,6 +79,58 @@ void copyFrameBufferData(frameBuffer fromScreen, frameBuffer *toScreen);
 void inheritColourFromMesh(int fromMeshColour[3], triangle *toTriangle);
 
 void cycleMeshColour(mesh *object, int incriment, int totalSteps);
+
+int clamp(int input, int min, int max);
+
+int checkPixelInTriangle(triangle inputTriangle, int x, int y, double* z);
+
+void drawTriangleOutline(triangle inputTriangle, frameBuffer *screen);
+
+void drawTriangleOnScreen(triangle inputTriangle, frameBuffer *screen, int fillBool);
+
+void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vector lightDirection);
+
+char getGradientCharacter(double luminamce);
+
+void  getGradient(double luminamce, visual *inputSymbol);
+
+void scaleTriangle(triangle *inputTriangle, frameBuffer screen);
+
+vector calculateTriangleNormal(triangle inputTriangle);
+
+void clearFrameBuffer(frameBuffer *screen);
+
+void drawScreenBorder(frameBuffer *screen);
+
+void initialiseFrameBuffer(frameBuffer *screen, renderConfig importData);
+
+void deleteFrameBuffer(frameBuffer *screen);
+
+void drawInScreen(frameBuffer *screen, int x, int y, visual symbol);
+
+void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen);
+
+void displayFrameBuffer(frameBuffer *screen);
+
+void displayFrameBufferFastColour(frameBuffer screen, frameBuffer oldScreen);
+
+void displayFrameBufferSlowColour(frameBuffer *screen);
+
+void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer *screen);
+
+void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer *screen);
+
+void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer *screen);
+
+void frameDelay(double framesPerSecond);
+
+void cursesSetup();
+
+void cursesEnd();
+
+// draw-matrix.c:
+
+void initialiseVector(vector * input);
 
 vector addVector(vector vector1, vector vector2);
 
@@ -91,23 +150,9 @@ triangle matrixTriangleMultiply(triangle inputTriangle, matrix4x4 matrix);
 
 vector matrixVectorMultiply(vector inputVector, matrix4x4 matrix);
 
-int clamp(int input, int min, int max);
+matrix4x4 matrixMatrixMultiply(matrix4x4 matrix1, matrix4x4 matrix2);
 
 void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *projectionMatrix);
-
-int checkPixelInTriangle(triangle inputTriangle, int x, int y, double* z);
-
-void drawTriangleOutline(triangle inputTriangle, frameBuffer *screen);
-
-void drawTriangleOnScreen(triangle inputTriangle, frameBuffer *screen, int fillBool);
-
-void illuminateTriangle(triangle *inputTriangle, vector inputTriangleNormal, vector lightDirection);
-
-char getGradientCharacter(double luminamce);
-
-void  getGradient(double luminamce, visual *inputSymbol);
-
-void scaleTriangle(triangle *inputTriangle, frameBuffer screen);
 
 void initialiseRotateXMatrix(matrix4x4 *matrixX, double angle);
 
@@ -115,34 +160,12 @@ void initialiseRotateYMatrix(matrix4x4 *matrixY, double angle);
 
 void initialiseRotateZMatrix(matrix4x4 *matrixZ, double angle);
 
-void translateTriangleX(triangle *triToTranslate, double distance);
+void initialiseTranslationMatrix(matrix4x4 * translate, double x, double y, double z);
 
-void translateTriangleY(triangle *triToTranslate, double distance);
+void intialiseIdentityMatrix(matrix4x4 * input);
 
-void translateTriangleZ(triangle *triToTranslate, double distance);
+void InitialisePointAtMatrix(matrix4x4 *input, vector position, vector target, vector up);
 
-vector calculateTriangleNormal(triangle inputTriangle);
+matrix4x4 quickMatrixInverse(matrix4x4 input);
 
-void clearFrameBuffer(frameBuffer *screen);
-
-void drawScreenBorder(frameBuffer *screen);
-
-void initialiseFrameBuffer(frameBuffer *screen, renderConfig importData);
-
-void deleteFrameBuffer(frameBuffer *screen);
-
-void drawInScreen(frameBuffer *screen, int x, int y, visual symbol);
-
-void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen);
-
-void displayFrameBuffer(frameBuffer *screen);
-
-void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen);
-
-void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer *screen);
-
-void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer *screen);
-
-void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer *screen);
-
-void frameDelay(double framesPerSecond);
+void copyMatrix(matrix4x4 from, matrix4x4 *to);

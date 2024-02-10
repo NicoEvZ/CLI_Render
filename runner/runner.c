@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <curses.h>
 
 #include "cJson-w.h"
 #include "draw.h"
@@ -10,16 +11,20 @@
 
 // #define DEBUG_POINTS_IMPORT
 // #define DEBUG_POINTS_RENDER
-// #define DEBUG_POINTS_RENDER_INDIVIDUAL
-// #define DEBUG_POINTS_TRI_DATA
 // #define DEBUG_POINTS_FRAME_TIMER
+// #define AVERAGE_COORDS
 
 int main(void){
+    cursesSetup();
     renderConfig importData;
     frameBuffer screen;
     frameBuffer oldScreen;
     matrix4x4 projectionMatrix;
-    vector camera = {0, 0, 0};
+    vector vCamera;
+    initialiseVector(&vCamera);
+
+    vector vLookDirection;
+    initialiseVector(&vLookDirection);
     
     #ifdef DEBUG_POINTS_FRAME_TIMER
     clock_t accumulatedDrawTime = 0;
@@ -78,13 +83,24 @@ int main(void){
     matrix4x4 rotateLightY;
     matrix4x4 rotateLightZ;
 
+    matrix4x4 translation;
+    initialiseTranslationMatrix(&translation, 0, 0, (double)importData.distance);
+
+    matrix4x4 world;
+
+    vLookDirection = (vector){0, 0, 1, 1};
+    vector vUp = (vector){0, 1, 0, 1};
+    vector vTarget;
+    matrix4x4 mCamera;
+    matrix4x4 mView;
+
     vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
     size_t sizeOfScreen = (sizeof(char) * ((screen.width) * (screen.height) * 40));
     char *a = malloc(sizeOfScreen);
 
-    double *frameDrawTimes = malloc(sizeof(double) * importData.iterations);
+    double *frameDrawTimes = malloc(sizeof(double) * (importData.iterations - importData.startFrame));
 
     if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
     {
@@ -97,23 +113,78 @@ int main(void){
     fflush(stdout);
     
     int framesRendered = 0;
+    int i = importData.startFrame;
+    int buttonInput;
+    int loopProgram = 1;
 
-    for (int i = importData.startFrame; i < importData.iterations; i++)
+    do    
     {
+        buttonInput = getch();
+        switch (buttonInput)
+            {
+            case KEY_DOWN:
+                printw("\"down-arrow\"\n");
+                break;
+
+            case KEY_UP:
+                printw("\"up-arrow\"\n");
+                break;
+
+            // case KEY_RIGHT:
+            //     printw("\"right-arrow\"\n");
+            //     break;
+
+            // case KEY_LEFT:
+            //     printw("\"left-arrow\"\n");
+            //     break;
+            case 'q':
+                loopProgram = -1;
+                break;
+
+            default:
+                // printw("\"%c\"\n", buttonInput);
+                break;
+            }
         angle = i * RAD;
-        // lightAngle = ((i / ((double)importData.iterations)) * 2 * PI);
-        lightAngle = i * RAD;
+        // lightAngle = i * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
         //grab current time i.e. "starts the timing"
         calcTimer = clock();
         #endif
 
-        vector lightDirection = {0, -0.6, 0.4};   
+        vTarget = addVector(vCamera, vLookDirection);
+
+        InitialisePointAtMatrix(&mCamera, vCamera, vTarget, vUp);
+
+        mView = quickMatrixInverse(mCamera);
+
+        vector lightDirection;
+        initialiseVector(&lightDirection);
+        lightDirection = (vector){0, -0.6, 0.4, 1};   
         int numberOfTrianglessToRender = 0;
         // clearFrameBuffer(&screen);
         initialiseRotateXMatrix(&rotateX, angle);
         initialiseRotateYMatrix(&rotateY, angle);
         initialiseRotateZMatrix(&rotateZ, angle);
+
+        intialiseIdentityMatrix(&world);
+
+        if(importData.rotationX)
+        {
+            world = matrixMatrixMultiply(rotateX, world);
+        }
+
+        if(importData.rotationY)
+        {
+            world = matrixMatrixMultiply(rotateY, world);
+        }
+
+        if(importData.rotationZ)
+        {
+            world = matrixMatrixMultiply(rotateZ, world);
+        }
+                
+        world = matrixMatrixMultiply(world, translation);
 
         initialiseRotateXMatrix(&rotateLightX, lightAngle);
         initialiseRotateYMatrix(&rotateLightY, lightAngle);
@@ -123,46 +194,31 @@ int main(void){
         cycleMeshColour(&baseMesh, i, importData.iterations);
 
         lightDirection = matrixVectorMultiply(lightDirection, rotateLightX);
-        lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
-        lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
+        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
+        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
 
         for (int j = 0; j < baseMesh.numberOfTriangles; j++)
         {
-            triangle rotatedTriangle;
-            triangle projectedTriangle;
-            triangle translatedTriangle;
+            triangle projectedTriangle, transformedTriangle, viewedTriangle;
 
-            copyTriangleData(baseMesh.trianglePointer[j], &rotatedTriangle);
+            copyTriangleData(baseMesh.trianglePointer[j], &transformedTriangle);
 
-            inheritColourFromMesh(baseMesh.colour, &rotatedTriangle);
+            inheritColourFromMesh(baseMesh.colour, &transformedTriangle);
 
-            // rotate around axes
-            if(importData.rotationX)
-            {
-                rotatedTriangle = matrixTriangleMultiply(rotatedTriangle, rotateX);
-            }
+            // rotate around axes and offest into screen
+            transformedTriangle = matrixTriangleMultiply(transformedTriangle, world);
 
-            if(importData.rotationY)
-            {
-                rotatedTriangle = matrixTriangleMultiply(rotatedTriangle, rotateY);
-            }
-
-            if(importData.rotationZ)
-            {
-                rotatedTriangle = matrixTriangleMultiply(rotatedTriangle, rotateZ);
-            }
-
-            copyTriangleData(rotatedTriangle, &translatedTriangle);
-
-            //offest into screen
-            translateTriangleZ(&translatedTriangle, importData.distance);
-
-            // translateTriangleY(&translatedTriangle, -22);
+            #ifdef DEBUG_POINTS_TRI_DATA
+            printf("Transformed Triangle %d:\n",j+1);
+            printf("\tp[0]: (%lf, %lf, %lf)\n", transformedTriangle.point[0].x, transformedTriangle.point[0].y, transformedTriangle.point[0].z);
+            printf("\tp[1]: (%lf, %lf, %lf)\n", transformedTriangle.point[1].x, transformedTriangle.point[1].y, transformedTriangle.point[1].z);
+            printf("\tp[2]: (%lf, %lf, %lf)\n\n", transformedTriangle.point[2].x, transformedTriangle.point[2].y, transformedTriangle.point[2].z);
+            #endif
 
             //calculate face normals
-            normalsVectorArray[j] = calculateTriangleNormal(translatedTriangle);
+            normalsVectorArray[j] = calculateTriangleNormal(transformedTriangle);
 
-            double dotProductResult = dotProduct(normalsVectorArray[j], (subtractVector(translatedTriangle.point[0], camera)));
+            double dotProductResult = dotProduct(normalsVectorArray[j], (subtractVector(transformedTriangle.point[0], vCamera)));
            
             if (dotProductResult < 0)
             {
@@ -170,28 +226,54 @@ int main(void){
             }
 
             //assign the "illumination" symbol based off normal
-            illuminateTriangle(&translatedTriangle, normalsVectorArray[j], lightDirection);
+            illuminateTriangle(&transformedTriangle, normalsVectorArray[j], lightDirection);
 
             for (int point = 0; point < 3; point++)
             {
-                translatedTriangle.point[point].x *= importData.characterRatio; 
+                transformedTriangle.point[point].x *= importData.characterRatio; 
             }
 
-            copyTriangleData(translatedTriangle, &projectedTriangle);
+            copyTriangleData(transformedTriangle, &viewedTriangle);
+
+            viewedTriangle = matrixTriangleMultiply(transformedTriangle, mView);
+
+            copyTriangleData(viewedTriangle, &projectedTriangle);
 
             //project 3D --> 2D
-            projectedTriangle = matrixTriangleMultiply(translatedTriangle, projectionMatrix);
+            projectedTriangle = matrixTriangleMultiply(viewedTriangle, projectionMatrix);
 
+            #ifdef DEBUG_POINTS_TRI_DATA
+            printf("Projected Triangle %d:\n",j+1);
+            printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
+            printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTriangle.point[1].x, projectedTriangle.point[1].y, projectedTriangle.point[1].z);
+            printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTriangle.point[2].x, projectedTriangle.point[2].y, projectedTriangle.point[2].z);
+            printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVectorArray[j].x, normalsVectorArray[j].y, normalsVectorArray[j].z);
+            #endif
+
+            //normailse the coordinates with the extra vector term
+            for (int point = 0; point < 3; point++)
+            {
+                projectedTriangle.point[point] = divideVectorByScalar(projectedTriangle.point[point], projectedTriangle.point[point].w);
+            }
+            
+            #ifdef DEBUG_POINTS_TRI_DATA
+            printf("Projected and Normalised Triangle %d:\n",j+1);
+            printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
+            printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTriangle.point[1].x, projectedTriangle.point[1].y, projectedTriangle.point[1].z);
+            printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTriangle.point[2].x, projectedTriangle.point[2].y, projectedTriangle.point[2].z);
+            printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVectorArray[j].x, normalsVectorArray[j].y, normalsVectorArray[j].z);
+            #endif
+           
             //scale points
             scaleTriangle(&projectedTriangle, screen);
 
             for (int triCopy = 0; triCopy < 3; triCopy++ )
             {
-                projectedTriangle.point[triCopy].z = translatedTriangle.point[triCopy].z;
+                projectedTriangle.point[triCopy].z = transformedTriangle.point[triCopy].z;
             }
 
             #ifdef DEBUG_POINTS_TRI_DATA
-            printf("Triangle %d:\n",j+1);
+            printf("Scaled and Projected and Normalised Triangle (+z from transformed triangle) %d:\n",j+1);
             printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
             printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTriangle.point[1].x, projectedTriangle.point[1].y, projectedTriangle.point[1].z);
             printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTriangle.point[2].x, projectedTriangle.point[2].y, projectedTriangle.point[2].z);
@@ -202,7 +284,7 @@ int main(void){
             numberOfTrianglessToRender++;
         }
 
-        triangle (*trisToRender) = malloc(numberOfTrianglessToRender*sizeof(triangle));
+        triangle* trisToRender = malloc(numberOfTrianglessToRender * sizeof(*trisToRender));
         
         for (int k = 0; k < numberOfTrianglessToRender; k++)
         {
@@ -218,10 +300,12 @@ int main(void){
 
             drawTriangleOnScreen(trisToRender[tri], &screen, importData.rasteriseBool);
 
-            #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-            displayFrameBuffer2(screen, oldScreen);
-            frameDelay(60);
-            #endif
+            // #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
+            // printf("\e7\e[1;1H\e[48;5;255m\e[38;5;9m\e[4mTri(%d)\e8\e[m",tri);
+            // fflush(stdout);
+            // // frameDelay(12);
+            // #endif
+            
         }
 
         #ifdef DEBUG_POINTS_RENDER
@@ -240,8 +324,17 @@ int main(void){
         #endif
         drawScreenBorder(&screen);
 
+        #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+        for (int newlines = 0; newlines <= importData.screenHeightImport + 20; newlines++)
+        {
+            printf("\n");
+        }
+        fflush(stdout);
+        #endif
+
         // displayFrameBuffer(&screen);
-        displayFrameBuffer2(screen, oldScreen);
+        displayFrameBufferFastColour(screen, oldScreen);
+        // displayFrameBufferSlowColour(screen);
         // displayDepthBuffer(screen, oldScreen);
         #ifdef DEBUG_POINTS_FRAME_TIMER
         framesRendered++;
@@ -273,16 +366,8 @@ int main(void){
         #endif
         frameDelay(importData.framesPerSecond);
         
-        #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-        for (int newlines = 0; newlines <= importData.screenHeightImport + 10; newlines++)
-        {
-            printf("\n");
-        }
-        fflush(stdout);
-        #endif
-
         free(trisToRender);
-    }
+    } while(loopProgram > 0);
     //escape code sequence for returning cursor below drawn frame, and replacing it to standard cursor.
     printf("\n\e[m\e[?25h\e[?12h");
     #ifdef DEBUG_POINTS_FRAME_TIMER
@@ -303,8 +388,10 @@ int main(void){
     fflush(stdout);
     free(a);
     free(normalsVectorArray);
+    free(renderBufferArray);
     deleteFrameBuffer(&screen);
     deleteFrameBuffer(&oldScreen);
+    cursesEnd();
     return 0;
 }
 
@@ -429,8 +516,13 @@ mesh importMeshFromOBJFile (char * pathToFile)
     int vertices = 0;
     int faces = 0;
     vector pointCoordinatess;
+    initialiseVector(&pointCoordinatess);
+    #ifdef AVERAGE_COORDS
     vector average;
+    initialiseVector(&average);
     vector runningTotal;
+    initialiseVector(&runningTotal);
+    #endif
     int p0, p1, p2;
     
     //counts faces and verticies.
@@ -470,8 +562,9 @@ mesh importMeshFromOBJFile (char * pathToFile)
             vectorArray[vertexCount] = pointCoordinatess;
 
             vertexCount++;
-
+            #ifdef AVERAGE_COORDS
             runningTotal = addVector(runningTotal, pointCoordinatess);
+            #endif
         }
         //reads all lines of obj that start with "f ".
         //each int after 'f ' represents an index (starting at 1), of the vector array of verticies.
@@ -500,7 +593,7 @@ mesh importMeshFromOBJFile (char * pathToFile)
     }
     #endif
 
-
+    #ifdef AVERAGE_COORDS
     //averages the coords so that the object appears in the center of the screen
     average = divideVectorByScalar(runningTotal, vertexCount);
 
@@ -511,6 +604,7 @@ mesh importMeshFromOBJFile (char * pathToFile)
             newMesh.trianglePointer[j].point[i] = subtractVector(newMesh.trianglePointer[j].point[i], average);
         }
     }
+    #endif
 
     free(vectorArray);
     fclose(obj);
