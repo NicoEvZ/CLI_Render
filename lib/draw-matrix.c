@@ -329,9 +329,9 @@ matrix4x4 quickMatrixInverse(matrix4x4 input)
     output.matrix[1][0] = input.matrix[0][1];  output.matrix[1][1] = input.matrix[1][1];  output.matrix[1][2] = input.matrix[2][1];  output.matrix[1][3] = 0;
     output.matrix[2][0] = input.matrix[0][2];  output.matrix[2][1] = input.matrix[1][2];  output.matrix[2][2] = input.matrix[2][2];  output.matrix[2][3] = 0;
 
-    output.matrix[3][0] = -(output.matrix[3][0] * input.matrix[0][0] + output.matrix[3][1] * input.matrix[1][0] + output.matrix[3][2] * input.matrix[2][0]);
-    output.matrix[3][1] = -(output.matrix[3][0] * input.matrix[0][1] + output.matrix[3][1] * input.matrix[1][1] + output.matrix[3][2] * input.matrix[2][1]);
-    output.matrix[3][2] = -(output.matrix[3][0] * input.matrix[0][2] + output.matrix[3][1] * input.matrix[1][2] + output.matrix[3][2] * input.matrix[2][2]);
+    output.matrix[3][0] = -(input.matrix[3][0] * output.matrix[0][0] + input.matrix[3][1] * output.matrix[1][0] + input.matrix[3][2] * output.matrix[2][0]);
+    output.matrix[3][1] = -(input.matrix[3][0] * output.matrix[0][1] + input.matrix[3][1] * output.matrix[1][1] + input.matrix[3][2] * output.matrix[2][1]);
+    output.matrix[3][2] = -(input.matrix[3][0] * output.matrix[0][2] + input.matrix[3][1] * output.matrix[1][2] + input.matrix[3][2] * output.matrix[2][2]);
     output.matrix[3][3] = 1;
 
     return output;

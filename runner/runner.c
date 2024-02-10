@@ -11,7 +11,7 @@
 
 // #define DEBUG_POINTS_IMPORT
 // #define DEBUG_POINTS_RENDER
-// #define DEBUG_POINTS_FRAME_TIMER
+#define DEBUG_POINTS_FRAME_TIMER
 // #define AVERAGE_COORDS
 
 int main(void){
@@ -19,12 +19,6 @@ int main(void){
     renderConfig importData;
     frameBuffer screen;
     frameBuffer oldScreen;
-    matrix4x4 projectionMatrix;
-    vector vCamera;
-    initialiseVector(&vCamera);
-
-    vector vLookDirection;
-    initialiseVector(&vLookDirection);
     
     #ifdef DEBUG_POINTS_FRAME_TIMER
     clock_t accumulatedDrawTime = 0;
@@ -54,7 +48,6 @@ int main(void){
             }
         }
     }
-    initialiseProjectionMatrix(importData, &projectionMatrix);
 
     double angle = 0;
     double lightAngle = 0;
@@ -83,13 +76,21 @@ int main(void){
     matrix4x4 rotateLightY;
     matrix4x4 rotateLightZ;
 
+    matrix4x4 projectionMatrix;
+    initialiseProjectionMatrix(importData, &projectionMatrix);
+
     matrix4x4 translation;
     initialiseTranslationMatrix(&translation, 0, 0, (double)importData.distance);
 
     matrix4x4 world;
 
-    vLookDirection = (vector){0, 0, 1, 1};
+    vector vCamera;
+    initialiseVector(&vCamera);
+    vCamera = (vector){0, 0, 0, 1};
+
+    vector vLookDirection = (vector){0, 0, 1, 1};
     vector vUp = (vector){0, 1, 0, 1};
+
     vector vTarget;
     matrix4x4 mCamera;
     matrix4x4 mView;
@@ -123,20 +124,36 @@ int main(void){
         switch (buttonInput)
             {
             case KEY_DOWN:
-                printw("\"down-arrow\"\n");
+                vCamera.y -= 1;
                 break;
 
             case KEY_UP:
-                printw("\"up-arrow\"\n");
+                vCamera.y += 1;
                 break;
 
-            // case KEY_RIGHT:
-            //     printw("\"right-arrow\"\n");
-            //     break;
+            case KEY_RIGHT:
+                vCamera.x += 1;
+                break;
 
-            // case KEY_LEFT:
-            //     printw("\"left-arrow\"\n");
-            //     break;
+            case KEY_LEFT:
+                vCamera.x -= 1;
+                break;
+            
+            case 'i':
+                vCamera.z += 1;
+                break;
+
+            case 'k':
+                vCamera.z -= 1;
+                break;
+
+            case 'a':
+                if (i < importData.iterations)
+                {
+                    i++;
+                }   
+                break;
+
             case 'q':
                 loopProgram = -1;
                 break;
@@ -145,6 +162,9 @@ int main(void){
                 // printw("\"%c\"\n", buttonInput);
                 break;
             }
+            
+        
+        
         angle = i * RAD;
         // lightAngle = i * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
@@ -158,11 +178,9 @@ int main(void){
 
         mView = quickMatrixInverse(mCamera);
 
-        vector lightDirection;
-        initialiseVector(&lightDirection);
-        lightDirection = (vector){0, -0.6, 0.4, 1};   
+        vector lightDirection = (vector){0, -0.6, 0.4, 1};   
         int numberOfTrianglessToRender = 0;
-        // clearFrameBuffer(&screen);
+        clearFrameBuffer(&screen);
         initialiseRotateXMatrix(&rotateX, angle);
         initialiseRotateYMatrix(&rotateY, angle);
         initialiseRotateZMatrix(&rotateZ, angle);
@@ -267,10 +285,7 @@ int main(void){
             //scale points
             scaleTriangle(&projectedTriangle, screen);
 
-            for (int triCopy = 0; triCopy < 3; triCopy++ )
-            {
-                projectedTriangle.point[triCopy].z = transformedTriangle.point[triCopy].z;
-            }
+            // for (int triCopy = 0; triCopy < 3; triCopy++ ) 
 
             #ifdef DEBUG_POINTS_TRI_DATA
             printf("Scaled and Projected and Normalised Triangle (+z from transformed triangle) %d:\n",j+1);
@@ -313,7 +328,6 @@ int main(void){
         printf("Final Output:\n");
         #endif
 
-        // angle = (i + 1) * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
         //finds diff between previous time and current time, i.e. "measure time taken"
         calcTimer = clock() - calcTimer;
@@ -336,6 +350,7 @@ int main(void){
         displayFrameBufferFastColour(screen, oldScreen);
         // displayFrameBufferSlowColour(screen);
         // displayDepthBuffer(screen, oldScreen);
+        fflush(stdout);
         #ifdef DEBUG_POINTS_FRAME_TIMER
         framesRendered++;
         drawTimer = clock() - drawTimer;
