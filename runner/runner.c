@@ -14,7 +14,7 @@
 #define DEBUG_POINTS_RENDER
 // #define DEBUG_POINTS_RENDER_INDIVIDUAL
 // #define DEBUG_POINTS_TRI_DATA
-// #define DEBUG_POINTS_FRAME_TIMER
+// // #define DEBUG_POINTS_FRAME_TIMER
 // #define AVERAGE_COORDS
 
 int main(void){
@@ -80,7 +80,6 @@ int main(void){
     matrix4x4 rotateLightZ;
 
     matrix4x4 projectionMatrix;
-    initialiseProjectionMatrix(importData, &projectionMatrix);
 
     matrix4x4 translation;
     initialiseTranslationMatrix(&translation, 0, 0, (double)importData.distance);
@@ -126,38 +125,45 @@ int main(void){
     int loopProgram = 1;
 
     do    
-    {
+    {   
         buttonInput = getch();
         switch (buttonInput)
             {
             case KEY_DOWN:
-                vCamera.y -= 1;
+                vCamera.y -= 0.05;
                 break;
 
             case KEY_UP:
-                vCamera.y += 1;
+                vCamera.y += 0.05;
                 break;
 
             case KEY_RIGHT:
-                vCamera.x += 1;
+                vCamera.x += 0.05;
                 break;
 
             case KEY_LEFT:
-                vCamera.x -= 1;
+                vCamera.x -= 0.05;
                 break;
             
             case 'i':
-                vCamera.z += 1;
+                vCamera.z += 0.05;
                 break;
 
             case 'k':
-                vCamera.z -= 1;
+                vCamera.z -= 0.05;
                 break;
 
             case 'a':
                 if (i < importData.iterations)
                 {
                     i++;
+                }   
+                break;
+
+            case 's':
+                if (i > importData.startFrame)
+                {
+                    i--;
                 }   
                 break;
 
@@ -169,9 +175,7 @@ int main(void){
                 // printw("\"%c\"\n", buttonInput);
                 break;
             }
-            
-        
-        
+        initialiseProjectionMatrix(importData, &projectionMatrix);
         angle = i * RAD;
         // lightAngle = i * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
@@ -347,7 +351,8 @@ int main(void){
         drawScreenBorder(&screen);
 
         #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-        for (int newlines = 0; newlines <= importData.screenHeightImport + 20; newlines++)
+        // for (int newlines = 0; newlines <= importData.screenHeightImport + 2; newlines++)
+        for (int newlines = 0; newlines <= importData.screenHeightImport + 2; newlines++)
         {
             printf("\n");
         }

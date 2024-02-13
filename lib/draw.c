@@ -718,7 +718,7 @@ void displayFrameBufferFastColour(frameBuffer screen, frameBuffer oldScreen)
                 //  printing a ' ' (%c)
                 // and finally reset cursor (\e[m)
                 printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, 
-                                                           invertedX+1, 
+                                                           x+1, 
                                                            screen.colourBuffer[x][y][0], 
                                                            screen.colourBuffer[x][y][1], 
                                                            screen.colourBuffer[x][y][2], 
