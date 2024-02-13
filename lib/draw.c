@@ -550,7 +550,7 @@ void displayFrameBufferFastColour(frameBuffer screen, frameBuffer oldScreen)
             {
                 //escape code sequence for moving cursor, and printing a coloured ' '
                 printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, 
-                                                           invertedX+1, 
+                                                           x+1, 
                                                            screen.colourBuffer[x][y][0], 
                                                            screen.colourBuffer[x][y][1], 
                                                            screen.colourBuffer[x][y][2], 

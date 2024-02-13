@@ -126,25 +126,25 @@ vector matrixVectorMultiply(vector input, matrix4x4 inputMatrix)
                 (input.w * inputMatrix.matrix[3][3]);
 
     #ifdef DEBUG_POINTS_TRI_DATA
-    printf("output.x (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][0](%lf) +\n", output.x, input.x, inputMatrix.matrix[0][0]);
-    printf("\t\t\tinput.y (%lf) * inputMatrix[1][0](%lf) +\n", input.y, inputMatrix.matrix[1][0]);
-    printf("\t\t\tinput.z (%lf) * inputMatrix[2][0](%lf) +\n", input.z, inputMatrix.matrix[2][0]);
-    printf("\t\t\tinput.w (%lf) * inputMatrix[3][0](%lf)\n\n", input.w, inputMatrix.matrix[3][0]);
+    // printf("output.x (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][0](%lf) +\n", output.x, input.x, inputMatrix.matrix[0][0]);
+    // printf("\t\t\tinput.y (%lf) * inputMatrix[1][0](%lf) +\n", input.y, inputMatrix.matrix[1][0]);
+    // printf("\t\t\tinput.z (%lf) * inputMatrix[2][0](%lf) +\n", input.z, inputMatrix.matrix[2][0]);
+    // printf("\t\t\tinput.w (%lf) * inputMatrix[3][0](%lf)\n\n", input.w, inputMatrix.matrix[3][0]);
 
-    printf("output.y (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][1](%lf) +\n", output.y, input.x, inputMatrix.matrix[0][1]);
-    printf("\t\t\tinput.y (%lf) * inputMatrix[1][1](%lf) +\n", input.y, inputMatrix.matrix[1][1]);
-    printf("\t\t\tinput.z (%lf) * inputMatrix[2][1](%lf) +\n", input.z, inputMatrix.matrix[2][1]);
-    printf("\t\t\tinput.w (%lf) * inputMatrix[3][1](%lf)\n\n", input.w, inputMatrix.matrix[3][1]);
+    // printf("output.y (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][1](%lf) +\n", output.y, input.x, inputMatrix.matrix[0][1]);
+    // printf("\t\t\tinput.y (%lf) * inputMatrix[1][1](%lf) +\n", input.y, inputMatrix.matrix[1][1]);
+    // printf("\t\t\tinput.z (%lf) * inputMatrix[2][1](%lf) +\n", input.z, inputMatrix.matrix[2][1]);
+    // printf("\t\t\tinput.w (%lf) * inputMatrix[3][1](%lf)\n\n", input.w, inputMatrix.matrix[3][1]);
 
-    printf("output.z (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][2](%lf) +\n", output.z, input.x, inputMatrix.matrix[0][2]);
-    printf("\t\t\tinput.y (%lf) * inputMatrix[1][2](%lf) +\n", input.y, inputMatrix.matrix[1][2]);
-    printf("\t\t\tinput.z (%lf) * inputMatrix[2][2](%lf) +\n", input.z, inputMatrix.matrix[2][2]);
-    printf("\t\t\tinput.w (%lf) * inputMatrix[3][2](%lf)\n\n", input.w, inputMatrix.matrix[3][2]);
+    // printf("output.z (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][2](%lf) +\n", output.z, input.x, inputMatrix.matrix[0][2]);
+    // printf("\t\t\tinput.y (%lf) * inputMatrix[1][2](%lf) +\n", input.y, inputMatrix.matrix[1][2]);
+    // printf("\t\t\tinput.z (%lf) * inputMatrix[2][2](%lf) +\n", input.z, inputMatrix.matrix[2][2]);
+    // printf("\t\t\tinput.w (%lf) * inputMatrix[3][2](%lf)\n\n", input.w, inputMatrix.matrix[3][2]);
 
-    printf("output.w (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][3](%lf) +\n", output.w, input.x, inputMatrix.matrix[0][3]);
-    printf("\t\t\tinput.y (%lf) * inputMatrix[1][3](%lf) +\n", input.y, inputMatrix.matrix[1][3]);
-    printf("\t\t\tinput.z (%lf) * inputMatrix[2][3](%lf) +\n", input.z, inputMatrix.matrix[2][3]);
-    printf("\t\t\tinput.w (%lf) * inputMatrix[3][3](%lf)\n\n", input.w, inputMatrix.matrix[3][3]);
+    // printf("output.w (%lf) =\tinput.x (%lf) * inputMatrix.matrix[0][3](%lf) +\n", output.w, input.x, inputMatrix.matrix[0][3]);
+    // printf("\t\t\tinput.y (%lf) * inputMatrix[1][3](%lf) +\n", input.y, inputMatrix.matrix[1][3]);
+    // printf("\t\t\tinput.z (%lf) * inputMatrix[2][3](%lf) +\n", input.z, inputMatrix.matrix[2][3]);
+    // printf("\t\t\tinput.w (%lf) * inputMatrix[3][3](%lf)\n\n", input.w, inputMatrix.matrix[3][3]);
     #endif
 
     return output;
@@ -156,7 +156,7 @@ triangle matrixTriangleMultiply(triangle input, matrix4x4 inputMatrix)
     for (int i = 0; i < 3; i++)
     {
         #ifdef DEBUG_POINTS_TRI_DATA
-        printf("Point %d\n",i);
+        // printf("Point %d\n",i);
         #endif
         output.point[i] = matrixVectorMultiply(input.point[i], inputMatrix);
     }
