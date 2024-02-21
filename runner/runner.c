@@ -88,7 +88,7 @@ int main(void){
 
     vector vCamera;
     initialiseVector(&vCamera);
-    vCamera = (vector){0, 0, 0, 1};
+    vCamera = (vector){0, 0.1, 0, 1};
 
     vector vLookDirection = (vector){0, 0, 1, 1};
     vector vUp = (vector){0, 1, 0, 1};
@@ -103,7 +103,9 @@ int main(void){
     size_t sizeOfScreen = (sizeof(char) * ((screen.width) * (screen.height) * 40));
     char *a = malloc(sizeOfScreen);
 
+    #ifdef DEBUG_POINTS_FRAME_TIMER
     double *frameDrawTimes = malloc(sizeof(double) * (importData.iterations - importData.startFrame));
+    #endif
 
     if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
     {
@@ -121,6 +123,7 @@ int main(void){
     
     int framesRendered = 0;
     int i = importData.startFrame;
+    double fov = importData.fov;
     int buttonInput;
     int loopProgram = 1;
 
@@ -130,27 +133,27 @@ int main(void){
         switch (buttonInput)
             {
             case KEY_DOWN:
-                vCamera.y -= 0.05;
+                vCamera.y -= 0.08;
                 break;
 
             case KEY_UP:
-                vCamera.y += 0.05;
+                vCamera.y += 0.08;
                 break;
 
             case KEY_RIGHT:
-                vCamera.x += 0.05;
+                vCamera.x += 0.08;
                 break;
 
             case KEY_LEFT:
-                vCamera.x -= 0.05;
+                vCamera.x -= 0.08;
                 break;
             
             case 'i':
-                vCamera.z += 0.05;
+                vCamera.z += 0.08;
                 break;
 
             case 'k':
-                vCamera.z -= 0.05;
+                vCamera.z -= 0.08;
                 break;
 
             case 'a':
@@ -166,8 +169,22 @@ int main(void){
                     i--;
                 }   
                 break;
-
+                
             case 'q':
+                if (fov > 0)
+                {
+                    fov--;
+                }   
+                break;
+
+            case 'e':
+                if (fov < 90)
+                {
+                    fov++;
+                }   
+                break;
+
+            case KEY_END:
                 loopProgram = -1;
                 break;
 
@@ -175,7 +192,9 @@ int main(void){
                 // printw("\"%c\"\n", buttonInput);
                 break;
             }
-        initialiseProjectionMatrix(importData, &projectionMatrix);
+        // vCamera.x += 0.2;
+        // loopProgram = -1;
+        initialiseProjectionMatrix(importData.screenHeightImport, importData.screenWidthImport, fov, &projectionMatrix);
         angle = i * RAD;
         // lightAngle = i * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
@@ -249,6 +268,7 @@ int main(void){
 
             double dotProductResult = dotProduct(normalsVectorArray[j], (subtractVector(transformedTriangle.point[0], vCamera)));
            
+            //draw triangles with dotProductResult greater than or equal to 0 (vectors align)
             if (dotProductResult < 0)
             {
                 continue;    
@@ -348,6 +368,8 @@ int main(void){
         clock_t drawTimer;
         drawTimer = clock();
         #endif
+
+        // last draw step before displaying
         drawScreenBorder(&screen);
 
         #ifdef DEBUG_POINTS_NO_CLEARSCREEN
@@ -391,7 +413,7 @@ int main(void){
         clearFrameBuffer(&screen);
 
         #ifdef DEBUG_POINTS_ZBUFFER
-        displayDepthBuffer(&screen);
+        // displayDepthBuffer(&screen);
         #endif
         frameDelay(importData.framesPerSecond);
         

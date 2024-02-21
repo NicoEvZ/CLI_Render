@@ -4,7 +4,7 @@
     "objFile":"data/testTri.obj",
     "iterations":361,
     "startFrame":0,
-    "rotateX":false,
+    "rotateX":true,
     "rotateY":true,
     "rotateZ":true,  
     "screenWidth":80,
