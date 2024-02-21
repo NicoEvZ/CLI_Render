@@ -188,12 +188,11 @@ void copyMatrix(matrix4x4 from, matrix4x4 *to)
     to->matrix[3][0] = from.matrix[3][0];   to->matrix[3][1] = from.matrix[3][1];   to->matrix[3][2] = from.matrix[3][2];   to->matrix[3][3] = from.matrix[3][3];
 }
 
-void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *ProjectionMatrix)
+void initialiseProjectionMatrix(int screenHeight, int screenWidth, double fov, matrix4x4 *ProjectionMatrix)
 {
     double near = 0.1;
     double far = 1000;
-    double fov = importData.fov;
-    double aspectRatio = ((double)importData.screenHeightImport / (double)importData.screenWidthImport);
+    double aspectRatio = ((double)screenHeight / (double)screenWidth);
     double fovRadians = 1 / tanf(fov * 0.5 / 180 * PI);
 
     for (int i = 0; i < 4; i++)

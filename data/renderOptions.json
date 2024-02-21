@@ -1,15 +1,15 @@
 {
     "distance":10.0,
     "fov":60,
-    "objFile":"data/axis.obj",
-    "iterations":1,
+    "objFile":"data/teapot.obj",
+    "iterations":360,
     "startFrame":0,
-    "rotateX":false,
+    "rotateX":true,
     "rotateY":true,
     "rotateZ":false,  
     "screenWidth":201,
     "screenHeight":51,
     "rasterise":true,
-    "FPSTarget":48,
+    "FPSTarget":100,
     "characterRatio":1.8
 }

@@ -152,7 +152,7 @@ vector matrixVectorMultiply(vector inputVector, matrix4x4 matrix);
 
 matrix4x4 matrixMatrixMultiply(matrix4x4 matrix1, matrix4x4 matrix2);
 
-void initialiseProjectionMatrix(renderConfig importData, matrix4x4 *projectionMatrix);
+void initialiseProjectionMatrix(int screenHeight, int screenWidth, double fov, matrix4x4 *ProjectionMatrix);
 
 void initialiseRotateXMatrix(matrix4x4 *matrixX, double angle);
 
