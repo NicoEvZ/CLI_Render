@@ -1,7 +1,7 @@
 #include <math.h>
 #include "draw.h"
 
-void initialiseVector(vector * input)
+void initialiseVector(vector*  input)
 {
     input->x = 0;
     input->y = 0;
@@ -180,7 +180,7 @@ matrix4x4 matrixMatrixMultiply(matrix4x4 matrix1, matrix4x4 matrix2)
     return output;
 }
 
-void copyMatrix(matrix4x4 from, matrix4x4 *to)
+void copyMatrix(matrix4x4 from, matrix4x4* to)
 {
     to->matrix[0][0] = from.matrix[0][0];   to->matrix[0][1] = from.matrix[0][1];   to->matrix[0][2] = from.matrix[0][2];   to->matrix[0][3] = from.matrix[0][3];
     to->matrix[1][0] = from.matrix[1][0];   to->matrix[1][1] = from.matrix[1][1];   to->matrix[1][2] = from.matrix[1][2];   to->matrix[1][3] = from.matrix[1][3];
@@ -211,7 +211,7 @@ void initialiseProjectionMatrix(int screenHeight, int screenWidth, double fov, m
     ProjectionMatrix->matrix[3][3] = 0;
 }
 
-void initialiseRotateXMatrix(matrix4x4 * rotateX, double angle)
+void initialiseRotateXMatrix(matrix4x4*  rotateX, double angle)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -229,7 +229,7 @@ void initialiseRotateXMatrix(matrix4x4 * rotateX, double angle)
     rotateX->matrix[3][3] = 1;
 }
 
-void initialiseRotateYMatrix(matrix4x4 * rotateY, double angle)
+void initialiseRotateYMatrix(matrix4x4*  rotateY, double angle)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -247,7 +247,7 @@ void initialiseRotateYMatrix(matrix4x4 * rotateY, double angle)
     rotateY->matrix[3][3] = 1;
 }
 
-void initialiseRotateZMatrix(matrix4x4 * rotateZ, double angle)
+void initialiseRotateZMatrix(matrix4x4*  rotateZ, double angle)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -265,7 +265,7 @@ void initialiseRotateZMatrix(matrix4x4 * rotateZ, double angle)
     rotateZ->matrix[3][3] = 1;
 }
 
-void initialiseTranslationMatrix(matrix4x4 * translate, double x, double y, double z)
+void initialiseTranslationMatrix(matrix4x4*  translate, double x, double y, double z)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -284,7 +284,7 @@ void initialiseTranslationMatrix(matrix4x4 * translate, double x, double y, doub
     translate->matrix[3][2] = z;
 }
 
-void intialiseIdentityMatrix(matrix4x4 * input)
+void intialiseIdentityMatrix(matrix4x4*  input)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -300,7 +300,7 @@ void intialiseIdentityMatrix(matrix4x4 * input)
     input->matrix[3][3] = 1;
 }
 
-void InitialisePointAtMatrix(matrix4x4 *input, vector position, vector target, vector up)
+void InitialisePointAtMatrix(matrix4x4* input, vector position, vector target, vector up)
 {
     // Calculate new forward directon
     vector newForward = subtractVector(target, position);

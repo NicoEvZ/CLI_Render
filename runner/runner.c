@@ -98,10 +98,10 @@ int main(void){
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
     size_t sizeOfScreen = (sizeof(char) * ((screen.width) * (screen.height) * 40));
-    char *a = malloc(sizeOfScreen);
+    char* a = malloc(sizeOfScreen);
 
     #ifdef DEBUG_POINTS_FRAME_TIMER
-    double *frameDrawTimes = malloc(sizeof(double) * (importData.iterations - importData.startFrame));
+    double* frameDrawTimes = malloc(sizeof(double) * (importData.iterations - importData.startFrame));
     #endif
 
     if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
@@ -185,8 +185,7 @@ int main(void){
                 // printw("\"%c\"\n", buttonInput);
                 break;
             }
-        // vCamera.x += 0.2;
-        // loopProgram = -1;
+
         initialiseProjectionMatrix(importData.screenHeightImport, importData.screenWidthImport, fov, &projectionMatrix);
         angle = i * RAD;
         // lightAngle = i * RAD;
@@ -309,8 +308,6 @@ int main(void){
             //scale points
             scaleTriangle(&projectedTriangle, screen);
 
-            // for (int triCopy = 0; triCopy < 3; triCopy++ ) 
-
             #ifdef DEBUG_POINTS_TRI_DATA
             printf("Scaled and Projected and Normalised Triangle (+z from transformed triangle) %d:\n",j+1);
             printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
@@ -338,13 +335,6 @@ int main(void){
             #endif
 
             drawTriangleOnScreen(trisToRender[tri], &screen, importData.rasteriseBool);
-
-            // #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-            // printf("\e7\e[1;1H\e[48;5;255m\e[38;5;9m\e[4mTri(%d)\e8\e[m",tri);
-            // fflush(stdout);
-            // // frameDelay(12);
-            // #endif
-            
         }
 
         #ifdef DEBUG_POINTS_RENDER
@@ -437,10 +427,10 @@ int main(void){
     return 0;
 }
 
-int importJSON(const char *file_path, renderConfig *importData_struct)
+int importJSON(const char* file_path, renderConfig* importData_struct)
 {
     // Open the file for reading
-    FILE *file = fopen(file_path, "r");
+    FILE* file = fopen(file_path, "r");
     if (file == NULL) {
         perror("Error opening file");
         return 1;
@@ -452,7 +442,7 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     fseek(file, 0, SEEK_SET);
 
     // Read the content of the file into a buffer
-    char *json_buffer = (char *)malloc(file_size + 1);
+    char* json_buffer = (char* )malloc(file_size + 1);
     fread(json_buffer, 1, file_size, file);
     fclose(file);
 
@@ -460,7 +450,7 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     json_buffer[file_size] = '\0';
 
     // Parse the JSON from the buffer
-    cJSON *root = cJSON_Parse(json_buffer);
+    cJSON* root = cJSON_Parse(json_buffer);
 
     if (root == NULL) {
         printf("Error parsing JSON: %s\n", cJSON_GetErrorPtr());
@@ -469,19 +459,19 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     }
 
     // Access values in the JSON object    
-    cJSON *distanceJSON = cJSON_GetObjectItemCaseSensitive(root, "distance");
-    cJSON *fovJSON = cJSON_GetObjectItemCaseSensitive(root, "fov");
-    cJSON *objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
-    cJSON *iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
-    cJSON *startFrameJSON = cJSON_GetObjectItemCaseSensitive(root, "startFrame");
-    cJSON *rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
-    cJSON *rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
-    cJSON *rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
-    cJSON *screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
-    cJSON *screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
-    cJSON *rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
-    cJSON *framesperSecondJSON = cJSON_GetObjectItemCaseSensitive(root, "FPSTarget");
-    cJSON *characterRatioJSON = cJSON_GetObjectItemCaseSensitive(root, "characterRatio");
+    cJSON* distanceJSON = cJSON_GetObjectItemCaseSensitive(root, "distance");
+    cJSON* fovJSON = cJSON_GetObjectItemCaseSensitive(root, "fov");
+    cJSON* objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
+    cJSON* iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
+    cJSON* startFrameJSON = cJSON_GetObjectItemCaseSensitive(root, "startFrame");
+    cJSON* rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
+    cJSON* rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
+    cJSON* rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
+    cJSON* screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
+    cJSON* screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
+    cJSON* rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
+    cJSON* framesperSecondJSON = cJSON_GetObjectItemCaseSensitive(root, "FPSTarget");
+    cJSON* characterRatioJSON = cJSON_GetObjectItemCaseSensitive(root, "characterRatio");
 
     if(cJSON_IsNumber(distanceJSON))
     {
@@ -540,9 +530,9 @@ int importJSON(const char *file_path, renderConfig *importData_struct)
     return 0;
 }
 
-mesh importMeshFromOBJFile (char * pathToFile) 
+mesh importMeshFromOBJFile (char*  pathToFile) 
 {
-    FILE *obj = fopen(pathToFile, "r");
+    FILE* obj = fopen(pathToFile, "r");
 
     mesh newMesh;
     newMesh.numberOfTriangles = 0;
