@@ -1,5 +1,11 @@
 {
-    "Distance":"10",
-    "Scale":"100",
-    "objFile":"testCube.obj"
+    "distance":30,
+    "scale":500.0,
+    "objFile":"data/chatGPT.obj",
+    "iterations":360,
+    "rotateX":true,
+    "rotateY":true,
+    "rotateZ":true,
+    "screenWidth":81,
+    "screenHeight":33
 }

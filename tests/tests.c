@@ -10,8 +10,9 @@
 
 double epsilon = 0.0001;
 
-static void test_addVec(void /***state*/)
+static void test_addVec(void **state)
 {   
+    (void) state;
     vector vec1 = {1,2,3};
     vector vec2 = {4,5,6};
     vector output = {5,7,9};

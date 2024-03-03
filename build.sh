@@ -1,4 +1,4 @@
 #!/bin/bash
-cmake -B build .
+cmake -DCMAKE_C_FLAGS="-Werror" -B build .
 cd build
 make 
