@@ -169,7 +169,6 @@ static void test_copyTriangleData(void **state)
         assert_string_equal(&output.symbol.character, &testTriangle.symbol.character);
 
         assert_float_equal(output.symbol.colour[i], testTriangle.symbol.colour[i], epsilon);
-
     }
 }
 
@@ -212,6 +211,39 @@ static void test_matrixVectorMultiply(void **state)
     assert_float_equal(matrixVectorMultiply(vector1, matrix1).z, 34, epsilon);
     assert_float_equal(matrixVectorMultiply(vector1, matrix1).w, 40, epsilon);
     
+}
+
+static void test_matrixMatrixMultiply(void **state)
+{
+    (void) state;
+    matrix4x4 matrix1, matrix2, expected;
+    matrix1 = (matrix4x4){
+                            .matrix[0][0] = 1, .matrix[0][1] = 2, .matrix[0][2] = 3, .matrix[0][3] = 4,
+                            .matrix[1][0] = 2, .matrix[1][1] = 2, .matrix[1][2] = 3, .matrix[1][3] = 4, 
+                            .matrix[2][0] = 3, .matrix[2][1] = 3, .matrix[2][2] = 3, .matrix[2][3] = 4, 
+                            .matrix[3][0] = 4, .matrix[3][1] = 4, .matrix[3][2] = 4, .matrix[3][3] = 4, 
+                        };
+    matrix2 = (matrix4x4){
+                            .matrix[0][0] = 1, .matrix[0][1] = 2, .matrix[0][2] = 3, .matrix[0][3] = 4,
+                            .matrix[1][0] = 2, .matrix[1][1] = 2, .matrix[1][2] = 3, .matrix[1][3] = 4, 
+                            .matrix[2][0] = 3, .matrix[2][1] = 3, .matrix[2][2] = 3, .matrix[2][3] = 4, 
+                            .matrix[3][0] = 4, .matrix[3][1] = 4, .matrix[3][2] = 4, .matrix[3][3] = 4, 
+                        };
+    expected = (matrix4x4){
+                            .matrix[0][0] = 30, .matrix[0][1] = 31, .matrix[0][2] = 34, .matrix[0][3] = 40,
+                            .matrix[1][0] = 31, .matrix[1][1] = 33, .matrix[1][2] = 37, .matrix[1][3] = 44, 
+                            .matrix[2][0] = 34, .matrix[2][1] = 37, .matrix[2][2] = 43, .matrix[2][3] = 52, 
+                            .matrix[3][0] = 40, .matrix[3][1] = 44, .matrix[3][2] = 52, .matrix[3][3] = 64, 
+                        };
+
+    for (int column = 0; column < 4; column++)
+    {
+        for (int row = 0; row < 4; row++)
+        {   
+            assert_float_equal(expected.matrix[row][column], matrixMatrixMultiply(matrix1, matrix2).matrix[row][column], epsilon);               
+        }
+    }
+
 }
 
 static void test_copyMatrix(void **state)
@@ -310,6 +342,7 @@ int main(void)
         cmocka_unit_test(test_copyTriangleData),
         cmocka_unit_test(test_intialiseIdentityMatrix),
         cmocka_unit_test(test_matrixVectorMultiply),
+        cmocka_unit_test(test_matrixMatrixMultiply),
         cmocka_unit_test(test_copyMatrix)
     };
 
