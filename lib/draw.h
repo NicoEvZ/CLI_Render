@@ -153,6 +153,8 @@ vector multiplyVectorByScalar(vector vector, double scalar);
 
 vector CrossProduct(vector vector1, vector vector2);
 
+double vectorLength(vector inputVector);
+
 vector normaliseVector(vector inputVector);
 
 double dotProduct(vector vector1, vector vector2);
