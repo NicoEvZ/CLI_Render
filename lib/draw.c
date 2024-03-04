@@ -125,8 +125,11 @@ void drawTriangleOutline(triangle inputTriangle, frameBuffer* screen)
 
 void drawTriangleOnScreen(triangle inputTriangle, frameBuffer* screen, int fillBool)
 {
-    vector boundingBoxMin = {INFINITY, INFINITY, 0};
-    vector boundingBoxMax = {-INFINITY, -INFINITY, 0};
+    vector boundingBoxMin, boundingBoxMax;
+    initialiseVector(&boundingBoxMin);
+    initialiseVector(&boundingBoxMax);
+    boundingBoxMin = (vector){.x = INFINITY, .y = INFINITY};
+    boundingBoxMax = (vector){.x = -INFINITY, .y = -INFINITY};
     
     for (int i = 0; i < 3; i++)
     {
@@ -255,14 +258,7 @@ void illuminateTriangle(triangle* inputTriangle, vector inputTriangleNormal, vec
     printf("inputTriangleNormal: (%lf, %lf, %lf)\n\n", inputTriangleNormal.x, inputTriangleNormal.y, inputTriangleNormal.z);
     #endif
 
-    // int colour[3] = {255, 0, 0};
-
     getGradient(luminance, &inputTriangle->symbol);
-
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     inputTriangle->symbol.colour[i] = colour[i];
-    // }
 }
 
 void getGradient (double luminance, visual* inputSymbol)
@@ -307,7 +303,9 @@ char  getGradientCharacter(double luminance)
 
 void scaleTriangle(triangle* inputTriangle, frameBuffer screen)
 {
-    vector offset = {1,1,0,1};
+    vector offset;
+    initialiseVector(&offset);
+    offset = (vector){.x = 1, .y = 1};
     for (int i = 0; i < 3; i++)
     {
         inputTriangle->point[i] = addVector(inputTriangle->point[i], offset);
@@ -596,10 +594,7 @@ void displayFrameBuffer(frameBuffer* screen)
 void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* screen)
 {
     visual outputSymbol;
-
-    outputSymbol.colour[0] = 255;
-    outputSymbol.colour[1] = 255;
-    outputSymbol.colour[2] = 255;
+    outputSymbol = (visual){ .colour[0] = 255, .colour[1] = 255, .colour[2] = 255};
 
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -641,10 +636,8 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* screen)
 void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* screen)
 {
     visual outputSymbol;
+    outputSymbol = (visual){ .colour[0] = 255, .colour[1] = 255, .colour[2] = 255};
 
-    outputSymbol.colour[0] = 255;
-    outputSymbol.colour[1] = 255;
-    outputSymbol.colour[2] = 255;
 
     int dx = x1 - x0;
     int dy = y1 - y0;
