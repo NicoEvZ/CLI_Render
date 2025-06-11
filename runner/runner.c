@@ -9,7 +9,7 @@
 #include "runner.h"
 
 // #define DEBUG_POINTS_IMPORT
-// #define DEBUG_POINTS_RENDER
+#define DEBUG_POINTS_RENDER
 // #define DEBUG_POINTS_RENDER_INDIVIDUAL
 // #define DEBUG_POINTS_TRI_DATA
 // #define DEBUG_POINTS_FRAME_TIMER
@@ -45,7 +45,7 @@ int main(void){
         {
             for(int k = 0; k < 3; k++)
             {
-                oldScreen.colourBuffer[i][j][k] = 0;
+                oldScreen.colourBuffer[i][j][k] = -1;
             }
         }
     }
@@ -93,7 +93,11 @@ int main(void){
     }
 
     //escape code sequence for clearing the screen, and hiding cursor.
-    printf("\e[H\e[J\e[?25l");
+    printf("\e[H\e[J");
+    //for rendering individual tris, show where the cursor is by not hiding it
+    #ifndef DEBUG_POINTS_RENDER_INDIVIDUAL
+    printf("\e[?25l");
+    #endif
     fflush(stdout);
     
     int framesRendered = 0;
@@ -172,10 +176,10 @@ int main(void){
             //assign the "illumination" symbol based off normal
             illuminateTriangle(&translatedTriangle, normalsVectorArray[j], lightDirection);
 
-            for (int point = 0; point < 3; point++)
-            {
-                translatedTriangle.point[point].x *= importData.characterRatio; 
-            }
+            // for (int point = 0; point < 3; point++)
+            // {
+            //     translatedTriangle.point[point].x *= importData.characterRatio; 
+            // }
 
             copyTriangleData(translatedTriangle, &projectedTriangle);
 
@@ -191,7 +195,7 @@ int main(void){
             }
 
             #ifdef DEBUG_POINTS_TRI_DATA
-            printf("Triangle %d:\n",j+1);
+            printf("\nTriangle %d:\n",j+1);
             printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
             printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTriangle.point[1].x, projectedTriangle.point[1].y, projectedTriangle.point[1].z);
             printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTriangle.point[2].x, projectedTriangle.point[2].y, projectedTriangle.point[2].z);
@@ -212,20 +216,23 @@ int main(void){
         for (int tri = 0; tri < numberOfTrianglessToRender; tri++)
         {   
             #ifdef DEBUG_POINTS_RENDER
-            printf("Loading... %d%% complete:\n",(int)(((double)tri/(double)numberOfTrianglessToRender)*100));
+            printf("\nLoading... %d%% complete:\n",(int)(((double)tri/(double)numberOfTrianglessToRender)*100));
             printf("Drawing (%d/%d)\n",tri+1,numberOfTrianglessToRender);
             #endif
 
             drawTriangleOnScreen(trisToRender[tri], &screen, importData.rasteriseBool);
 
             #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-            displayFrameBuffer2(screen, oldScreen);
-            frameDelay(60);
+            displayFrameBuffer3(screen, oldScreen);
+            // printf("\e[%d;1H",screen.height/2+1);
+            // printf("\nTriangle number %d done\n", tri);
+            // printf("\nTriangle screen area %d done\n", trisToRender[tri].point[0]);
+            frameDelay(5);
             #endif
         }
 
         #ifdef DEBUG_POINTS_RENDER
-        printf("Angle: %lf\n",(angle*(180/PI)));
+        printf("\nAngle: %lf\n",(angle*(180/PI)));
         printf("Final Output:\n");
         #endif
 
@@ -241,7 +248,8 @@ int main(void){
         drawScreenBorder(&screen);
 
         // displayFrameBuffer(&screen);
-        displayFrameBuffer2(screen, oldScreen);
+        // displayFrameBuffer2(screen, oldScreen);
+        displayFrameBuffer3(screen, oldScreen);
         // displayDepthBuffer(screen, oldScreen);
         #ifdef DEBUG_POINTS_FRAME_TIMER
         framesRendered++;

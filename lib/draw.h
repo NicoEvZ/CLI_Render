@@ -1,6 +1,8 @@
 #pragma once
 
 #define PI 3.14159
+#define ONE_AND_THIRD_PI 1.33333 * PI
+#define TWO_THIRDS_PI 0.66666 * PI
 #define RAD 0.01745329
 // #define DEBUG_POINTS_NO_CLEARSCREEN
 // #define DEBUG_POINTS_BBs
@@ -138,6 +140,10 @@ void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen);
 void displayFrameBuffer(frameBuffer *screen);
 
 void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen);
+
+void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen);
+
+int isPixelColourNew(frameBuffer screen, frameBuffer oldScreen, int x, int y);
 
 void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer *screen);
 

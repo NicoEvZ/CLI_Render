@@ -48,9 +48,11 @@ void inheritColourFromMesh(int fromMeshColour[3], triangle *toTriangle)
 
 void cycleMeshColour(mesh *object, int incriment, int totalSteps)
 {
-    object->colour[0] = 125.5 * sin(( incriment / ((double)totalSteps)) * 2 * PI) + 125.5;
-    object->colour[1] = 125.5 * sin((( incriment / ((double)totalSteps)) * 2 * PI) + (1.33 * PI)) + 125.5;
-    object->colour[2] = 125.5 * sin((( incriment / ((double)totalSteps)) * 2 * PI) + (0.66 * PI)) + 125.5; 
+    double cycleRatio = (incriment / ((double)totalSteps)) * 2 * PI;
+
+    object->colour[0] = 125.5 * sin(cycleRatio) + 125.5;
+    object->colour[1] = 125.5 * sin(cycleRatio + ONE_AND_THIRD_PI) + 125.5;
+    object->colour[2] = 125.5 * sin(cycleRatio + TWO_THIRDS_PI) + 125.5; 
 
     /*
     when this was in runner.c it looked like:
@@ -372,11 +374,19 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer *screen, int fillB
     {
         for (int x = boundingBoxMin.x; x < boundingBoxMax.x; x++)
         {
-            int result = checkColourOfPixelInTriangle(&inputTriangle,x,y,&z);
+            // int result = checkColourOfPixelInTriangle(&inputTriangle,x,y,&z);
+            int result = checkPixelInTriangle(inputTriangle,x,y,&z);
             if (result == 0)
             {
+                #ifdef DEBUG_POINTS_BBs
+                printf("x:%d, y:%d of bounding box in triangle? NO , moving to next...\n",x,y);
+                #endif   
                 continue;
             }
+
+            #ifdef DEBUG_POINTS_BBs
+            printf("x:%d, y:%d of bounding box in triangle? YES, moving to next...\n",x,y);
+            #endif 
                         
             int xCheck = x;
             int yCheck = y;
@@ -390,6 +400,7 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer *screen, int fillB
             xCheck = clamp(x, 0, (screen->width -1));
             yCheck = clamp(y, 0, (screen->height -1));
             
+            // skip drawing pixel if it appears behind something already in the depth buffer
             if (z > screen->depthBuffer[xCheck][yCheck])
             {
                 continue;;
@@ -790,7 +801,10 @@ void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen)
                 (screen.colourBuffer[x][y][1] != oldScreen.colourBuffer[x][y][1]) ||
                 (screen.colourBuffer[x][y][2] != oldScreen.colourBuffer[x][y][2]))
             {
-                //escape code sequence for moving cursor, and printing a coloured ' '
+                //escape code sequence for moving cursor(\e[%d;%dH), 
+                //  setting 24bit background colour (\e[48;2;%d;%d;%dm)
+                //  printing a ' ' (%c)
+                // and finally reset cursor (\e[m)
                 printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, 
                                                            invertedX+1, 
                                                            screen.colourBuffer[x][y][0], 
@@ -805,6 +819,66 @@ void displayFrameBuffer2(frameBuffer screen, frameBuffer oldScreen)
     //reset cursor and style, and flush the buffer.
     printf("\e[%d;%dH", screen.height, screen.width);
     fflush(stdout);
+}
+
+void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen)
+{   
+    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+    // printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen.width, screen.height, (screen.width + 18 * screen.height +1),sizeOfScreen);
+    // printf("BUFFSIZ: %d\n",BUFSIZ);
+    #endif
+
+    //start with cursor in top left
+
+    int characterRow = 1;
+    for (int y = (screen.height-1); y >= 0; y-=2)
+    {
+        int characterColumn = 1;
+        for (int x = (screen.width-1); x >= 0; x--)
+        {
+            if (isPixelColourNew(screen, oldScreen, x, y))
+            {
+                //escape code sequence for moving cursor (row,column) (\e[%d;%dH), 
+                //  setting 24bit background colour (\e[48;2;%d;%d;%dm)
+                //  setting 24bit background colour (\e[48;2;%d;%d;%dm)
+                //  printing a unicode lower half block (\u2584)
+                // and finally reset cursor (\e[m)
+                printf("\e[%d;%dH\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm\u2584\e[m", characterRow, 
+                                                                                characterColumn, 
+                                                                                screen.colourBuffer[x][y][0],
+                                                                                screen.colourBuffer[x][y][1], 
+                                                                                screen.colourBuffer[x][y][2],
+                                                                                screen.colourBuffer[x][y-1][0], 
+                                                                                screen.colourBuffer[x][y-1][1], 
+                                                                                screen.colourBuffer[x][y-1][2]
+                                                                                );
+            }
+            characterColumn++;
+        }
+        characterRow++;
+    }
+    //reset cursor
+    printf("\e[%d;%dH", screen.height/2, screen.width);
+    //  and flush the buffer.
+    fflush(stdout);
+}
+
+int isPixelColourNew(frameBuffer screen, frameBuffer oldScreen, int x, int y)
+{
+    // compare the old previous screen framebuffer, to the one about to be displayed.
+    // only return true if there is an update in the colour information to be displayed.
+
+    if ((screen.colourBuffer[x][y][0] != oldScreen.colourBuffer[x][y][0]) ||
+    (screen.colourBuffer[x][y][1] != oldScreen.colourBuffer[x][y][1]) ||
+    (screen.colourBuffer[x][y][2] != oldScreen.colourBuffer[x][y][2]) ||
+    (screen.colourBuffer[x][y-1][0] != oldScreen.colourBuffer[x][y-1][0]) ||
+    (screen.colourBuffer[x][y-1][1] != oldScreen.colourBuffer[x][y-1][1]) ||
+    (screen.colourBuffer[x][y-1][2] != oldScreen.colourBuffer[x][y-1][2]))
+    {
+        return 1;
+    }
+
+    return 0;
 }
 
 void displayFrameBuffer(frameBuffer *screen)
