@@ -10,6 +10,7 @@
 // #define DEBUG_POINTS_LIGHT_LEVEL
 // #define DEBUG_POINTS_TRI_DATA
 // #define DEBUG_POINTS_RENDER_INDIVIDUAL
+#define DEBUG_TRI_COLOUR
 
 typedef struct
 {
@@ -59,8 +60,8 @@ typedef struct
     int rotationX;
     int rotationY;
     int rotationZ;
-    int screenWidthImport;
-    int screenHeightImport;
+    int frameRowsImport;
+    int frameColumnsImport;
     int rasteriseBool;
     double framesPerSecond;
     double characterRatio;
@@ -75,9 +76,9 @@ typedef struct
 
 void copyTriangleData(triangle fromTriangle, triangle* toTriagle);
 
-void copyFrameBufferData(frameBuffer fromScreen, frameBuffer* toScreen);
+void copyFrameBufferData(frameBuffer fromFrame, frameBuffer* toFrame);
 
-void inheritColourFromMesh(int fromMeshColour[3], triangle* toTriangle);
+void setTriangleColour(int colour[3], triangle* Triangle);
 
 void cycleMeshColour(mesh* object, int incriment, int totalSteps);
 
@@ -85,11 +86,11 @@ int clamp(int input, int min, int max);
 
 int checkPixelInTriangle(triangle* inputTriangle, int x, int y, double* z);
 
-void drawTriangleOutline(triangle inputTriangle, frameBuffer* screen);
+void drawTriangleOutline(triangle inputTriangle, frameBuffer* frame);
 
-void drawTriangleOnScreen(triangle inputTriangle, frameBuffer* screen, int fillBool);
+void drawTriangleOnFrame(triangle inputTriangle, frameBuffer* frame, int fillBool);
 
-void setDepthValue(frameBuffer* screen, int x, int y, double* z);
+void setDepthValue(frameBuffer* frame, int x, int y, double* z);
 
 void illuminateTriangle(triangle* inputTriangle, vector inputTriangleNormal, vector lightDirection);
 
@@ -97,41 +98,35 @@ char getGradientCharacter(double luminamce);
 
 void  getGradient(double luminamce, visual* inputSymbol);
 
-void scaleTriangle(triangle* inputTriangle, frameBuffer screen);
+void scaleTriangle(triangle* inputTriangle, frameBuffer frame);
 
 vector calculateTriangleNormal(triangle inputTriangle);
 
-void clearFrameBuffer(frameBuffer* screen);
+void clearFrameBuffer(frameBuffer* frame);
 
-void drawScreenBorder(frameBuffer* screen);
+void drawFrameBorder(frameBuffer* frame);
 
-void initialiseFrameBuffer(frameBuffer* screen, renderConfig importData);
+void initialiseFrameBuffer(frameBuffer* frame, renderConfig importData);
 
-void deleteFrameBuffer(frameBuffer* screen);
+void deleteFrameBuffer(frameBuffer* frame);
 
-void drawInScreen(frameBuffer* screen, int x, int y, visual symbol);
+void drawInFrame(frameBuffer* frame, int x, int y, visual symbol);
 
-void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen);
+void displayDepthBuffer(frameBuffer frame, frameBuffer oldFrame);
 
-void displayFrameBuffer(frameBuffer* screen);
+int getConvertedDepthValue(frameBuffer frame, int x, int y);
 
-void displayFrameBufferFastColour(frameBuffer screen, frameBuffer oldScreen);
+void displayFrameBuffer3(frameBuffer frame, frameBuffer oldFrame);
 
-void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen);
+int isPixelColourNew(frameBuffer frame, frameBuffer oldFrame, int x, int y);
 
-int isPixelColourNew(frameBuffer screen, frameBuffer oldScreen, int x, int y);
+void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* frame);
 
-void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen);
+void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* frame);
 
-int isPixelColourNew(frameBuffer screen, frameBuffer oldScreen, int x, int y);
+void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer* frame);
 
-void displayFrameBufferSlowColour(frameBuffer* screen);
-
-void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* screen);
-
-void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* screen);
-
-void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer* screen);
+void setCursorBelowFrame(frameBuffer frame);
 
 void frameDelay(double framesPerSecond);
 
@@ -165,7 +160,7 @@ vector matrixVectorMultiply(vector inputVector, matrix4x4 matrix);
 
 matrix4x4 matrixMatrixMultiply(matrix4x4 matrix1, matrix4x4 matrix2);
 
-void initialiseProjectionMatrix(int screenHeight, int screenWidth, double fov, matrix4x4* ProjectionMatrix);
+void initialiseProjectionMatrix(int frameHeight, int frameWidth, double fov, matrix4x4* ProjectionMatrix);
 
 void initialiseRotateXMatrix(matrix4x4* matrixX, double angle);
 

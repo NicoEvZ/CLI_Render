@@ -11,17 +11,16 @@
 
 // #define DEBUG_POINTS_IMPORT
 // #define DEBUG_POINTS_RENDER
-// #define DEBUG_POINTS_RENDER
 // #define DEBUG_POINTS_RENDER_INDIVIDUAL
 // #define DEBUG_POINTS_TRI_DATA
-// // #define DEBUG_POINTS_FRAME_TIMER
+// #define DEBUG_POINTS_FRAME_TIMER
 // #define AVERAGE_COORDS
 
 int main(void){
     cursesSetup();
     renderConfig importData;
-    frameBuffer screen;
-    frameBuffer oldScreen;
+    frameBuffer frame;
+    frameBuffer oldFrame;
     
     #ifdef DEBUG_POINTS_FRAME_TIMER
     clock_t accumulatedDrawTime = 0;
@@ -38,22 +37,28 @@ int main(void){
         return 1;
     }
 
-    initialiseFrameBuffer(&screen, importData);
-    initialiseFrameBuffer(&oldScreen, importData);
+    initialiseFrameBuffer(&frame, importData);
+    initialiseFrameBuffer(&oldFrame, importData);
 
-    for(int i = 0; i < oldScreen.width; i++)
+    for(int i = 0; i < oldFrame.width; i++)
     {
-        for(int j = 0; j < oldScreen.height; j++)
+        for(int j = 0; j < oldFrame.height; j++)
         {
             for(int k = 0; k < 3; k++)
             {
-                oldScreen.colourBuffer[i][j][k] = -1;
+                oldFrame.colourBuffer[i][j][k] = -1;
             }
         }
     }
 
-    double angle = 0;
+    double xAngle = 0;
+    double yAngle = 0;
+    double zAngle = 0;
     double lightAngle = 0;
+
+    int xAngleInc = 0;
+    int yAngleInc = 0;
+    int zAngleInc = 0;
 
     //Store OBJ data in mesh struct
     mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
@@ -88,7 +93,7 @@ int main(void){
 
     vector vCamera;
     initialiseVector(&vCamera);
-    vCamera = (vector){0, 0.1, 0, 1};
+    vCamera = (vector){0, 0, 0, 1};
 
     vector vLookDirection = (vector){0, 0, 1, 1};
     vector vUp = (vector){0, 1, 0, 1};
@@ -100,7 +105,7 @@ int main(void){
     vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
-    size_t sizeOfScreen = (sizeof(char) * ((screen.width) * (screen.height) * 40));
+    size_t sizeOfScreen = (sizeof(char) * ((frame.width) * (frame.height) * 40));
     char* a = malloc(sizeOfScreen);
 
     #ifdef DEBUG_POINTS_FRAME_TIMER
@@ -113,15 +118,16 @@ int main(void){
         fflush(stdout);
     }
 
-    //escape code sequence for clearing the screen, and hiding cursor.
+    //escape code sequence for clearing the frame, and hiding cursor.
     printf("\e[H\e[J");
     //for rendering individual tris, show where the cursor is by not hiding it
     #ifndef DEBUG_POINTS_RENDER_INDIVIDUAL
     printf("\e[?25l");
     #endif
     fflush(stdout);
-    
+    #ifdef DEBUG_POINTS_FRAME_TIMER
     int framesRendered = 0;
+    #endif
     int i = importData.startFrame;
     double fov = importData.fov;
     int buttonInput;
@@ -155,34 +161,65 @@ int main(void){
             case 'k':
                 vCamera.z -= 0.08;
                 break;
+            
+            case 's':
+                xAngleInc++;
+                break;
+            
+            case 'w':
+                xAngleInc--;
+                break;
 
             case 'a':
+                yAngleInc++;
+                break;
+            
+            case 'd':
+                yAngleInc--;
+                break;
+
+            case 'q':
+                zAngleInc++;
+                break;
+
+            case 'e':
+                zAngleInc--;
+                break;
+
+            case 'm':
                 if (i < importData.iterations)
                 {
                     i++;
                 }   
                 break;
 
-            case 's':
+            case 'n':
                 if (i > importData.startFrame)
                 {
                     i--;
                 }   
                 break;
                 
-            case 'q':
+            case 'r':
                 if (fov > 0)
                 {
                     fov--;
                 }   
                 break;
 
-            case 'e':
+            case 'f':
                 if (fov < 90)
                 {
                     fov++;
                 }   
                 break;
+
+            case 'o':
+                xAngleInc = 0;
+                yAngleInc = 0;
+                zAngleInc = 0;
+                i = 0;
+                break; 
 
             case KEY_END:
                 loopProgram = -1;
@@ -192,9 +229,15 @@ int main(void){
                 // printw("\"%c\"\n", buttonInput);
                 break;
             }
+            // continue;
 
-        initialiseProjectionMatrix(importData.screenHeightImport, importData.screenWidthImport, fov, &projectionMatrix);
-        angle = i * RAD;
+        initialiseProjectionMatrix(frame.height, frame.width, fov, &projectionMatrix);
+        xAngleInc = clamp(xAngleInc, -360, 360);
+        yAngleInc = clamp(yAngleInc, -360, 360);
+        zAngleInc = clamp(zAngleInc, -360, 360);
+        xAngle = (xAngleInc + i) * RAD;
+        yAngle = (yAngleInc + i) * RAD;
+        zAngle = (zAngleInc + i) * RAD;
         // lightAngle = i * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
         //grab current time i.e. "starts the timing"
@@ -207,12 +250,12 @@ int main(void){
 
         mView = quickMatrixInverse(mCamera);
 
-        vector lightDirection = (vector){0, -0.6, 0.4, 1};   
+        vector lightDirection = (vector){0, 1, 0, 1};   
         int numberOfTrianglessToRender = 0;
-        clearFrameBuffer(&screen);
-        initialiseRotateXMatrix(&rotateX, angle);
-        initialiseRotateYMatrix(&rotateY, angle);
-        initialiseRotateZMatrix(&rotateZ, angle);
+        clearFrameBuffer(&frame);
+        initialiseRotateXMatrix(&rotateX, xAngle);
+        initialiseRotateYMatrix(&rotateY, yAngle);
+        initialiseRotateZMatrix(&rotateZ, zAngle);
 
         intialiseIdentityMatrix(&world);
 
@@ -250,9 +293,11 @@ int main(void){
 
             copyTriangleData(baseMesh.trianglePointer[j], &transformedTriangle);
 
-            inheritColourFromMesh(baseMesh.colour, &transformedTriangle);
-
-            // rotate around axes and offest into screen
+            #ifndef DEBUG_TRI_COLOUR
+            setTriangleColour(baseMesh.colour, &transformedTriangle);
+            #endif
+            
+            // rotate around axes and offest into frame
             transformedTriangle = matrixTriangleMultiply(transformedTriangle, world);
 
             #ifdef DEBUG_POINTS_TRI_DATA
@@ -268,7 +313,7 @@ int main(void){
             double dotProductResult = dotProduct(normalsVectorArray[j], (subtractVector(transformedTriangle.point[0], vCamera)));
            
             //draw triangles with dotProductResult greater than or equal to 0 (vectors align)
-            if (dotProductResult < 0)
+            if (dotProductResult <= 0)
             {
                 continue;    
             }
@@ -313,7 +358,7 @@ int main(void){
             #endif
            
             //scale points
-            scaleTriangle(&projectedTriangle, screen);
+            scaleTriangle(&projectedTriangle, frame);
 
             #ifdef DEBUG_POINTS_TRI_DATA
             printf("Scaled and Projected and Normalised Triangle (+z from transformed triangle) %d:\n",j+1);
@@ -341,13 +386,13 @@ int main(void){
             printf("Drawing (%d/%d)\n",tri+1,numberOfTrianglessToRender);
             #endif
 
-            drawTriangleOnScreen(trisToRender[tri], &screen, importData.rasteriseBool);
+            drawTriangleOnFrame(trisToRender[tri], &frame, importData.rasteriseBool);
 
             #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-            displayFrameBuffer3(screen, oldScreen);
-            // printf("\e[%d;1H",screen.height/2+1);
+            displayFrameBuffer3(frame, oldFrame);
+            // printf("\e[%d;1H",frame.height/2+1);
             // printf("\nTriangle number %d done\n", tri);
-            // printf("\nTriangle screen area %d done\n", trisToRender[tri].point[0]);
+            // printf("\nTriangle frame area %d done\n", trisToRender[tri].point[0]);
             frameDelay(5);
             #endif
         }
@@ -367,7 +412,7 @@ int main(void){
         #endif
 
         // last draw step before displaying
-        drawScreenBorder(&screen);
+        drawFrameBorder(&frame);
 
         #ifdef DEBUG_POINTS_NO_CLEARSCREEN
         // for (int newlines = 0; newlines <= importData.screenHeightImport + 2; newlines++)
@@ -378,11 +423,9 @@ int main(void){
         fflush(stdout);
         #endif
 
-        // displayFrameBuffer(&screen);
-        // displayFrameBufferFastColour(screen, oldScreen);
-        displayFrameBuffer3(screen, oldScreen);
-        // displayFrameBufferSlowColour(screen);
-        // displayDepthBuffer(screen, oldScreen);
+        displayFrameBuffer3(frame, oldFrame);
+        // displayDepthBuffer(frame, oldFrame);
+
         fflush(stdout);
         #ifdef DEBUG_POINTS_FRAME_TIMER
         framesRendered++;
@@ -405,12 +448,12 @@ int main(void){
         fflush(stdout);
         frameDrawTimes[i] = (((double)drawTimer / CLOCKS_PER_SEC) * 1000);
         #endif
-        //screen becomes oldScreen
-        copyFrameBufferData(screen, &oldScreen);
-        clearFrameBuffer(&screen);
+        //frame becomes oldFrame
+        copyFrameBufferData(frame, &oldFrame);
+        clearFrameBuffer(&frame);
 
         #ifdef DEBUG_POINTS_ZBUFFER
-        // displayDepthBuffer(&screen);
+        // displayDepthBuffer(&frame);
         #endif
         frameDelay(importData.framesPerSecond);
         
@@ -418,27 +461,12 @@ int main(void){
     } while(loopProgram > 0);
     //escape code sequence for returning cursor below drawn frame, and replacing it to standard cursor.
     printf("\n\e[m\e[?25h\e[?12h");
-    #ifdef DEBUG_POINTS_FRAME_TIMER
-    printf("Total Calc Time: %3.3lfms\tAverage: %3.3lfms\tTotal Draw Time: %3.3lfms\tAverage: %3.3lfms\n",
-    ((double)accumulatedCalcTime / CLOCKS_PER_SEC) * 1000,
-    ((double)(accumulatedCalcTime / (framesRendered)) / CLOCKS_PER_SEC) * 1000,
-    ((double)accumulatedDrawTime / CLOCKS_PER_SEC) * 1000,
-    ((double)(accumulatedDrawTime  / (framesRendered)) / CLOCKS_PER_SEC) * 1000);
-    for (int num = importData.startFrame; num < importData.iterations; num++)
-    {
-        if (frameDrawTimes[num] > 1.15)
-        {
-            continue;
-        }
-        printf("Frame: %d\tDraw Time: %3.3lf\n", num, frameDrawTimes[num]);
-    }
-    #endif
     fflush(stdout);
     free(a);
     free(normalsVectorArray);
     free(renderBufferArray);
-    deleteFrameBuffer(&screen);
-    deleteFrameBuffer(&oldScreen);
+    deleteFrameBuffer(&frame);
+    deleteFrameBuffer(&oldFrame);
     cursesEnd();
     return 0;
 }
@@ -483,8 +511,8 @@ int importJSON(const char* file_path, renderConfig* importData_struct)
     cJSON* rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
     cJSON* rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
     cJSON* rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
-    cJSON* screenWidthJSON = cJSON_GetObjectItemCaseSensitive(root, "screenWidth");
-    cJSON* screenHeightJSON = cJSON_GetObjectItemCaseSensitive(root, "screenHeight");
+    cJSON* DisplayColumnsJSON = cJSON_GetObjectItemCaseSensitive(root, "DisplayColumns");
+    cJSON* DisplayRowsJSON = cJSON_GetObjectItemCaseSensitive(root, "DisplayRows");
     cJSON* rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
     cJSON* framesperSecondJSON = cJSON_GetObjectItemCaseSensitive(root, "FPSTarget");
     cJSON* characterRatioJSON = cJSON_GetObjectItemCaseSensitive(root, "characterRatio");
@@ -518,10 +546,10 @@ int importJSON(const char* file_path, renderConfig* importData_struct)
         importData_struct->objPathBuffer[sizeof(importData_struct->objPathBuffer) -1] = '\0';
     }
 
-    if(cJSON_IsNumber(screenWidthJSON) & cJSON_IsNumber(screenHeightJSON))
+    if(cJSON_IsNumber(DisplayColumnsJSON) & cJSON_IsNumber(DisplayRowsJSON))
     {
-        importData_struct->screenWidthImport = screenWidthJSON->valueint;
-        importData_struct->screenHeightImport = screenHeightJSON->valueint;
+        importData_struct->frameColumnsImport = DisplayColumnsJSON->valueint;
+        importData_struct->frameRowsImport = DisplayRowsJSON->valueint;
     }
 
     if (cJSON_IsBool(rasteriseBoolJSON))
@@ -642,7 +670,7 @@ mesh importMeshFromOBJFile (char*  pathToFile)
     #endif
 
     #ifdef AVERAGE_COORDS
-    //averages the coords so that the object appears in the center of the screen
+    //averages the coords so that the object appears in the center of the frame
     average = divideVectorByScalar(runningTotal, vertexCount);
 
     for (int j = 0; j < faceCount; j++) 

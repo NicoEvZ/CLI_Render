@@ -1,14 +1,14 @@
 {
-    "distance":15.0,
+    "distance":20.0,
     "fov":11.0,
-    "objFile":"data/testTri.obj",
+    "objFile":"data/testTri2.obj",
     "iterations":361,
     "startFrame":0,
     "rotateX":true,
     "rotateY":true,
     "rotateZ":true,  
-    "screenWidth":80,
-    "screenHeight":40,
+    "DisplayColumns":161,
+    "DisplayRows":80,
     "rasterise":true,
     "FPSTarget":100,
     "characterRatio":1

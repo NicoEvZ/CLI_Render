@@ -22,29 +22,29 @@ void copyTriangleData(triangle fromTriangle, triangle* toTriangle)
     toTriangle->symbol.brightness = fromTriangle.symbol.brightness;
 }
 
-void copyFrameBufferData(frameBuffer fromScreen, frameBuffer* toScreen)
+void copyFrameBufferData(frameBuffer fromFrame, frameBuffer* toFrame)
 {
-    toScreen->height = fromScreen.height;
-    toScreen->width = fromScreen.width;
-    for (int x = 0; x < fromScreen.width; x++)
+    toFrame->height = fromFrame.height;
+    toFrame->width = fromFrame.width;
+    for (int x = 0; x < fromFrame.width; x++)
     {
-        for (int y = 0; y < fromScreen.height; y++)
+        for (int y = 0; y < fromFrame.height; y++)
         {
-            toScreen->characterBuffer[x][y] = fromScreen.characterBuffer[x][y];
-            toScreen->depthBuffer[x][y] = fromScreen.depthBuffer[x][y];
+            toFrame->characterBuffer[x][y] = fromFrame.characterBuffer[x][y];
+            toFrame->depthBuffer[x][y] = fromFrame.depthBuffer[x][y];
             for (int i = 0; i < 3; i++)
             {
-                toScreen->colourBuffer[x][y][i] = fromScreen.colourBuffer[x][y][i];
+                toFrame->colourBuffer[x][y][i] = fromFrame.colourBuffer[x][y][i];
             }
         }
     }
 }
 
-void inheritColourFromMesh(int fromMeshColour[3], triangle* toTriangle)
+void setTriangleColour(int colour[3], triangle* Triangle)
 {
     for (int i = 0; i < 3; i++)
     {
-        toTriangle->symbol.colour[i] = fromMeshColour[i];
+        Triangle->symbol.colour[i] = colour[i];
     }
 }
 
@@ -55,42 +55,33 @@ void cycleMeshColour(mesh* object, int incriment, int totalSteps)
     object->colour[0] = 125.5 * sin(cycleRatio) + 125.5;
     object->colour[1] = 125.5 * sin(cycleRatio + ONE_AND_THIRD_PI) + 125.5;
     object->colour[2] = 125.5 * sin(cycleRatio + TWO_THIRDS_PI) + 125.5; 
-
-    /*
-    when this was in runner.c it looked like:
-    baseMesh.colour[0] = 125.5*sin((i/((double)importData.iterations))*2*PI)+125.5;
-    baseMesh.colour[1] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(1.33*PI))+125.5;
-    baseMesh.colour[2] = 125.5*sin(((i/((double)importData.iterations))*2*PI)+(0.66*PI))+125.5; 
-    */
 }
 
 //output = input, unless it exceeds min or max
 int clamp(int input, int min, int max)
 {
-    int output = input;
     if (input < min)
     {
-        output = min;
+        return min;
     }
     else if (input > max)
     {
-        output = max;
+        return max;
     }
-    return output;
+    return input;
 }
 
 double clampDouble(double input, double min, double max)
 {
-    double output = input;
     if (input < min)
     {
-        output = min;
+        return min;
     }
     else if (input > max)
     {
-        output = max;
+        return max;
     }
-    return output;
+    return input;
 }
 
 int checkPixelInTriangle(triangle* inputTriangle, int x, int y, double* z)
@@ -109,13 +100,21 @@ int checkPixelInTriangle(triangle* inputTriangle, int x, int y, double* z)
     double b = ((C.y - A.y) * (P.x - C.x) + (A.x - C.x) * (P.y - C.y)) / denominator;
     double c = 1 - a - b;
     
-    //find depth of point on triangle for pixel on screen
+    // printf("a = %f, b = %f, c = %f",a,b,c);
+
+    //find depth of point on triangle for pixel on frame
     *z = 1 / (((1 / A.z) * a) + ((1 / B.z) * b) + ((1 / C.z) * c));
 
     // Check if all barycentric coordinates
     // are non-negative
     if (a >= 0 && b >= 0 && c >= 0) 
     {
+        #ifdef DEBUG_TRI_COLOUR
+        inputTriangle->symbol.colour[0] = clamp((int)(255 * a), 0, 255);
+        inputTriangle->symbol.colour[1] = clamp((int)(255 * b), 0, 255);
+        inputTriangle->symbol.colour[2] = clamp((int)(255 * c), 0, 255);
+        #endif
+        
         return 1;
     } 
     else
@@ -124,15 +123,15 @@ int checkPixelInTriangle(triangle* inputTriangle, int x, int y, double* z)
     }
 }
 
-void drawTriangleOutline(triangle inputTriangle, frameBuffer* screen)
+void drawTriangleOutline(triangle inputTriangle, frameBuffer* frame)
 {
     for (int i = 0; i < 3; i++)
     {
-        BresenhamPlotLine(inputTriangle.point[i], inputTriangle.point[((i + 1) % 3)], screen);
+        BresenhamPlotLine(inputTriangle.point[i], inputTriangle.point[((i + 1) % 3)], frame);
     }
 }
 
-void drawTriangleOnScreen(triangle inputTriangle, frameBuffer* screen, int fillBool)
+void drawTriangleOnFrame(triangle inputTriangle, frameBuffer* frame, int fillBool)
 {
     vector boundingBoxMin, boundingBoxMax;
     initialiseVector(&boundingBoxMin);
@@ -170,6 +169,7 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer* screen, int fillB
         for (int x = boundingBoxMin.x; x < boundingBoxMax.x; x++)
         {
             // int result = checkColourOfPixelInTriangle(&inputTriangle,x,y,&z);
+            // setCursorBelowFrame(*frame);
             int result = checkPixelInTriangle(&inputTriangle,x,y,&z);
             if (result == 0)
             {
@@ -188,38 +188,38 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer* screen, int fillB
 
             #ifdef DEBUG_POINTS_ZBUFFER
             printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
-            printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen->depthBuffer[x][y]);
+            printf("\tz(%lf) needs to be smaller than: %lf...\n",z,frame->depthBuffer[x][y]);
             #endif
             
-            //prevent segfault from attempting to draw outside screen bounds
-            xCheck = clamp(x, 0, (screen->width -1));
-            yCheck = clamp(y, 0, (screen->height -1));
+            //prevent segfault from attempting to draw outside frame bounds
+            xCheck = clamp(x, 0, (frame->width -1));
+            yCheck = clamp(y, 0, (frame->height -1));
             
             // skip drawing pixel if it appears behind something already in the depth buffer
-            if (z > screen->depthBuffer[xCheck][yCheck])
+            if (z > frame->depthBuffer[xCheck][yCheck])
             {
                 //if pixel depth further than current depth, dont draw pixel
                 continue;
             }
 
-            setDepthValue(screen, xCheck, yCheck, &z);
+            setDepthValue(frame, xCheck, yCheck, &z);
 
             if (fillBool)
             {
-                drawInScreen(screen, x, y, inputTriangle.symbol);
+                drawInFrame(frame, xCheck, yCheck, inputTriangle.symbol);
                 #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-                displayFrameBufferSlowColour(screen);
+                displayFrameBufferSlowColour(frame);
                 fflush(stdout);
                 // frameDelay(60);
                 #endif
             }
             else
             {
-                drawTriangleOutline(inputTriangle, screen);
+                drawTriangleOutline(inputTriangle, frame);
             }
 
             #ifdef DEBUG_POINTS_ZBUFFER
-            printf("\t\tscreen[%d][%d] = %c\n\n",x,y,inputTriangle.symbol);
+            printf("\t\frame[%d][%d] = %c\n\n",x,y,inputTriangle.symbol);
             #endif
         }
     }
@@ -236,38 +236,38 @@ void drawTriangleOnScreen(triangle inputTriangle, frameBuffer* screen, int fillB
     boundingBoxP3.y = boundingBoxMax.y;
     boundingBoxP4.x = boundingBoxMax.x;
     boundingBoxP4.y = boundingBoxMin.y;
-    BresenhamPlotLine(boundingBoxP1, boundingBoxP2, screen);
-    BresenhamPlotLine(boundingBoxP2, boundingBoxP3, screen);
-    BresenhamPlotLine(boundingBoxP3, boundingBoxP4, screen);
-    BresenhamPlotLine(boundingBoxP4, boundingBoxP1, screen);
+    BresenhamPlotLine(boundingBoxP2, boundingBoxP3, frame);
+    BresenhamPlotLine(boundingBoxP1, boundingBoxP2, frame);
+    BresenhamPlotLine(boundingBoxP3, boundingBoxP4, frame);
+    BresenhamPlotLine(boundingBoxP4, boundingBoxP1, frame);
     #endif
 }
 
-void setDepthValue(frameBuffer* screen, int x, int y, double* z)
+void setDepthValue(frameBuffer* frame, int x, int y, double* z)
 {
     #ifdef DEBUG_POINTS_ZBUFFER
     printf("\tpixel (%d,%d) in triangle! Distance to triangle = %lf\n",x,y,z);
-    printf("\tz(%lf) needs to be smaller than: %lf...\n",z,screen->depthBuffer[x][y]);
+    printf("\tz(%lf) needs to be smaller than: %lf...\n",z,frame->depthBuffer[x][y]);
     #endif
 
-    if (*z < screen->depthMinimum)
+    if (*z < frame->depthMinimum)
     {
-        screen->depthMinimum = *z;
+        frame->depthMinimum = *z;
     }
 
-    if (*z > screen->depthMaximum)
+    if (*z > frame->depthMaximum)
     {
-        screen->depthMaximum = *z;
+        frame->depthMaximum = *z;
     } 
 
     #ifdef DEBUG_POINTS_ZBUFFER
     printf("\t\tAnd it is! ");
     printf("\tComputed z = %lf\n",z);
-    printf("\t\tcurrent z at screen[%d][%d] = %lf\n",x,y,screen->depthBuffer[x][y]);
+    printf("\t\tcurrent z at frame[%d][%d] = %lf\n",x,y,frame->depthBuffer[x][y]);
     printf("\t\tcurrent z smaller than zbuffer, updating buffer...\n");
     #endif
 
-    screen->depthBuffer[x][y] = *z;
+    frame->depthBuffer[x][y] = *z;
 }
 
 void illuminateTriangle(triangle* inputTriangle, vector inputTriangleNormal, vector lightDirection)
@@ -324,7 +324,7 @@ char  getGradientCharacter(double luminance)
     return outputCharacter;
 }
 
-void scaleTriangle(triangle* inputTriangle, frameBuffer screen)
+void scaleTriangle(triangle* inputTriangle, frameBuffer frame)
 {
     vector offset;
     initialiseVector(&offset);
@@ -333,8 +333,8 @@ void scaleTriangle(triangle* inputTriangle, frameBuffer screen)
     {
         inputTriangle->point[i] = addVector(inputTriangle->point[i], offset);
 
-        inputTriangle->point[i].x *= (0.5 * (double)screen.width);
-        inputTriangle->point[i].y *= (0.5 * (double)screen.height);
+        inputTriangle->point[i].x *= (0.5 * (double)frame.width);
+        inputTriangle->point[i].y *= (0.5 * (double)frame.height);
     }
 }
 
@@ -366,95 +366,96 @@ vector calculateTriangleNormal(triangle inputTriangle)
     return normal;
 }
 
-void clearFrameBuffer(frameBuffer* screen) 
+void clearFrameBuffer(frameBuffer* frame) 
 {
-    for (int x = 0; x < screen->width; x++) 
+    for (int x = 0; x < frame->width; x++) 
     {
-        for (int y = 0; y < screen->height; y++) 
+        for (int y = 0; y < frame->height; y++) 
         {
-            screen->characterBuffer[x][y]=BLANK;
-            screen->depthBuffer[x][y]=1000;
-            screen->depthMinimum = 1000;
-            screen->depthMaximum = 0;
+            frame->characterBuffer[x][y]=BLANK;
+            frame->depthBuffer[x][y]=1000;
+            frame->depthMinimum = 1000;
+            frame->depthMaximum = 0;
             for (int i = 0; i < 3; i++)
             {
-                screen->colourBuffer[x][y][i] = 127;
+                frame->colourBuffer[x][y][i] = 127;
             }
         }
     }
 }
 
-void drawScreenBorder(frameBuffer* screen)
+void drawFrameBorder(frameBuffer* frame)
 {
-    for (int x = 0; x < screen->width; x++) 
+    for (int x = 0; x < frame->width; x++) 
     {
-        for (int y = 0; y < screen->height; y++) 
+        for (int y = 0; y < frame->height; y++) 
         {
-            if ((x == 0) | (y == 0) | (x == (screen->width-1)) | (y == (screen->height-1))) 
+            if ((x == 0) | (y == 0) | (x == (frame->width-1)) | (y == (frame->height-1))) 
             {   
-                screen->characterBuffer[x][y]=BORDER;
+                frame->characterBuffer[x][y]=BORDER;
                 for (int i = 0; i < 3; i++)
                 {
-                    screen->colourBuffer[x][y][i]=255;
+                    frame->colourBuffer[x][y][i]=255;
                 }
             }
         }
     }
 }
 
-void initialiseFrameBuffer(frameBuffer* screen, renderConfig importData)
+void initialiseFrameBuffer(frameBuffer* frame, renderConfig importData)
 {
-    screen->width = importData.screenWidthImport;
-    screen->height = importData.screenHeightImport;
+    frame->width = importData.frameColumnsImport;
+    frame->height = importData.frameRowsImport*2;
 
-    screen->depthMinimum = 0;
-    screen->depthMaximum = 1000;
 
-    screen->characterBuffer = malloc(screen->width * sizeof(int*));
-    screen->colourBuffer = malloc(screen->width * sizeof(int**));
-    screen->depthBuffer = malloc(screen->width * sizeof(double*));
+    frame->depthMinimum = 0;
+    frame->depthMaximum = 1000;
 
-    for (int i = 0; i < screen->width; i++)
+    frame->characterBuffer = malloc(frame->width * sizeof(int*));
+    frame->colourBuffer = malloc(frame->width * sizeof(int**));
+    frame->depthBuffer = malloc(frame->width * sizeof(double*));
+
+    for (int i = 0; i < frame->width; i++)
     {
-        screen->characterBuffer[i] = malloc(screen->height * sizeof(int));
-        screen->colourBuffer[i] = malloc(screen->height * sizeof(int*));
-        screen->depthBuffer[i] = malloc(screen->height * sizeof(double));
-        for (int j = 0; j < screen->height; j++)
+        frame->characterBuffer[i] = malloc(frame->height * sizeof(int));
+        frame->colourBuffer[i] = malloc(frame->height * sizeof(int*));
+        frame->depthBuffer[i] = malloc(frame->height * sizeof(double));
+        for (int j = 0; j < frame->height; j++)
         {
-            screen->colourBuffer[i][j] =  malloc(3 * sizeof(int));
+            frame->colourBuffer[i][j] =  malloc(3 * sizeof(int));
         }
     }
 
-    for (int x = 0; x < screen->width; x++)
+    for (int x = 0; x < frame->width; x++)
     {
-        for (int y = 0; y < screen->height; y++)
+        for (int y = 0; y < frame->height; y++)
         {
             for (int j = 0; j < 3; j++)
             {
-                screen->colourBuffer[x][y][j] = 232;
+                frame->colourBuffer[x][y][j] = 232;
             }
-            screen->depthBuffer[x][y] = 1000;
+            frame->depthBuffer[x][y] = 1000;
         }
     }
 
-    clearFrameBuffer(screen);
+    clearFrameBuffer(frame);
 }
 
-void deleteFrameBuffer(frameBuffer* screen)
+void deleteFrameBuffer(frameBuffer* frame)
 {
-    for (int i = 0; i < screen->width; i++)
+    for (int i = 0; i < frame->width; i++)
     {
-        for (int j = 0; j < screen->height; j++)
+        for (int j = 0; j < frame->height; j++)
         {
-            free(screen->colourBuffer[i][j]);
+            free(frame->colourBuffer[i][j]);
         }
-        free(screen->characterBuffer[i]);
-        free(screen->colourBuffer[i]);
-        free(screen->depthBuffer[i]);
+        free(frame->characterBuffer[i]);
+        free(frame->colourBuffer[i]);
+        free(frame->depthBuffer[i]);
     }
-    free(screen->characterBuffer);
-    free(screen->colourBuffer);
-    free(screen->depthBuffer);
+    free(frame->characterBuffer);
+    free(frame->colourBuffer);
+    free(frame->depthBuffer);
 }
 
 double map (double input, double input_start, double input_end, double output_start, double output_end)
@@ -462,123 +463,100 @@ double map (double input, double input_start, double input_end, double output_st
    return output_start + ((output_end - output_start) / (input_end - input_start)) * (input - input_start);
 }
 
-void drawInScreen(frameBuffer* screen, int x, int y, visual symbol)
+void drawInFrame(frameBuffer* frame, int x, int y, visual symbol)
 {
-    x = clamp(x, 0, (screen->width - 1));
-    y = clamp(y, 0, (screen->height - 1));
+    x = clamp(x, 0, (frame->width - 1));
+    y = clamp(y, 0, (frame->height - 1));
 
-    //invert y, for drawing from top of screen later on.
-    y = (screen->height -1) - y;
+    // if ((frame->characterBuffer[x][y] == symbol.character) && 
+    //     (frame->colourBuffer[x][y][0] == ((int)rint(symbol.colour[0] * symbol.brightness))) &&
+    //     (frame->colourBuffer[x][y][1] == ((int)rint(symbol.colour[1] * symbol.brightness))) &&
+    //     (frame->colourBuffer[x][y][2] == ((int)rint(symbol.colour[2] * symbol.brightness))))
+    // {
+    //     return;
+    // }
 
-    if ((screen->characterBuffer[x][y] == symbol.character) && 
-        (screen->colourBuffer[x][y][0] == ((int)rint(symbol.colour[0] * symbol.brightness))) &&
-        (screen->colourBuffer[x][y][1] == ((int)rint(symbol.colour[1] * symbol.brightness))) &&
-        (screen->colourBuffer[x][y][2] == ((int)rint(symbol.colour[2] * symbol.brightness))))
-    {
-        return;
-    }
-
-    screen->characterBuffer[x][y] = symbol.character;
+    frame->characterBuffer[x][y] = symbol.character;
     
     for (int i = 0; i < 3; i++)
     {
-        screen->colourBuffer[x][y][i] = clamp(((int)rint(symbol.colour[i] * symbol.brightness)), 0, 255);
+        frame->colourBuffer[x][y][i] = clamp(((int)rint(symbol.colour[i] * symbol.brightness)), 0, 255);
     }
 }
 
-void displayDepthBuffer(frameBuffer screen, frameBuffer oldScreen)
+void displayDepthBuffer(frameBuffer frame, frameBuffer oldFrame)
 {   
     visual outputSymbol;
-    for (int y = 0; y < (screen.height); y++)
-    {
-        //required to invert y, to draw from the top of the screen.
-        int invY = (screen.height - 1) - y;
-        for (int x = 0; x < (screen.width); x++)
-        {
-            //Depth will be value between depthMinimum and depthMaximum.
-
-            //Desired output is far = dark, near = light.
-            
-            //For colouring, 255 = light, 0 = dark.
-
-            //Therefore we need to map far = 0, near = 255.
-
-            //Now depth is a value between 255 for near, and 0 for far.
-
-            //This is a linear mapping, we can apply a tone map to the value, for example square.
-
-            //New lets clamp it, to make sure it doesnt fall outside of this range.
-
-            for (int channel = 0; channel < 3; channel++) 
-            {
-                outputSymbol.colour[channel] = (int)rint(clampDouble(map(pow(map(screen.depthBuffer[x][y], screen.depthMinimum, screen.depthMaximum, 0, 1),2), 0, 1, 255, 0), 0, 255));
-            }
-                        
-            // escape code sequence for moving cursor, and printing a coloured ' '
-            printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invY + 1, 
-                                                       x + 1, 
-                                                       outputSymbol.colour[0], 
-                                                       outputSymbol.colour[1], 
-                                                       outputSymbol.colour[2], 
-                                                       ' ');   
-        }
-    }
-    //reset cursor and style, and flush the buffer.
-    printf("\e[%d;%dH", screen.height, screen.width);
-}
-
-void displayFrameBufferFastColour(frameBuffer screen, frameBuffer oldScreen)
-{   
-    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    // printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen.width, screen.height, (screen.width + 18 * screen.height +1),sizeOfScreen);
-    // printf("BUFFSIZ: %d\n",BUFSIZ);
-    #endif
-
-    int invertedY = 0;
-    for (int y = 0; y < screen.height; y++)
-    {
-        int invertedX = 0;
-        for (int x = 0; x < screen.width; x++)
-        {
-            if ((screen.colourBuffer[x][y][0] != oldScreen.colourBuffer[x][y][0]) ||
-                (screen.colourBuffer[x][y][1] != oldScreen.colourBuffer[x][y][1]) ||
-                (screen.colourBuffer[x][y][2] != oldScreen.colourBuffer[x][y][2]))
-            {
-                //escape code sequence for moving cursor(\e[%d;%dH), 
-                //  setting 24bit background colour (\e[48;2;%d;%d;%dm)
-                //  printing a ' ' (%c)
-                // and finally reset cursor (\e[m)
-                printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", invertedY+1, 
-                                                           x+1, 
-                                                           screen.colourBuffer[x][y][0], 
-                                                           screen.colourBuffer[x][y][1], 
-                                                           screen.colourBuffer[x][y][2], 
-                                                           ' ');
-            }
-            invertedX++;
-        }
-        invertedY++;
-    }
-    //reset cursor and style, and flush the buffer.
-    printf("\e[%d;%dH", screen.height, screen.width);
-}
-
-void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen)
-{   
-    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    // printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen.width, screen.height, (screen.width + 18 * screen.height +1),sizeOfScreen);
-    // printf("BUFFSIZ: %d\n",BUFSIZ);
-    #endif
-
-    //start with cursor in top left
-
+    int characterColumn = 1;
     int characterRow = 1;
-    for (int y = (screen.height-1); y >= 0; y-=2)
+    for (int y = (frame.height-1); y >= 0; y-=2)
     {
-        int characterColumn = 1;
-        for (int x = (screen.width-1); x >= 0; x--)
+        // ensure we dont refrence outside of frame limits.
+        int nextY = clamp(y-1,0,frame.height);
+
+        for (int x = (frame.width-1); x >= 0; x--)
+        {               
+            // escape code sequence for moving cursor, and printing a coloured ' '
+            printf("\e[%d;%dH\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm\u2584\e[m", characterRow, 
+                                                                            characterColumn, 
+                                                                            getConvertedDepthValue(frame, x, y), 
+                                                                            getConvertedDepthValue(frame, x, y), 
+                                                                            getConvertedDepthValue(frame, x, y), 
+                                                                            getConvertedDepthValue(frame, x, y-1), 
+                                                                            getConvertedDepthValue(frame, x, y-1), 
+                                                                            getConvertedDepthValue(frame, x, y-1)
+                                                                        );  
+                                                       
+            characterColumn++;
+        }
+        characterColumn = 1;
+        characterRow++;
+    }
+    //reset cursor and style, and flush the buffer.
+    printf("\e[%d;%dH", frame.height/2, frame.width);
+}
+
+int getConvertedDepthValue(frameBuffer frame, int x, int y)
+{
+    //Depth will be value between depthMinimum and depthMaximum.
+
+    //Desired output is far = dark, near = light.
+    
+    //For colouring, 255 = light, 0 = dark.
+
+    //Therefore we need to map far = 0, near = 255.
+
+    //Now depth is a value between 255 for near, and 0 for far.
+
+    //This is a linear mapping, we can apply a tone map to the value, for example square.
+
+    //New lets clamp it, to make sure it doesnt fall outside of this range.
+
+    return (int)rint(clampDouble(map(pow(map(frame.depthBuffer[x][y], frame.depthMinimum, frame.depthMaximum, 0, 1),2), 0, 1, 255, 0), 0, 255));
+}
+
+void displayFrameBuffer3(frameBuffer frame, frameBuffer oldFrame)
+{   
+    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
+    // printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",frame.width, frame.height, (frame.width + 18 * frame.height +1),sizeOfScreen);
+    // printf("BUFFSIZ: %d\n",BUFSIZ);
+    #endif
+
+    //start with cursor in top left (1,1)
+    int characterRow = 1;
+    int characterColumn = 1;
+
+    // since rows are printed from the top of the screen, start from the highest y index and work backwards
+    // each row represents 2 pixels, one is the background colour, other is unicode "lower half block"
+    for (int y = (frame.height-1); y >= 0; y-=2)
+    {
+        // ensure we dont refrence outside of frame limits.
+        int nextY = clamp(y-1,0,frame.height);
+     
+        for (int x = 0; x < (frame.width); x++)
         {
-            if (isPixelColourNew(screen, oldScreen, x, y))
+            //only update pixels that change (might be pre-mature optimisation)
+            if (isPixelColourNew(frame, oldFrame, x, y))
             {
                 //escape code sequence for moving cursor (row,column) (\e[%d;%dH), 
                 //  setting 24bit background colour (\e[48;2;%d;%d;%dm)
@@ -587,35 +565,35 @@ void displayFrameBuffer3(frameBuffer screen, frameBuffer oldScreen)
                 // and finally reset cursor (\e[m)
                 printf("\e[%d;%dH\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm\u2584\e[m", characterRow, 
                                                                                 characterColumn, 
-                                                                                screen.colourBuffer[x][y][0],
-                                                                                screen.colourBuffer[x][y][1], 
-                                                                                screen.colourBuffer[x][y][2],
-                                                                                screen.colourBuffer[x][y-1][0], 
-                                                                                screen.colourBuffer[x][y-1][1], 
-                                                                                screen.colourBuffer[x][y-1][2]
+                                                                                frame.colourBuffer[x][y][0],
+                                                                                frame.colourBuffer[x][y][1], 
+                                                                                frame.colourBuffer[x][y][2],
+                                                                                frame.colourBuffer[x][nextY][0], 
+                                                                                frame.colourBuffer[x][nextY][1], 
+                                                                                frame.colourBuffer[x][nextY][2]
                                                                                 );
+
             }
             characterColumn++;
         }
+        characterColumn = 1;
         characterRow++;
     }
-    //reset cursor
-    printf("\e[%d;%dH", screen.height/2, screen.width);
-    //  and flush the buffer.
-    fflush(stdout);
 }
 
-int isPixelColourNew(frameBuffer screen, frameBuffer oldScreen, int x, int y)
+int isPixelColourNew(frameBuffer frame, frameBuffer oldFrame, int x, int y)
 {
-    // compare the old previous screen framebuffer, to the one about to be displayed.
+    // compare the old previous frame framebuffer, to the one about to be displayed.
     // only return true if there is an update in the colour information to be displayed.
 
-    if ((screen.colourBuffer[x][y][0] != oldScreen.colourBuffer[x][y][0]) ||
-    (screen.colourBuffer[x][y][1] != oldScreen.colourBuffer[x][y][1]) ||
-    (screen.colourBuffer[x][y][2] != oldScreen.colourBuffer[x][y][2]) ||
-    (screen.colourBuffer[x][y-1][0] != oldScreen.colourBuffer[x][y-1][0]) ||
-    (screen.colourBuffer[x][y-1][1] != oldScreen.colourBuffer[x][y-1][1]) ||
-    (screen.colourBuffer[x][y-1][2] != oldScreen.colourBuffer[x][y-1][2]))
+    int nextY = clamp(y-1, 0, frame.height);
+
+    if ((frame.colourBuffer[x][y][0] != oldFrame.colourBuffer[x][y][0]) ||
+    (frame.colourBuffer[x][y][1] != oldFrame.colourBuffer[x][y][1]) ||
+    (frame.colourBuffer[x][y][2] != oldFrame.colourBuffer[x][y][2]) ||
+    (frame.colourBuffer[x][nextY][0] != oldFrame.colourBuffer[x][nextY][0]) ||
+    (frame.colourBuffer[x][nextY][1] != oldFrame.colourBuffer[x][nextY][1]) ||
+    (frame.colourBuffer[x][nextY][2] != oldFrame.colourBuffer[x][nextY][2]))
     {
         return 1;
     }
@@ -623,65 +601,7 @@ int isPixelColourNew(frameBuffer screen, frameBuffer oldScreen, int x, int y)
     return 0;
 }
 
-void displayFrameBufferSlowColour(frameBuffer* screen)
-{   
-    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    // printf("Screen Area: (%d + 1 + 17) x (%d + 1) = %d (%ld bytes)\n",screen.width, screen.height, (screen.width + 18 * screen.height +1),sizeOfScreen);
-    // printf("BUFFSIZ: %d\n",BUFSIZ);
-    #endif
-
-    for (int y = 0; y < screen->height; y++)
-    {
-        for (int x = 0; x < screen->width; x++)
-        {
-            int invX = (screen->width -1 - x);
-            //escape code sequence for moving cursor, and printing a coloured ' '
-            printf("\e[%d;%dH\e[48;2;%d;%d;%dm%c\e[m", y + 1, 
-                                                       x + 1, 
-                                                       screen->colourBuffer[x][y][0], 
-                                                       screen->colourBuffer[x][y][1], 
-                                                       screen->colourBuffer[x][y][2], 
-                                                       ' ');
-        }
-    }
-    //reset cursor and style, and flush the buffer.
-    printf("\e[%d;%dH", screen->height, screen->width);
-}
-
-void displayFrameBuffer(frameBuffer* screen)
-{   
-    size_t sizeOfScreen = (sizeof(char) * ((screen->width + 1) * screen->height));
-    #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-    printf("Screen Area: (%d + 1) x %d = %d (%ld bytes)\n",screen->width + 1, screen->height, (screen->width +1 * screen->height),sizeOfScreen);
-    printf("BUFFSIZ: %d\n",BUFSIZ);
-    #endif
-    printf("\e[?25l");
-    #ifndef DEBUG_POINTS_NO_CLEARSCREEN
-    //clears screen escape code sequence
-    // printf("\033[H\033[J"); 
-    #endif
-    char outputStringArr[sizeOfScreen];
-    int invertedY = 0;
-    for (int y = (screen->height - 1); y >= 0; y--)
-    {
-        int invertedX = 0;
-        for (int x = (screen->width - 1); x >= 0; x--)
-        {
-            //fancy maths to work out index of 1d array from 2d.
-            outputStringArr[(invertedY * (screen->width + 1)) + invertedX] = screen->characterBuffer[x][y];
-            invertedX++;
-        }
-        //add newline char for each y incriment
-        outputStringArr[(invertedY * (screen->width + 1)) + (screen->width)] = '\n';
-        invertedY++;
-    }
-    //write tring to print buffer, and fluse to screen.
-    printf("\e[1;1;H");
-    fwrite(outputStringArr, sizeof(char), sizeOfScreen, stdout);
-    fflush(stdout);
-}
-
-void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* screen)
+void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* frame)
 {
     visual outputSymbol;
     outputSymbol = (visual){ .colour[0] = 255, .colour[1] = 255, .colour[2] = 255};
@@ -700,15 +620,15 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* screen)
 
     for (int x = x0; x <= x1; x++)
     {
-        if ((x <= 0) | (y <= 0) | (x >= (screen->width-1)) | (y >= (screen->height-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (frame->width-1)) | (y >= (frame->height-1))) 
         {
             outputSymbol.character = BORDER;
-            drawInScreen(screen, x, y, outputSymbol);
+            drawInFrame(frame, x, y, outputSymbol);
         }
         else
         {
             outputSymbol.character = LINE;
-            drawInScreen(screen, x, y, outputSymbol);
+            drawInFrame(frame, x, y, outputSymbol);
         }
             
         if (D > 0) 
@@ -723,7 +643,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* screen)
     }
 }
 
-void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* screen)
+void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* frame)
 {
     visual outputSymbol;
     outputSymbol = (visual){ .colour[0] = 255, .colour[1] = 255, .colour[2] = 255};
@@ -742,15 +662,15 @@ void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* screen)
 
     for (int y = y0; y <= y1; y++) 
     {
-        if ((x <= 0) | (y <= 0) | (x >= (screen->width-1)) | (y >= (screen->height-1))) 
+        if ((x <= 0) | (y <= 0) | (x >= (frame->width-1)) | (y >= (frame->height-1))) 
         {
             outputSymbol.character = BORDER;
-            drawInScreen(screen, x, y, outputSymbol);
+            drawInFrame(frame, x, y, outputSymbol);
         }
         else
         {
             outputSymbol.character = LINE;
-            drawInScreen(screen, x, y, outputSymbol);
+            drawInFrame(frame, x, y, outputSymbol);
         }
         
         if (D > 0) 
@@ -765,7 +685,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* screen)
     }
 }
 
-void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer* screen)
+void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer* frame)
 {
     // Initialise points as doubles to do maths nicer
     int x0 = (int)pointA.x;
@@ -778,24 +698,29 @@ void BresenhamPlotLine(vector pointA, vector pointB, frameBuffer* screen)
 
         if (x0 > x1) 
         {
-            plotLineLow(x1, y1, x0, y0, screen);
+            plotLineLow(x1, y1, x0, y0, frame);
         }
         else
         {
-            plotLineLow(x0, y0, x1, y1, screen);
+            plotLineLow(x0, y0, x1, y1, frame);
         }
     }
     else
     {
         if (y0 > y1) 
         {
-            plotLineHigh(x1, y1, x0, y0, screen);
+            plotLineHigh(x1, y1, x0, y0, frame);
         }
         else
         {
-            plotLineHigh(x0, y0, x1, y1, screen);
+            plotLineHigh(x0, y0, x1, y1, frame);
         }
     }
+}
+
+void setCursorBelowFrame(frameBuffer frame)
+{
+    printf("\e[%d;1H",frame.height);
 }
 
 void frameDelay(double framesPerSecond)
