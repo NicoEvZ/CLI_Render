@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
-project(Cube)
+project(CLI_Render)
 
 # Set compiler flags
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra ")
+
+#Third party libs first
+add_subdirectory(thirdparty-cJSON)
 
 # Add your source code directory
 add_subdirectory(lib)

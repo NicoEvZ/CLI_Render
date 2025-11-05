@@ -1,4 +1,4 @@
 #!/bin/bash
-cmake -B build .
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B build .
 cd build
 make 

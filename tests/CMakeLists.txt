@@ -15,7 +15,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(CMocka)
 
-target_link_libraries(UnitTests PRIVATE CubeLib cmocka)
+target_link_libraries(UnitTests PRIVATE CLI_RenderLib cmocka)
 
 IF (WIN32)
 # Copy cmocka.dll to the executable directory after build
