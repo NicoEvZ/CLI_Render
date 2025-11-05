@@ -353,7 +353,7 @@ int main(void){
             // - second, perform dotproduct between the normal vector of triangle, with cam->tri vector.
             double dotProductResult = dotProduct(baseMesh.triangleNormalsArray[j], (subtractVector(transformedTriangle.point[0], vCamera)));
            
-            //draw triangles with dotProductResult greater than or equal to 0 (vectors align)
+            //cull triangles with dotProductResult less than or equal to 0 (vectors do not align)
             if (dotProductResult <= 0)
             {
                 continue;    
