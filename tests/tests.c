@@ -139,7 +139,7 @@ static void test_copyTriangleData(void **state)
     testTriangle = (triangle){  .point[0] = (vector){1, 2, 3, 1},
                                 .point[1] = (vector){4, 5, 6, 1},
                                 .point[2] = (vector){7, 8, 9, 1},
-                                .symbol.character = ' ',
+                                .symbol.character = 'A',
                                 .symbol.colour[0] = 255,
                                 .symbol.colour[1] = 255,
                                 .symbol.colour[2] = 255,
@@ -150,7 +150,7 @@ static void test_copyTriangleData(void **state)
     output = (triangle){    .point[0] = (vector){0, 0, 0, 0},
                             .point[1] = (vector){0, 0, 0, 0},
                             .point[2] = (vector){0, 0, 0, 0},
-                            .symbol.character = 'A',
+                            .symbol.character = 'B',
                             .symbol.colour[0] = 0,
                             .symbol.colour[1] = 0,
                             .symbol.colour[2] = 0,
@@ -158,16 +158,14 @@ static void test_copyTriangleData(void **state)
                         };
 
     copyTriangleData(testTriangle, &output);
-
+    
+    assert_true(output.symbol.character == testTriangle.symbol.character);
     for (int i = 0; i < 3; i++)
     {
         assert_float_equal(output.point[i].x, testTriangle.point[i].x, epsilon);
         assert_float_equal(output.point[i].y, testTriangle.point[i].y, epsilon);
         assert_float_equal(output.point[i].z, testTriangle.point[i].z, epsilon);
         assert_float_equal(output.point[i].w, testTriangle.point[i].w, epsilon);
-
-        assert_string_equal(&output.symbol.character, &testTriangle.symbol.character);
-
         assert_float_equal(output.symbol.colour[i], testTriangle.symbol.colour[i], epsilon);
     }
 }
