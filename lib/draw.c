@@ -159,6 +159,19 @@ void drawTriangleOnFrame(triangle inputTriangle, frameBuffer* frame, int fillBoo
         }
     }
 
+    //bound the bounding boxes
+    boundingBoxMin.x = clampDouble(boundingBoxMin.x, 0, frame->width - 1);
+    boundingBoxMin.y = clampDouble(boundingBoxMin.y, 0, frame->height - 1);
+    boundingBoxMax.x = clampDouble(boundingBoxMax.x, 0, frame->width - 1);
+    boundingBoxMax.y = clampDouble(boundingBoxMax.y, 0, frame->height - 1);
+
+    // if a triangle is off screen, get outa here!
+    if (boundingBoxMax.x < 0 || boundingBoxMin.x >= frame->width ||
+        boundingBoxMax.y < 0 || boundingBoxMin.y >= frame->height)
+    {
+        return;
+    }
+
     #ifdef DEBUG_POINTS_BBs
     printf("boundingBoxMin = (%lf,%lf)\tboundingBoxMax = (%lf,%lf)\n",boundingBoxMin.x,boundingBoxMin.y,boundingBoxMax.x,boundingBoxMax.y);
     #endif
@@ -368,14 +381,14 @@ vector calculateTriangleNormal(triangle inputTriangle)
 
 void clearFrameBuffer(frameBuffer* frame) 
 {
+    frame->depthMinimum = 1000;
+    frame->depthMaximum = 0;
     for (int x = 0; x < frame->width; x++) 
     {
         for (int y = 0; y < frame->height; y++) 
         {
             frame->characterBuffer[x][y]=BLANK;
             frame->depthBuffer[x][y]=1000;
-            frame->depthMinimum = 1000;
-            frame->depthMaximum = 0;
             for (int i = 0; i < 3; i++)
             {
                 frame->colourBuffer[x][y][i] = 127;

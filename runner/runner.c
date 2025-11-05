@@ -54,7 +54,14 @@ int main(void){
     double xAngle = 0;
     double yAngle = 0;
     double zAngle = 0;
-    double lightAngle = 0;
+
+    double xlightAngle = 0;
+    double ylightAngle = 0;
+    double zlightAngle = 0;
+
+    double xlightAngleInc = 0;
+    double ylightAngleInc = 0;
+    double zlightAngleInc = 0;
 
     int xAngleInc = 0;
     int yAngleInc = 0;
@@ -102,7 +109,9 @@ int main(void){
     matrix4x4 mCamera;
     matrix4x4 mView;
 
-    vector (*normalsVectorArray) = malloc(baseMesh.numberOfTriangles * sizeof(vector));
+    // vector array to store the calculated triangle normals
+    baseMesh.triangleNormalsArray = malloc(baseMesh.numberOfTriangles * sizeof(vector));
+
     triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
 
     size_t sizeOfScreen = (sizeof(char) * ((frame.width) * (frame.height) * 40));
@@ -155,11 +164,11 @@ int main(void){
                 break;
             
             case 'i':
-                vCamera.z += 0.08;
+                vCamera.z += 0.1;
                 break;
 
             case 'k':
-                vCamera.z -= 0.08;
+                vCamera.z -= 0.1;
                 break;
             
             case 's':
@@ -199,27 +208,47 @@ int main(void){
                     i--;
                 }   
                 break;
-                
-            case 'r':
-                if (fov > 0)
-                {
-                    fov--;
-                }   
-                break;
-
-            case 'f':
-                if (fov < 90)
-                {
-                    fov++;
-                }   
-                break;
 
             case 'o':
+                //reset the angles of mesh rotation
                 xAngleInc = 0;
                 yAngleInc = 0;
                 zAngleInc = 0;
+                
+                //reset the angles of light rotation
+                xlightAngleInc = 0;
+                ylightAngleInc = 0;
+                zlightAngleInc = 0;
+                
+                //reset iterations
                 i = 0;
-                break; 
+
+                //reset camera
+                vCamera = (vector){0, 0, 0, 1};
+                // vLookDirection = (vector){0, 0, 1, 1};
+                initialiseTranslationMatrix(&translation, 0, 0, (double)importData.distance);
+
+                // reset fov
+
+                fov = importData.fov;
+                
+                break;
+
+            case 'y':
+                xlightAngleInc++;
+                break;
+            
+            case 'h':
+                xlightAngleInc--;
+                break;
+
+            case 'g':
+                ylightAngleInc++;
+                break;
+            
+            case 'j':
+                ylightAngleInc--;
+                break;
 
             case KEY_END:
                 loopProgram = -1;
@@ -238,7 +267,14 @@ int main(void){
         xAngle = (xAngleInc + i) * RAD;
         yAngle = (yAngleInc + i) * RAD;
         zAngle = (zAngleInc + i) * RAD;
-        // lightAngle = i * RAD;
+
+        xlightAngle = clamp(xlightAngle, -360, 360);
+        ylightAngle = clamp(ylightAngle, -360, 360);
+        zlightAngle = clamp(zlightAngle, -360, 360);
+
+        xlightAngle = (xlightAngleInc + i) * RAD;
+        ylightAngle = (ylightAngleInc + i) * RAD;
+        zlightAngle = (zlightAngleInc + i) * RAD;
         #ifdef DEBUG_POINTS_FRAME_TIMER
         //grab current time i.e. "starts the timing"
         calcTimer = clock();
@@ -250,7 +286,8 @@ int main(void){
 
         mView = quickMatrixInverse(mCamera);
 
-        vector lightDirection = (vector){0, 1, 0, 1};   
+        // vector lightDirection = (vector){0, -0.5, 0.5, 1};
+        vector lightDirection = vLookDirection;
         int numberOfTrianglessToRender = 0;
         clearFrameBuffer(&frame);
         initialiseRotateXMatrix(&rotateX, xAngle);
@@ -276,15 +313,15 @@ int main(void){
                 
         world = matrixMatrixMultiply(world, translation);
 
-        initialiseRotateXMatrix(&rotateLightX, lightAngle);
-        initialiseRotateYMatrix(&rotateLightY, lightAngle);
-        initialiseRotateZMatrix(&rotateLightZ, lightAngle);
+        initialiseRotateXMatrix(&rotateLightX, xlightAngle);
+        initialiseRotateYMatrix(&rotateLightY, ylightAngle);
+        initialiseRotateZMatrix(&rotateLightZ, zlightAngle);
 
         //3-phase thransform of r,g and b. Cycle through all colours once, regardless of max number of rotations
         cycleMeshColour(&baseMesh, i, importData.iterations);
 
         lightDirection = matrixVectorMultiply(lightDirection, rotateLightX);
-        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
+        lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
         // lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
 
         for (int j = 0; j < baseMesh.numberOfTriangles; j++)
@@ -308,9 +345,13 @@ int main(void){
             #endif
 
             //calculate face normals
-            normalsVectorArray[j] = calculateTriangleNormal(transformedTriangle);
+            baseMesh.triangleNormalsArray[j] = calculateTriangleNormal(transformedTriangle);
 
-            double dotProductResult = dotProduct(normalsVectorArray[j], (subtractVector(transformedTriangle.point[0], vCamera)));
+            //backface culling:
+            // - first, make a vector from the camera to the triangle (triangle vector - camera vector)
+            //      (any point on the triangle can be used)
+            // - second, perform dotproduct between the normal vector of triangle, with cam->tri vector.
+            double dotProductResult = dotProduct(baseMesh.triangleNormalsArray[j], (subtractVector(transformedTriangle.point[0], vCamera)));
            
             //draw triangles with dotProductResult greater than or equal to 0 (vectors align)
             if (dotProductResult <= 0)
@@ -319,7 +360,7 @@ int main(void){
             }
 
             //assign the "illumination" symbol based off normal
-            illuminateTriangle(&transformedTriangle, normalsVectorArray[j], lightDirection);
+            illuminateTriangle(&transformedTriangle, baseMesh.triangleNormalsArray[j], lightDirection);
 
             for (int point = 0; point < 3; point++)
             {
@@ -331,6 +372,22 @@ int main(void){
             viewedTriangle = matrixTriangleMultiply(transformedTriangle, mView);
 
             copyTriangleData(viewedTriangle, &projectedTriangle);
+            
+            // check if any of the triangle points
+            bool too_close = false;
+            for (int point = 0; point < 3; point++)
+            {
+                if (viewedTriangle.point[point].z < 0.5)
+                {
+                    too_close = true;
+                    break;
+                }
+            }
+
+            if (too_close)
+            {
+                continue;  // Skip this triangle
+            }
 
             //project 3D --> 2D
             projectedTriangle = matrixTriangleMultiply(viewedTriangle, projectionMatrix);
@@ -343,7 +400,24 @@ int main(void){
             printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVectorArray[j].x, normalsVectorArray[j].y, normalsVectorArray[j].z);
             #endif
 
-            //normailse the coordinates with the extra vector term
+            bool behind_camera = false;
+            //normalize the coordinates with the extra vector term
+            for (int point = 0; point < 3; point++)
+            {
+                // Check for vertices behind or very close to camera
+                if (projectedTriangle.point[point].w <= -0.1)
+                {
+                    behind_camera = true;
+                    break;
+                }
+            }
+
+            // skip triangle if its behind the camera
+            if (behind_camera)
+            {
+                continue;
+            }
+
             for (int point = 0; point < 3; point++)
             {
                 projectedTriangle.point[point] = divideVectorByScalar(projectedTriangle.point[point], projectedTriangle.point[point].w);
@@ -440,7 +514,7 @@ int main(void){
         "Running Avg: %3.3lfms"
         "\e8\e[m",
         i,
-        importData.iterations -1, 
+        importData.iterations, 
         ((double)calcTimer / CLOCKS_PER_SEC) * 1000,
         ((double)(accumulatedCalcTime / (framesRendered)) / CLOCKS_PER_SEC) * 1000,
         ((double)drawTimer / CLOCKS_PER_SEC) * 1000,
@@ -463,7 +537,8 @@ int main(void){
     printf("\n\e[m\e[?25h\e[?12h");
     fflush(stdout);
     free(a);
-    free(normalsVectorArray);
+    free(baseMesh.triangleNormalsArray);
+    free(baseMesh.trianglePointer);
     free(renderBufferArray);
     deleteFrameBuffer(&frame);
     deleteFrameBuffer(&oldFrame);
@@ -665,7 +740,7 @@ mesh importMeshFromOBJFile (char*  pathToFile)
     //Handy debug for seeing if points were imported properly
     for (int i = 0; i < vertexCount; i++) 
     {
-          printf("%d: %lf, %lf, %lf\n", i, vectorArray[i].x, vectorArray[i].y, vectorArray[i].z);
+          printf("%d: %lf, %lf, %lf\r\n", i, vectorArray[i].x, vectorArray[i].y, vectorArray[i].z);
     }
     #endif
 

@@ -10,7 +10,7 @@
 // #define DEBUG_POINTS_LIGHT_LEVEL
 // #define DEBUG_POINTS_TRI_DATA
 // #define DEBUG_POINTS_RENDER_INDIVIDUAL
-#define DEBUG_TRI_COLOUR
+// #define DEBUG_TRI_COLOUR
 
 typedef struct
 {
@@ -37,6 +37,7 @@ typedef struct
     int numberOfTriangles;
     int numberOfVertices;
     int colour[3];
+    vector* triangleNormalsArray;
 }mesh;
 
 typedef struct
