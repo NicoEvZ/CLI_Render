@@ -4,6 +4,10 @@
 #define ONE_AND_THIRD_PI 1.33333 * PI
 #define TWO_THIRDS_PI 0.66666 * PI
 #define RAD 0.01745329
+
+#define VIEWPORT_HEIGHT 1
+#define VIEWPORT_WIDTH 1
+#define VIEWPORT_DEPTH 1
 // #define DEBUG_POINTS_NO_CLEARSCREEN
 // #define DEBUG_POINTS_BBs
 // #define DEBUG_POINTS_ZBUFFER
@@ -14,16 +18,28 @@
 
 typedef struct
 {
+    double x, y, z, w;
+}vector;
+
+typedef struct 
+{
+    vector* center;
+    int radius;
+    int colour[3];
+}sphere;
+
+typedef struct
+{
+    sphere* sphereArray;
+    int sphereCount;
+}scene;
+
+typedef struct
+{
     char character;
     int colour[3];
     double brightness;
 }visual;
-
-
-typedef struct
-{
-    double x, y, z, w;
-}vector;
 
 typedef struct
 {
@@ -112,6 +128,14 @@ void initialiseFrameBuffer(frameBuffer* frame, renderConfig importData);
 void deleteFrameBuffer(frameBuffer* frame);
 
 void drawInFrame(frameBuffer* frame, int x, int y, visual symbol);
+
+void putPixel(frameBuffer* frame, int x, int y, int color[3]);
+
+vector CanvasToViewport(frameBuffer canvas, int x, int y);
+
+void TraceRay(int out_colour[3], scene scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max);
+
+void IntersectRaySphere(double* t1, double* t2, vector ray_origin_vector, vector ray_direction_vector, sphere test_sphere);
 
 void displayDepthBuffer(frameBuffer frame, frameBuffer oldFrame);
 

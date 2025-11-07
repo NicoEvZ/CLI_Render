@@ -18,6 +18,89 @@
 
 int main(void){
     cursesSetup();
+
+    renderConfig ray_config;
+    ray_config.frameColumnsImport = 161;
+    ray_config.frameRowsImport = 72;
+    frameBuffer canvas, old_canvas;
+    initialiseFrameBuffer(&canvas, ray_config);
+    initialiseFrameBuffer(&old_canvas, ray_config);
+
+    int n_spheres = 3; 
+
+    scene scene1;
+    scene1.sphereCount = n_spheres;
+    scene1.sphereArray = malloc(scene1.sphereCount*sizeof(sphere));
+
+    sphere sphere0 = (sphere){
+        .center = &(vector){
+            .x = 0.0,
+            .y = -1.0,
+            .z = 3.0,
+            .w = 1.0},
+        //red
+        .colour[0] = 255,
+        .colour[1] = 0,
+        .colour[2] = 0,
+        .radius = 1
+    };
+
+    sphere sphere1 = (sphere){
+        .center = &(vector){
+            .x = 2.0,
+            .y = 0.0,
+            .z = 4.0,
+            .w = 1.0},
+        //blue
+        .colour[0] = 0,
+        .colour[1] = 0,
+        .colour[2] = 255,
+        .radius = 1
+    };
+
+    sphere sphere2 = (sphere){
+        .center = &(vector){
+            .x = -2.0,
+            .y = 0.0,
+            .z = 4.0,
+            .w = 1.0},
+        //green
+        .colour[0] = 0,
+        .colour[1] = 255,
+        .colour[2] = 0,
+        .radius = 1
+    };
+
+    scene1.sphereArray[0]= sphere0;
+    scene1.sphereArray[1]= sphere1;
+    scene1.sphereArray[2]= sphere2;
+    
+
+    vector origin;
+    vector D;
+    int colour[3] = {0,0,0};
+    initialiseVector(&origin);
+
+    for (int x = -(canvas.width/2); x < (canvas.width/2); x++)
+    {
+        for (int y = -(canvas.height/2); y < (canvas.height/2); y++)
+        {
+            D = CanvasToViewport(canvas, x, y);
+            TraceRay(colour,scene1,origin,D,1,INFINITY);
+            putPixel(&canvas,x,y,colour);
+        }
+    }
+
+    displayFrameBuffer3(canvas,old_canvas);
+    
+    getchar();
+
+    free(scene1.sphereArray);
+    deleteFrameBuffer(&canvas);
+    cursesEnd();
+    return 0;
+
+
     renderConfig importData;
     frameBuffer frame;
     frameBuffer oldFrame;

@@ -497,6 +497,87 @@ void drawInFrame(frameBuffer* frame, int x, int y, visual symbol)
     }
 }
 
+void putPixel(frameBuffer* canvas, int x, int y, int color[3])
+{
+    // clamp input canvas coords
+    x = clamp(x, -(canvas->width/2), (canvas->width/2)-1);
+    y = clamp(y, -(canvas->height/2), (canvas->height/2) - 1);
+
+    // convert from canvas coords to screen coords
+    int screen_x = clamp(((canvas->width/2) + x),0,canvas->width-1);
+    int screen_y = clamp(((canvas->height/2) - y),0,canvas->height-1);
+    
+    // per channel, copy the input colour to the position in the frame colour buffer (screen)
+    for (int i = 0; i < 3; i++)
+    {
+        canvas->colourBuffer[screen_x][screen_y][i]  = clamp(color[i], 0, 255);
+    }
+}
+
+vector CanvasToViewport(frameBuffer canvas, int x, int y)
+{
+    return (vector){(double)x*((double)VIEWPORT_WIDTH/(double)canvas.width),(double)y*((double)VIEWPORT_HEIGHT/(double)canvas.height),(double)VIEWPORT_DEPTH,1.0};
+}
+
+void TraceRay(int out_colour[3], scene scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max)
+{
+    double closest_t = INFINITY;
+    sphere* closest_sphere = NULL;
+    double t1, t2;
+    for (int i = 0; i < scene.sphereCount; i++)
+    {
+        IntersectRaySphere(&t1,&t2,ray_origin_vector,ray_direction_vector,scene.sphereArray[i]);
+
+        if (((t1 >= t_min) && (t1 <= t_max )) && (t1 < closest_t))
+        {
+            closest_t = t1;
+            closest_sphere = &scene.sphereArray[i];
+        }
+        if (((t2 >= t_min) && (t2 <= t_max )) && (t2 < closest_t))
+        {
+            closest_t = t2;
+            *closest_sphere = scene.sphereArray[i];
+        }
+    }
+    for (int channel = 0; channel < 3; channel++)
+    {
+        if (closest_sphere == NULL)
+        {
+            out_colour[channel] = 255; 
+        }
+        else
+        {
+            out_colour[channel] = closest_sphere->colour[channel];
+        }
+    }
+    
+}
+
+void IntersectRaySphere(double* t1, double* t2, vector ray_origin_vector, vector ray_direction_vector, sphere test_sphere)
+{
+    int r = test_sphere.radius;
+    vector CO = subtractVector(ray_origin_vector,*test_sphere.center);
+
+    double a = dotProduct(ray_direction_vector,ray_direction_vector);
+    double b = 2*dotProduct(CO, ray_direction_vector);
+    double c = dotProduct(CO, CO) - (r *r);
+
+    double discriminant = (b*b) - (4*a*c);
+
+    if (discriminant < 0)
+    {
+        *t1 = INFINITY;
+        *t2 = INFINITY;
+        return;
+    }
+    
+    *t1 = (-b + sqrt(discriminant)) / (2*a);
+    *t2 = (-b - sqrt(discriminant)) / (2*a);
+    return;
+}
+
+
+
 void displayDepthBuffer(frameBuffer frame, frameBuffer oldFrame)
 {   
     visual outputSymbol;
