@@ -1,6 +1,5 @@
-#define MAX_LINE_LENGTH 256
 #include "draw.h"
 
-int importJSON(const char *file_path, renderConfig *importData_struct);
+void fillScene(scene* scene);
 
-mesh importMeshFromOBJFile (char * pathToFile);
+void deleteScene(scene* scene);

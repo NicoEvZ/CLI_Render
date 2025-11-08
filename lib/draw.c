@@ -505,7 +505,7 @@ void putPixel(frameBuffer* canvas, int x, int y, int color[3])
 
     // convert from canvas coords to screen coords
     int screen_x = clamp(((canvas->width/2) + x),0,canvas->width-1);
-    int screen_y = clamp(((canvas->height/2) - y),0,canvas->height-1);
+    int screen_y = clamp(((canvas->height/2) + y),0,canvas->height-1);
     
     // per channel, copy the input colour to the position in the frame colour buffer (screen)
     for (int i = 0; i < 3; i++)
@@ -519,47 +519,58 @@ vector CanvasToViewport(frameBuffer canvas, int x, int y)
     return (vector){(double)x*((double)VIEWPORT_WIDTH/(double)canvas.width),(double)y*((double)VIEWPORT_HEIGHT/(double)canvas.height),(double)VIEWPORT_DEPTH,1.0};
 }
 
-void TraceRay(int out_colour[3], scene scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max)
+void TraceRay(int out_colour[3], scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max)
 {
     double closest_t = INFINITY;
     sphere* closest_sphere = NULL;
-    double t1, t2;
-    for (int i = 0; i < scene.sphereCount; i++)
+    ClosestIntersection(&closest_sphere, &closest_t, scene, rayOriginVector, rayDirectionVector, t_min, t_max);
+    if (closest_sphere == NULL)
     {
-        IntersectRaySphere(&t1,&t2,ray_origin_vector,ray_direction_vector,scene.sphereArray[i]);
-
-        if (((t1 >= t_min) && (t1 <= t_max )) && (t1 < closest_t))
+        for (int channel = 0; channel < 3; channel++)
         {
-            closest_t = t1;
-            closest_sphere = &scene.sphereArray[i];
+            out_colour[channel] = 255;
         }
-        if (((t2 >= t_min) && (t2 <= t_max )) && (t2 < closest_t))
-        {
-            closest_t = t2;
-            *closest_sphere = scene.sphereArray[i];
-        }
-    }
-    for (int channel = 0; channel < 3; channel++)
-    {
-        if (closest_sphere == NULL)
-        {
-            out_colour[channel] = 255; 
-        }
-        else
-        {
-            out_colour[channel] = closest_sphere->colour[channel];
-        }
+        return; 
     }
     
+    vector point = addVector(rayOriginVector, (multiplyVectorByScalar(rayDirectionVector, closest_t)));
+    vector normal;
+    vector viewDirection = multiplyVectorByScalar(rayDirectionVector, -1.0);
+    for (int channel = 0; channel < 3; channel++)
+    {
+        normal = subtractVector(point, closest_sphere->center);
+        normal = normaliseVector(normal);
+        out_colour[channel] = closest_sphere->colour[channel] * computeLighting(scene,point,normal,viewDirection,closest_sphere->specular);
+    }
 }
 
-void IntersectRaySphere(double* t1, double* t2, vector ray_origin_vector, vector ray_direction_vector, sphere test_sphere)
+void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max)
 {
-    int r = test_sphere.radius;
-    vector CO = subtractVector(ray_origin_vector,*test_sphere.center);
+    double t1, t2;
+    for (int i = 0; i < scene->sphereCount; i++)
+    {
+        IntersectRaySphere(&t1,&t2,rayOriginVector,rayDirectionVector,&scene->sphereArray[i]);
 
-    double a = dotProduct(ray_direction_vector,ray_direction_vector);
-    double b = 2*dotProduct(CO, ray_direction_vector);
+        if (((t1 >= t_min) && (t1 <= t_max )) && (t1 < *closest_t))
+        {
+            *closest_t = t1;
+            *closest_sphere = &scene->sphereArray[i];
+        }
+        if (((t2 >= t_min) && (t2 <= t_max )) && (t2 < *closest_t))
+        {
+            *closest_t = t2;
+            *closest_sphere = &scene->sphereArray[i];
+        }
+    }
+}
+
+void IntersectRaySphere(double* t1, double* t2, vector rayOriginVector, vector rayDirectionVector, sphere* test_sphere)
+{
+    int r = test_sphere->radius;
+    vector CO = subtractVector(rayOriginVector,test_sphere->center);
+
+    double a = dotProduct(rayDirectionVector,rayDirectionVector);
+    double b = 2*dotProduct(CO, rayDirectionVector);
     double c = dotProduct(CO, CO) - (r *r);
 
     double discriminant = (b*b) - (4*a*c);
@@ -576,11 +587,71 @@ void IntersectRaySphere(double* t1, double* t2, vector ray_origin_vector, vector
     return;
 }
 
+double computeLighting(scene* scene, vector point_to_compute, vector normal_to_point, vector view_vector, double specular_exponent)
+{
+    double i = 0.0;
+    vector L;
+    double t_max;
+    initialiseVector(&L);
+    for (int currentLightIter = 0; currentLightIter < scene->lightCount; currentLightIter++)
+    {
+        light currentLight = scene->lightArray[currentLightIter];
+        
+        if (currentLight.lightType == ambient)
+        {
+            i += currentLight.intensity;
+        }
+        else
+        {
+            if (currentLight.lightType == point){
+                //here the vector is position
+                L = subtractVector(currentLight.pos_or_dir, point_to_compute);
+                t_max = 1.0;
+            }
+            else
+            {
+                //here the vector is direction
+                L = currentLight.pos_or_dir;
+                t_max = INFINITY;
+            }
 
+            //shadow check
+            double shadow_t = 0.0;
+            sphere* shadow_sphere = NULL;
+            ClosestIntersection(&shadow_sphere, &shadow_t, scene, point_to_compute, L, 0.001, t_max);
+            if (shadow_sphere != NULL)
+            {
+                continue;
+            }
 
-void displayDepthBuffer(frameBuffer frame, frameBuffer oldFrame)
+            //diffuse light
+            double n_dot_l = dotProduct(normal_to_point, L);
+            if (n_dot_l > 0)
+            {
+                i += (currentLight.intensity * (n_dot_l/((vectorLength(normal_to_point) * vectorLength(L)))));
+            }
+
+            //specular light
+            vector reflection_vector;
+            if (specular_exponent != -1.0)
+            {
+                // reflection_vector = 2*N*dot(N,L)-L
+                vector two_N_dot_L = multiplyVectorByScalar(normal_to_point, 2.0 * n_dot_l);
+                // reflection_vector = subtractVector(multiplyVectorByScalar(multiplyVectorByScalar(normal_to_point,2.0), dotProduct(normal_to_point, L)),L);
+                reflection_vector = subtractVector(two_N_dot_L, L);
+                double r_dot_v = dotProduct(reflection_vector, view_vector);
+                if (r_dot_v > 0)
+                {
+                    i += (currentLight.intensity * pow((r_dot_v / (vectorLength(reflection_vector)*vectorLength(view_vector))), specular_exponent));
+                }
+            }
+        }
+    };
+    return i;
+}
+
+void displayDepthBuffer(frameBuffer frame)
 {   
-    visual outputSymbol;
     int characterColumn = 1;
     int characterRow = 1;
     for (int y = (frame.height-1); y >= 0; y-=2)
@@ -596,9 +667,9 @@ void displayDepthBuffer(frameBuffer frame, frameBuffer oldFrame)
                                                                             getConvertedDepthValue(frame, x, y), 
                                                                             getConvertedDepthValue(frame, x, y), 
                                                                             getConvertedDepthValue(frame, x, y), 
-                                                                            getConvertedDepthValue(frame, x, y-1), 
-                                                                            getConvertedDepthValue(frame, x, y-1), 
-                                                                            getConvertedDepthValue(frame, x, y-1)
+                                                                            getConvertedDepthValue(frame, x, nextY), 
+                                                                            getConvertedDepthValue(frame, x, nextY), 
+                                                                            getConvertedDepthValue(frame, x, nextY)
                                                                         );  
                                                        
             characterColumn++;

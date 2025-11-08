@@ -5,35 +5,67 @@
 #include <time.h>
 #include <curses.h>
 
-#include "cJson-w.h"
 #include "draw.h"
 #include "runner.h"
-
-// #define DEBUG_POINTS_IMPORT
-// #define DEBUG_POINTS_RENDER
-// #define DEBUG_POINTS_RENDER_INDIVIDUAL
-// #define DEBUG_POINTS_TRI_DATA
-// #define DEBUG_POINTS_FRAME_TIMER
-// #define AVERAGE_COORDS
 
 int main(void){
     cursesSetup();
 
     renderConfig ray_config;
-    ray_config.frameColumnsImport = 161;
-    ray_config.frameRowsImport = 72;
+    ray_config.frameColumnsImport = 160;
+    ray_config.frameRowsImport = 70;
     frameBuffer canvas, old_canvas;
     initialiseFrameBuffer(&canvas, ray_config);
     initialiseFrameBuffer(&old_canvas, ray_config);
 
-    int n_spheres = 3; 
+    scene scene;
+    fillScene(&scene);
 
-    scene scene1;
-    scene1.sphereCount = n_spheres;
-    scene1.sphereArray = malloc(scene1.sphereCount*sizeof(sphere));
+    vector origin;
+    vector D;
+    int colour[3] = {0,0,0};
+    initialiseVector(&origin);
+    initialiseVector(&D);
 
-    sphere sphere0 = (sphere){
-        .center = &(vector){
+    for (int x = -(canvas.width/2); x < (canvas.width/2); x++)
+    {
+        for (int y = -(canvas.height/2); y < (canvas.height/2); y++)
+        {
+            D = CanvasToViewport(canvas, x, y);
+            TraceRay(colour, &scene, origin, D, 1, INFINITY);
+            putPixel(&canvas, x, y, colour);
+        }
+    }
+
+    //display what is stored on the canvas
+    displayFrameBuffer3(canvas,old_canvas);
+    
+    //hold it, so the person can actually see it
+    getchar();
+
+    deleteScene(&scene);
+    deleteFrameBuffer(&canvas);
+    deleteFrameBuffer(&old_canvas);
+    cursesEnd();
+    return 0;
+}
+
+void fillScene(scene* scene)
+{
+
+    int n_spheres = 4; 
+    int n_lights = 3;
+
+    vector emptyVector;
+    initialiseVector(&emptyVector);
+
+    scene->sphereCount = n_spheres;
+    scene->lightCount = n_lights;
+    scene->sphereArray = malloc(scene->sphereCount*sizeof(sphere));
+    scene->lightArray = malloc(scene->lightCount*sizeof(light));
+
+    sphere sphereRed = (sphere){
+        .center = (vector){
             .x = 0.0,
             .y = -1.0,
             .z = 3.0,
@@ -42,11 +74,12 @@ int main(void){
         .colour[0] = 255,
         .colour[1] = 0,
         .colour[2] = 0,
-        .radius = 1
+        .radius = 1,
+        .specular = 500.0,
     };
 
-    sphere sphere1 = (sphere){
-        .center = &(vector){
+    sphere sphereBlue = (sphere){
+        .center = (vector){
             .x = 2.0,
             .y = 0.0,
             .z = 4.0,
@@ -55,11 +88,12 @@ int main(void){
         .colour[0] = 0,
         .colour[1] = 0,
         .colour[2] = 255,
-        .radius = 1
+        .radius = 1,
+        .specular = 500.0,
     };
 
-    sphere sphere2 = (sphere){
-        .center = &(vector){
+    sphere sphereGreen = (sphere){
+        .center = (vector){
             .x = -2.0,
             .y = 0.0,
             .z = 4.0,
@@ -68,780 +102,63 @@ int main(void){
         .colour[0] = 0,
         .colour[1] = 255,
         .colour[2] = 0,
-        .radius = 1
+        .radius = 1,
+        .specular = 10.0,
     };
 
-    scene1.sphereArray[0]= sphere0;
-    scene1.sphereArray[1]= sphere1;
-    scene1.sphereArray[2]= sphere2;
-    
+    sphere sphereYellow = (sphere){
+        .center = (vector){
+            .x = 0.0,
+            .y = -5001,
+            .z = 0.0,
+            .w = 1.0},
+        //yellow
+        .colour[0] = 255,
+        .colour[1] = 255,
+        .colour[2] = 0,
+        .radius = 5000,
+        .specular = 1000.0,
+    };
 
-    vector origin;
-    vector D;
-    int colour[3] = {0,0,0};
-    initialiseVector(&origin);
+    light ambientLight = (light){
+        .lightType = ambient,
+        .intensity = 0.2,
+        .pos_or_dir = emptyVector,
+    };
 
-    for (int x = -(canvas.width/2); x < (canvas.width/2); x++)
-    {
-        for (int y = -(canvas.height/2); y < (canvas.height/2); y++)
-        {
-            D = CanvasToViewport(canvas, x, y);
-            TraceRay(colour,scene1,origin,D,1,INFINITY);
-            putPixel(&canvas,x,y,colour);
+    light pointLight = (light){
+        .lightType = point,
+        .intensity = 0.6,
+        .pos_or_dir = (vector){
+            .x = 2.0,
+            .y = 1.0,
+            .z = 0.0,
+            .w = 1.0,
         }
-    }
+    };
 
-    displayFrameBuffer3(canvas,old_canvas);
-    
-    getchar();
-
-    free(scene1.sphereArray);
-    deleteFrameBuffer(&canvas);
-    cursesEnd();
-    return 0;
-
-
-    renderConfig importData;
-    frameBuffer frame;
-    frameBuffer oldFrame;
-    
-    #ifdef DEBUG_POINTS_FRAME_TIMER
-    clock_t accumulatedDrawTime = 0;
-    clock_t accumulatedCalcTime = 0;
-    clock_t calcTimer;
-    #endif
-
-    const char jsonImportPath[] = "data/renderOptions.json";
-
-    //failsafe that exits code if the importMeshFromOBJFile didn't succeed.
-    if (importJSON(jsonImportPath, &importData))
-    {
-        printf("Import of JSON failed, exiting here");
-        return 1;
-    }
-
-    initialiseFrameBuffer(&frame, importData);
-    initialiseFrameBuffer(&oldFrame, importData);
-
-    for(int i = 0; i < oldFrame.width; i++)
-    {
-        for(int j = 0; j < oldFrame.height; j++)
-        {
-            for(int k = 0; k < 3; k++)
-            {
-                oldFrame.colourBuffer[i][j][k] = -1;
-            }
+    light directionalLight = (light){
+        .lightType = directional,
+        .intensity = 0.2,
+        .pos_or_dir = (vector){
+            .x = 1.0,
+            .y = 4.0,
+            .z = 4.0,
+            .w = 1.0,
         }
-    }
-
-    double xAngle = 0;
-    double yAngle = 0;
-    double zAngle = 0;
-
-    double xlightAngle = 0;
-    double ylightAngle = 0;
-    double zlightAngle = 0;
-
-    double xlightAngleInc = 0;
-    double ylightAngleInc = 0;
-    double zlightAngleInc = 0;
-
-    int xAngleInc = 0;
-    int yAngleInc = 0;
-    int zAngleInc = 0;
-
-    //Store OBJ data in mesh struct
-    mesh baseMesh = importMeshFromOBJFile(importData.objPathBuffer); 
-    if (baseMesh.numberOfTriangles == 0)
-    {
-        printf("Error: Import failed, or OBJ file contains no vertex data\n");
-        printf("Exiting...\n");
-        return 0;
-    }
-
-    int meshColour[3] = {0, 255, 0};
-
-    for (int i = 0; i < 3; i++)
-    {
-        baseMesh.colour[i] = meshColour[i];
-    }
-    
-    matrix4x4 rotateX;
-    matrix4x4 rotateY;
-    matrix4x4 rotateZ;
-    
-    matrix4x4 rotateLightX;
-    matrix4x4 rotateLightY;
-    matrix4x4 rotateLightZ;
-
-    matrix4x4 projectionMatrix;
-
-    matrix4x4 translation;
-    initialiseTranslationMatrix(&translation, 0, 0, (double)importData.distance);
-
-    matrix4x4 world;
-
-    vector vCamera;
-    initialiseVector(&vCamera);
-    vCamera = (vector){0, 0, 0, 1};
-
-    vector vLookDirection = (vector){0, 0, 1, 1};
-    vector vUp = (vector){0, 1, 0, 1};
-
-    vector vTarget;
-    matrix4x4 mCamera;
-    matrix4x4 mView;
-
-    // vector array to store the calculated triangle normals
-    baseMesh.triangleNormalsArray = malloc(baseMesh.numberOfTriangles * sizeof(vector));
-
-    triangle (*renderBufferArray) = malloc(baseMesh.numberOfTriangles * sizeof(triangle));
-
-    size_t sizeOfScreen = (sizeof(char) * ((frame.width) * (frame.height) * 40));
-    char* a = malloc(sizeOfScreen);
-
-    #ifdef DEBUG_POINTS_FRAME_TIMER
-    double* frameDrawTimes = malloc(sizeof(double) * (importData.iterations - importData.startFrame));
-    #endif
-
-    if (setvbuf(stdout, a, _IOFBF, sizeOfScreen))
-    {
-        printf("Error setting buffer\n");
-        fflush(stdout);
-    }
-
-    //escape code sequence for clearing the frame, and hiding cursor.
-    printf("\e[H\e[J");
-    //for rendering individual tris, show where the cursor is by not hiding it
-    #ifndef DEBUG_POINTS_RENDER_INDIVIDUAL
-    printf("\e[?25l");
-    #endif
-    fflush(stdout);
-    #ifdef DEBUG_POINTS_FRAME_TIMER
-    int framesRendered = 0;
-    #endif
-    int i = importData.startFrame;
-    double fov = importData.fov;
-    int buttonInput;
-    int loopProgram = 1;
-
-    do    
-    {   
-        buttonInput = getch();
-        switch (buttonInput)
-            {
-            case KEY_DOWN:
-                vCamera.y -= 0.08;
-                break;
-
-            case KEY_UP:
-                vCamera.y += 0.08;
-                break;
-
-            case KEY_RIGHT:
-                vCamera.x += 0.08;
-                break;
-
-            case KEY_LEFT:
-                vCamera.x -= 0.08;
-                break;
-            
-            case 'i':
-                vCamera.z += 0.1;
-                break;
-
-            case 'k':
-                vCamera.z -= 0.1;
-                break;
-            
-            case 's':
-                xAngleInc++;
-                break;
-            
-            case 'w':
-                xAngleInc--;
-                break;
-
-            case 'a':
-                yAngleInc++;
-                break;
-            
-            case 'd':
-                yAngleInc--;
-                break;
-
-            case 'q':
-                zAngleInc++;
-                break;
-
-            case 'e':
-                zAngleInc--;
-                break;
-
-            case 'm':
-                if (i < importData.iterations)
-                {
-                    i++;
-                }   
-                break;
-
-            case 'n':
-                if (i > importData.startFrame)
-                {
-                    i--;
-                }   
-                break;
-
-            case 'o':
-                //reset the angles of mesh rotation
-                xAngleInc = 0;
-                yAngleInc = 0;
-                zAngleInc = 0;
-                
-                //reset the angles of light rotation
-                xlightAngleInc = 0;
-                ylightAngleInc = 0;
-                zlightAngleInc = 0;
-                
-                //reset iterations
-                i = 0;
-
-                //reset camera
-                vCamera = (vector){0, 0, 0, 1};
-                // vLookDirection = (vector){0, 0, 1, 1};
-                initialiseTranslationMatrix(&translation, 0, 0, (double)importData.distance);
-
-                // reset fov
-
-                fov = importData.fov;
-                
-                break;
-
-            case 'y':
-                xlightAngleInc++;
-                break;
-            
-            case 'h':
-                xlightAngleInc--;
-                break;
-
-            case 'g':
-                ylightAngleInc++;
-                break;
-            
-            case 'j':
-                ylightAngleInc--;
-                break;
-
-            case KEY_END:
-                loopProgram = -1;
-                break;
-
-            default:
-                // printw("\"%c\"\n", buttonInput);
-                break;
-            }
-            // continue;
-
-        initialiseProjectionMatrix(frame.height, frame.width, fov, &projectionMatrix);
-        xAngleInc = clamp(xAngleInc, -360, 360);
-        yAngleInc = clamp(yAngleInc, -360, 360);
-        zAngleInc = clamp(zAngleInc, -360, 360);
-        xAngle = (xAngleInc + i) * RAD;
-        yAngle = (yAngleInc + i) * RAD;
-        zAngle = (zAngleInc + i) * RAD;
-
-        xlightAngle = clamp(xlightAngle, -360, 360);
-        ylightAngle = clamp(ylightAngle, -360, 360);
-        zlightAngle = clamp(zlightAngle, -360, 360);
-
-        xlightAngle = (xlightAngleInc + i) * RAD;
-        ylightAngle = (ylightAngleInc + i) * RAD;
-        zlightAngle = (zlightAngleInc + i) * RAD;
-        #ifdef DEBUG_POINTS_FRAME_TIMER
-        //grab current time i.e. "starts the timing"
-        calcTimer = clock();
-        #endif
-
-        vTarget = addVector(vCamera, vLookDirection);
-
-        InitialisePointAtMatrix(&mCamera, vCamera, vTarget, vUp);
-
-        mView = quickMatrixInverse(mCamera);
-
-        // vector lightDirection = (vector){0, -0.5, 0.5, 1};
-        vector lightDirection = vLookDirection;
-        int numberOfTrianglessToRender = 0;
-        clearFrameBuffer(&frame);
-        initialiseRotateXMatrix(&rotateX, xAngle);
-        initialiseRotateYMatrix(&rotateY, yAngle);
-        initialiseRotateZMatrix(&rotateZ, zAngle);
-
-        intialiseIdentityMatrix(&world);
-
-        if(importData.rotationX)
-        {
-            world = matrixMatrixMultiply(rotateX, world);
-        }
-
-        if(importData.rotationY)
-        {
-            world = matrixMatrixMultiply(rotateY, world);
-        }
-
-        if(importData.rotationZ)
-        {
-            world = matrixMatrixMultiply(rotateZ, world);
-        }
-                
-        world = matrixMatrixMultiply(world, translation);
-
-        initialiseRotateXMatrix(&rotateLightX, xlightAngle);
-        initialiseRotateYMatrix(&rotateLightY, ylightAngle);
-        initialiseRotateZMatrix(&rotateLightZ, zlightAngle);
-
-        //3-phase thransform of r,g and b. Cycle through all colours once, regardless of max number of rotations
-        cycleMeshColour(&baseMesh, i, importData.iterations);
-
-        lightDirection = matrixVectorMultiply(lightDirection, rotateLightX);
-        lightDirection = matrixVectorMultiply(lightDirection, rotateLightY);
-        // lightDirection = matrixVectorMultiply(lightDirection, rotateLightZ);
-
-        for (int j = 0; j < baseMesh.numberOfTriangles; j++)
-        {
-            triangle projectedTriangle, transformedTriangle, viewedTriangle;
-
-            copyTriangleData(baseMesh.trianglePointer[j], &transformedTriangle);
-
-            #ifndef DEBUG_TRI_COLOUR
-            setTriangleColour(baseMesh.colour, &transformedTriangle);
-            #endif
-            
-            // rotate around axes and offest into frame
-            transformedTriangle = matrixTriangleMultiply(transformedTriangle, world);
-
-            #ifdef DEBUG_POINTS_TRI_DATA
-            printf("Transformed Triangle %d:\n",j+1);
-            printf("\tp[0]: (%lf, %lf, %lf)\n", transformedTriangle.point[0].x, transformedTriangle.point[0].y, transformedTriangle.point[0].z);
-            printf("\tp[1]: (%lf, %lf, %lf)\n", transformedTriangle.point[1].x, transformedTriangle.point[1].y, transformedTriangle.point[1].z);
-            printf("\tp[2]: (%lf, %lf, %lf)\n\n", transformedTriangle.point[2].x, transformedTriangle.point[2].y, transformedTriangle.point[2].z);
-            #endif
-
-            //calculate face normals
-            baseMesh.triangleNormalsArray[j] = calculateTriangleNormal(transformedTriangle);
-
-            //backface culling:
-            // - first, make a vector from the camera to the triangle (triangle vector - camera vector)
-            //      (any point on the triangle can be used)
-            // - second, perform dotproduct between the normal vector of triangle, with cam->tri vector.
-            double dotProductResult = dotProduct(baseMesh.triangleNormalsArray[j], (subtractVector(transformedTriangle.point[0], vCamera)));
-           
-            //cull triangles with dotProductResult less than or equal to 0 (vectors do not align)
-            if (dotProductResult <= 0)
-            {
-                continue;    
-            }
-
-            //assign the "illumination" symbol based off normal
-            illuminateTriangle(&transformedTriangle, baseMesh.triangleNormalsArray[j], lightDirection);
-
-            for (int point = 0; point < 3; point++)
-            {
-                transformedTriangle.point[point].x *= importData.characterRatio; 
-            }
-
-            copyTriangleData(transformedTriangle, &viewedTriangle);
-
-            viewedTriangle = matrixTriangleMultiply(transformedTriangle, mView);
-
-            copyTriangleData(viewedTriangle, &projectedTriangle);
-            
-            // check if any of the triangle points
-            bool too_close = false;
-            for (int point = 0; point < 3; point++)
-            {
-                if (viewedTriangle.point[point].z < 0.5)
-                {
-                    too_close = true;
-                    break;
-                }
-            }
-
-            if (too_close)
-            {
-                continue;  // Skip this triangle
-            }
-
-            //project 3D --> 2D
-            projectedTriangle = matrixTriangleMultiply(viewedTriangle, projectionMatrix);
-
-            #ifdef DEBUG_POINTS_TRI_DATA
-            printf("Projected Triangle %d:\n",j+1);
-            printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
-            printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTriangle.point[1].x, projectedTriangle.point[1].y, projectedTriangle.point[1].z);
-            printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTriangle.point[2].x, projectedTriangle.point[2].y, projectedTriangle.point[2].z);
-            printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVectorArray[j].x, normalsVectorArray[j].y, normalsVectorArray[j].z);
-            #endif
-
-            bool behind_camera = false;
-            //normalize the coordinates with the extra vector term
-            for (int point = 0; point < 3; point++)
-            {
-                // Check for vertices behind or very close to camera
-                if (projectedTriangle.point[point].w <= -0.1)
-                {
-                    behind_camera = true;
-                    break;
-                }
-            }
-
-            // skip triangle if its behind the camera
-            if (behind_camera)
-            {
-                continue;
-            }
-
-            for (int point = 0; point < 3; point++)
-            {
-                projectedTriangle.point[point] = divideVectorByScalar(projectedTriangle.point[point], projectedTriangle.point[point].w);
-            }
-            
-            #ifdef DEBUG_POINTS_TRI_DATA
-            printf("Projected and Normalised Triangle %d:\n",j+1);
-            printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
-            printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTriangle.point[1].x, projectedTriangle.point[1].y, projectedTriangle.point[1].z);
-            printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTriangle.point[2].x, projectedTriangle.point[2].y, projectedTriangle.point[2].z);
-            printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVectorArray[j].x, normalsVectorArray[j].y, normalsVectorArray[j].z);
-            #endif
-           
-            //scale points
-            scaleTriangle(&projectedTriangle, frame);
-
-            #ifdef DEBUG_POINTS_TRI_DATA
-            printf("Scaled and Projected and Normalised Triangle (+z from transformed triangle) %d:\n",j+1);
-            printf("\tp[0]: (%lf, %lf, %lf)\n", projectedTriangle.point[0].x, projectedTriangle.point[0].y, projectedTriangle.point[0].z);
-            printf("\tp[1]: (%lf, %lf, %lf)\n", projectedTriangle.point[1].x, projectedTriangle.point[1].y, projectedTriangle.point[1].z);
-            printf("\tp[2]: (%lf, %lf, %lf)\n", projectedTriangle.point[2].x, projectedTriangle.point[2].y, projectedTriangle.point[2].z);
-            printf("\tnormal: (%lf, %lf, %lf)\n\n", normalsVectorArray[j].x, normalsVectorArray[j].y, normalsVectorArray[j].z);
-            #endif
-
-            copyTriangleData(projectedTriangle,&renderBufferArray[numberOfTrianglessToRender]);
-            numberOfTrianglessToRender++;
-        }
-
-        triangle* trisToRender = malloc(numberOfTrianglessToRender * sizeof(*trisToRender));
-        
-        for (int k = 0; k < numberOfTrianglessToRender; k++)
-        {
-            copyTriangleData(renderBufferArray[k],&trisToRender[k]);
-        }
-
-        for (int tri = 0; tri < numberOfTrianglessToRender; tri++)
-        {   
-            #ifdef DEBUG_POINTS_RENDER
-            printf("\nLoading... %d%% complete:\n",(int)(((double)tri/(double)numberOfTrianglessToRender)*100));
-            printf("Drawing (%d/%d)\n",tri+1,numberOfTrianglessToRender);
-            #endif
-
-            drawTriangleOnFrame(trisToRender[tri], &frame, importData.rasteriseBool);
-
-            #ifdef DEBUG_POINTS_RENDER_INDIVIDUAL
-            displayFrameBuffer3(frame, oldFrame);
-            // printf("\e[%d;1H",frame.height/2+1);
-            // printf("\nTriangle number %d done\n", tri);
-            // printf("\nTriangle frame area %d done\n", trisToRender[tri].point[0]);
-            frameDelay(5);
-            #endif
-        }
-
-        #ifdef DEBUG_POINTS_RENDER
-        printf("\nAngle: %lf\n",(angle*(180/PI)));
-        printf("Final Output:\n");
-        #endif
-
-        #ifdef DEBUG_POINTS_FRAME_TIMER
-        //finds diff between previous time and current time, i.e. "measure time taken"
-        calcTimer = clock() - calcTimer;
-        accumulatedCalcTime += (calcTimer);
-
-        clock_t drawTimer;
-        drawTimer = clock();
-        #endif
-
-        // last draw step before displaying
-        drawFrameBorder(&frame);
-
-        #ifdef DEBUG_POINTS_NO_CLEARSCREEN
-        // for (int newlines = 0; newlines <= importData.screenHeightImport + 2; newlines++)
-        for (int newlines = 0; newlines <= importData.screenHeightImport + 2; newlines++)
-        {
-            printf("\n");
-        }
-        fflush(stdout);
-        #endif
-
-        displayFrameBuffer3(frame, oldFrame);
-        // displayDepthBuffer(frame, oldFrame);
-
-        fflush(stdout);
-        #ifdef DEBUG_POINTS_FRAME_TIMER
-        framesRendered++;
-        drawTimer = clock() - drawTimer;
-        accumulatedDrawTime += drawTimer;
-
-        printf("\e7\e[1;1H\e[48;5;255m\e[38;5;9m\e[4m"
-        "Frame: %3d / %3d\t"
-        "Calc Time: %3.3lfms\t"
-        "Running Avg: %3.3lfms\t"
-        "Draw Time: %3.3lfms\t"
-        "Running Avg: %3.3lfms"
-        "\e8\e[m",
-        i,
-        importData.iterations, 
-        ((double)calcTimer / CLOCKS_PER_SEC) * 1000,
-        ((double)(accumulatedCalcTime / (framesRendered)) / CLOCKS_PER_SEC) * 1000,
-        ((double)drawTimer / CLOCKS_PER_SEC) * 1000,
-        ((double)(accumulatedDrawTime  / (framesRendered)) / CLOCKS_PER_SEC) * 1000);
-        fflush(stdout);
-        frameDrawTimes[i] = (((double)drawTimer / CLOCKS_PER_SEC) * 1000);
-        #endif
-        //frame becomes oldFrame
-        copyFrameBufferData(frame, &oldFrame);
-        clearFrameBuffer(&frame);
-
-        #ifdef DEBUG_POINTS_ZBUFFER
-        // displayDepthBuffer(&frame);
-        #endif
-        frameDelay(importData.framesPerSecond);
-        
-        free(trisToRender);
-    } while(loopProgram > 0);
-    //escape code sequence for returning cursor below drawn frame, and replacing it to standard cursor.
-    printf("\n\e[m\e[?25h\e[?12h");
-    fflush(stdout);
-    free(a);
-    free(baseMesh.triangleNormalsArray);
-    free(baseMesh.trianglePointer);
-    free(renderBufferArray);
-    deleteFrameBuffer(&frame);
-    deleteFrameBuffer(&oldFrame);
-    cursesEnd();
-    return 0;
+    };
+
+    scene->sphereArray[0] = sphereRed;
+    scene->sphereArray[1] = sphereBlue;
+    scene->sphereArray[2] = sphereGreen;
+    scene->sphereArray[3] = sphereYellow;   
+    scene->lightArray[0] = pointLight;
+    scene->lightArray[1] = ambientLight;
+    scene->lightArray[2] = directionalLight;
 }
 
-int importJSON(const char* file_path, renderConfig* importData_struct)
+void deleteScene(scene* scene)
 {
-    // Open the file for reading
-    FILE* file = fopen(file_path, "r");
-    if (file == NULL) {
-        perror("Error opening file");
-        return 1;
-    }
-
-    // Determine the size of the file
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    // Read the content of the file into a buffer
-    char* json_buffer = (char* )malloc(file_size + 1);
-    fread(json_buffer, 1, file_size, file);
-    fclose(file);
-
-    // Null-terminate the buffer
-    json_buffer[file_size] = '\0';
-
-    // Parse the JSON from the buffer
-    cJSON* root = cJSON_Parse(json_buffer);
-
-    if (root == NULL) {
-        printf("Error parsing JSON: %s\n", cJSON_GetErrorPtr());
-        free(json_buffer);
-        return 1;
-    }
-
-    // Access values in the JSON object    
-    cJSON* distanceJSON = cJSON_GetObjectItemCaseSensitive(root, "distance");
-    cJSON* fovJSON = cJSON_GetObjectItemCaseSensitive(root, "fov");
-    cJSON* objFileJOSN = cJSON_GetObjectItemCaseSensitive(root, "objFile");
-    cJSON* iterationsJSON = cJSON_GetObjectItemCaseSensitive(root, "iterations");
-    cJSON* startFrameJSON = cJSON_GetObjectItemCaseSensitive(root, "startFrame");
-    cJSON* rotateXJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateX");
-    cJSON* rotateYJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateY");
-    cJSON* rotateZJSON = cJSON_GetObjectItemCaseSensitive(root, "rotateZ");
-    cJSON* DisplayColumnsJSON = cJSON_GetObjectItemCaseSensitive(root, "DisplayColumns");
-    cJSON* DisplayRowsJSON = cJSON_GetObjectItemCaseSensitive(root, "DisplayRows");
-    cJSON* rasteriseBoolJSON = cJSON_GetObjectItemCaseSensitive(root, "rasterise");
-    cJSON* framesperSecondJSON = cJSON_GetObjectItemCaseSensitive(root, "FPSTarget");
-    cJSON* characterRatioJSON = cJSON_GetObjectItemCaseSensitive(root, "characterRatio");
-
-    if(cJSON_IsNumber(distanceJSON))
-    {
-        importData_struct->distance = distanceJSON->valuedouble;
-    }
-
-    if(cJSON_IsNumber(fovJSON))
-    {
-        importData_struct->fov = fovJSON->valuedouble;
-    }
-
-    if(cJSON_IsNumber(iterationsJSON) & cJSON_IsNumber(startFrameJSON))
-    {
-        importData_struct->iterations = iterationsJSON->valueint;
-        importData_struct->startFrame = startFrameJSON->valueint;
-    }
-
-    if(cJSON_IsBool(rotateXJSON) & cJSON_IsBool(rotateYJSON) & cJSON_IsBool(rotateZJSON))
-    {
-        importData_struct->rotationX = rotateXJSON->valueint;
-        importData_struct->rotationY = rotateYJSON->valueint;
-        importData_struct->rotationZ = rotateZJSON->valueint;
-    }
-
-    if(cJSON_IsString(objFileJOSN))
-    {
-        strncpy(importData_struct->objPathBuffer,objFileJOSN->valuestring,sizeof(importData_struct->objPathBuffer) -1);
-        importData_struct->objPathBuffer[sizeof(importData_struct->objPathBuffer) -1] = '\0';
-    }
-
-    if(cJSON_IsNumber(DisplayColumnsJSON) & cJSON_IsNumber(DisplayRowsJSON))
-    {
-        importData_struct->frameColumnsImport = DisplayColumnsJSON->valueint;
-        importData_struct->frameRowsImport = DisplayRowsJSON->valueint;
-    }
-
-    if (cJSON_IsBool(rasteriseBoolJSON))
-    {
-        importData_struct->rasteriseBool = rasteriseBoolJSON->valueint;
-    }
-
-    if (cJSON_IsNumber(framesperSecondJSON))
-    {
-        importData_struct->framesPerSecond = framesperSecondJSON->valuedouble;
-    }
-
-    if (cJSON_IsNumber(characterRatioJSON))
-    {
-        importData_struct->characterRatio = characterRatioJSON->valuedouble;
-    }
-    
-    // Don't forget to free the cJSON object and the buffer when you're done with them
-    cJSON_Delete(root);
-    free(json_buffer);
-
-    return 0;
-}
-
-mesh importMeshFromOBJFile (char*  pathToFile) 
-{
-    FILE* obj = fopen(pathToFile, "r");
-
-    mesh newMesh;
-    newMesh.numberOfTriangles = 0;
-
-    if (NULL == obj) 
-    {
-        printf("Error: .OBJ file not found\n");
-        printf("Reminder: run the program from top level \"Cube/\" dir\n");
-        return newMesh;
-    }
-
-    char line[MAX_LINE_LENGTH];
-    int vertices = 0;
-    int faces = 0;
-    vector pointCoordinatess;
-    initialiseVector(&pointCoordinatess);
-    #ifdef AVERAGE_COORDS
-    vector average;
-    initialiseVector(&average);
-    vector runningTotal;
-    initialiseVector(&runningTotal);
-    #endif
-    int p0, p1, p2;
-    
-    //counts faces and verticies.
-    while (fgets(line, sizeof(line), obj) != NULL) 
-    {
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            vertices++;
-        }
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            faces++;
-        }
-    }
-
-    newMesh.numberOfTriangles = faces;
-    newMesh.numberOfVertices = vertices;
-
-    vector (*vectorArray) = malloc(newMesh.numberOfVertices * sizeof(vector)); //dynamically allocates an array of vectors, based off the number verticies.
-
-    newMesh.trianglePointer = (triangle*) malloc(newMesh.numberOfTriangles * sizeof(triangle)); //dynamically allocates memory for the number of triangles
-
-    rewind(obj);
-    char a[20];
-    char b[20];
-    char c[20];
-    char junk[MAX_LINE_LENGTH];
-    int vertexCount = 0;
-    int faceCount = 0;
-    while (fgets(line, sizeof(line), obj) != NULL)
-    {
-        //reads all lines of obj that start with "v " into the dynamically assigned array of vectors.
-        if (line[0] == 'v' && line[1] == ' ') 
-        {
-            sscanf(line,"v %lf %lf %lf", &pointCoordinatess.x, &pointCoordinatess.y, &pointCoordinatess.z);
-
-            vectorArray[vertexCount] = pointCoordinatess;
-
-            vertexCount++;
-            #ifdef AVERAGE_COORDS
-            runningTotal = addVector(runningTotal, pointCoordinatess);
-            #endif
-        }
-        //reads all lines of obj that start with "f ".
-        //each int after 'f ' represents an index (starting at 1), of the vector array of verticies.
-        else if (line[0] == 'f' && line[1] == ' ') 
-        {
-            sscanf(line,"f %s %s %s", a, b, c);
-
-            //handle OBJs withe "f 00/00/00" format
-            sscanf(a, "%d/%s", &p0, junk);
-            sscanf(b, "%d/%s", &p1, junk);
-            sscanf(c, "%d/%s", &p2, junk);
-
-            newMesh.trianglePointer[faceCount].point[0] = vectorArray[(p0-1)];
-            newMesh.trianglePointer[faceCount].point[1] = vectorArray[(p1-1)];
-            newMesh.trianglePointer[faceCount].point[2] = vectorArray[(p2-1)];
-
-            faceCount++;
-        }
-    }
-
-    #ifdef DEBUG_POINTS_IMPORT
-    //Handy debug for seeing if points were imported properly
-    for (int i = 0; i < vertexCount; i++) 
-    {
-          printf("%d: %lf, %lf, %lf\r\n", i, vectorArray[i].x, vectorArray[i].y, vectorArray[i].z);
-    }
-    #endif
-
-    #ifdef AVERAGE_COORDS
-    //averages the coords so that the object appears in the center of the frame
-    average = divideVectorByScalar(runningTotal, vertexCount);
-
-    for (int j = 0; j < faceCount; j++) 
-    {
-        for (int i = 0; i < 3; i++) 
-        {
-            newMesh.trianglePointer[j].point[i] = subtractVector(newMesh.trianglePointer[j].point[i], average);
-        }
-    }
-    #endif
-
-    free(vectorArray);
-    fclose(obj);
-
-    return newMesh;
+    free(scene->lightArray);
+    free(scene->sphereArray);
 }

@@ -21,16 +21,33 @@ typedef struct
     double x, y, z, w;
 }vector;
 
+typedef enum
+{
+    ambient = 0,
+    point,
+    directional,
+}lightEnum;
+
+typedef struct
+{
+    lightEnum lightType;
+    double intensity;
+    vector pos_or_dir;
+}light;
+
 typedef struct 
 {
-    vector* center;
+    vector center;
     int radius;
     int colour[3];
+    double specular;
 }sphere;
 
 typedef struct
 {
     sphere* sphereArray;
+    light* lightArray;
+    int lightCount;
     int sphereCount;
 }scene;
 
@@ -133,11 +150,15 @@ void putPixel(frameBuffer* frame, int x, int y, int color[3]);
 
 vector CanvasToViewport(frameBuffer canvas, int x, int y);
 
-void TraceRay(int out_colour[3], scene scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max);
+void TraceRay(int out_colour[3], scene* scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max);
 
-void IntersectRaySphere(double* t1, double* t2, vector ray_origin_vector, vector ray_direction_vector, sphere test_sphere);
+void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max);
 
-void displayDepthBuffer(frameBuffer frame, frameBuffer oldFrame);
+void IntersectRaySphere(double* t1, double* t2, vector ray_origin_vector, vector ray_direction_vector, sphere* test_sphere);
+
+double computeLighting(scene* scene, vector point_to_compute, vector normal_to_point, vector view_vector, double specular_exponent);
+
+void displayDepthBuffer(frameBuffer frame);
 
 int getConvertedDepthValue(frameBuffer frame, int x, int y);
 
