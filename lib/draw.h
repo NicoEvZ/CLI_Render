@@ -38,7 +38,7 @@ typedef struct
 typedef struct 
 {
     vector center;
-    int radius;
+    double radius;
     int colour[3];
     double specular;
 }sphere;

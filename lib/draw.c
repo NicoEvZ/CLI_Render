@@ -576,7 +576,7 @@ void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scen
 
 void IntersectRaySphere(double* t1, double* t2, vector rayOriginVector, vector rayDirectionVector, sphere* test_sphere)
 {
-    int r = test_sphere->radius;
+    double r = test_sphere->radius;
     vector CO = subtractVector(rayOriginVector,test_sphere->center);
 
     double a = dotProduct(rayDirectionVector,rayDirectionVector);

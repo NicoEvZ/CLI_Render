@@ -74,7 +74,7 @@ void fillScene(scene* scene)
         .colour[0] = 255,
         .colour[1] = 0,
         .colour[2] = 0,
-        .radius = 1,
+        .radius = 1.0,
         .specular = 500.0,
     };
 
@@ -88,7 +88,7 @@ void fillScene(scene* scene)
         .colour[0] = 0,
         .colour[1] = 0,
         .colour[2] = 255,
-        .radius = 1,
+        .radius = 1.0,
         .specular = 500.0,
     };
 
@@ -102,7 +102,7 @@ void fillScene(scene* scene)
         .colour[0] = 0,
         .colour[1] = 255,
         .colour[2] = 0,
-        .radius = 1,
+        .radius = 1.0,
         .specular = 10.0,
     };
 
@@ -116,7 +116,7 @@ void fillScene(scene* scene)
         .colour[0] = 255,
         .colour[1] = 255,
         .colour[2] = 0,
-        .radius = 5000,
+        .radius = 5000.0,
         .specular = 1000.0,
     };
 
