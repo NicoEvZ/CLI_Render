@@ -546,6 +546,16 @@ void TraceRay(int out_colour[3], scene* scene, vector rayOriginVector, vector ra
 
 void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max)
 {
+    if ((*closest_sphere != NULL))
+    {
+        printf("closest_sphere not set up correctly. Must be a NULL pointer\r\n");
+        getchar();
+    }
+    if (*closest_t != INFINITY)
+    {
+        printf("closest_t not set up correctly. Must be = INFINITY\r\n");
+        getchar();
+    }
     double t1, t2;
     for (int i = 0; i < scene->sphereCount; i++)
     {
@@ -616,7 +626,7 @@ double computeLighting(scene* scene, vector point_to_compute, vector normal_to_p
             }
 
             //shadow check
-            double shadow_t = 0.0;
+            double shadow_t = INFINITY;
             sphere* shadow_sphere = NULL;
             ClosestIntersection(&shadow_sphere, &shadow_t, scene, point_to_compute, L, 0.001, t_max);
             if (shadow_sphere != NULL)
