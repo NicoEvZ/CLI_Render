@@ -41,6 +41,7 @@ typedef struct
     double radius;
     int colour[3];
     double specular;
+    double reflective;
 }sphere;
 
 typedef struct
@@ -150,7 +151,7 @@ void putPixel(frameBuffer* frame, int x, int y, int color[3]);
 
 vector CanvasToViewport(frameBuffer canvas, int x, int y);
 
-void TraceRay(int out_colour[3], scene* scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max);
+void TraceRay(int out_colour[3], scene* scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max, int recursionDepth);
 
 void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max);
 
@@ -197,6 +198,8 @@ vector CrossProduct(vector vector1, vector vector2);
 double vectorLength(vector inputVector);
 
 vector normaliseVector(vector inputVector);
+
+vector reflectRay(vector incomingRay, vector normal);
 
 double dotProduct(vector vector1, vector vector2);
 

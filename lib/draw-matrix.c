@@ -91,6 +91,11 @@ vector normaliseVector(vector inputVector)
     return returnVector;
 }
 
+vector reflectRay(vector incomingRay, vector normal)
+{
+    return subtractVector(multiplyVectorByScalar(normal, 2.0 * dotProduct(normal,incomingRay)), incomingRay);
+}
+
 double dotProduct(vector vector1, vector vector2)
 {
     double output = (vector1.x * vector2.x) +

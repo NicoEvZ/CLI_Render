@@ -10,7 +10,7 @@
 
 int main(void){
     cursesSetup();
-
+    clock_t calcTimer = clock();
     renderConfig ray_config;
     ray_config.frameColumnsImport = 160;
     ray_config.frameRowsImport = 70;
@@ -26,20 +26,24 @@ int main(void){
     int colour[3] = {0,0,0};
     initialiseVector(&origin);
     initialiseVector(&D);
+    int recursionDepth = 3;
 
     for (int x = -(canvas.width/2); x < (canvas.width/2); x++)
     {
         for (int y = -(canvas.height/2); y < (canvas.height/2); y++)
         {
             D = CanvasToViewport(canvas, x, y);
-            TraceRay(colour, &scene, origin, D, 1, INFINITY);
+            TraceRay(colour, &scene, origin, D, 1, INFINITY,recursionDepth);
             putPixel(&canvas, x, y, colour);
         }
     }
+    calcTimer = clock() - calcTimer;
+    double calcTime = ((double)calcTimer/ CLOCKS_PER_SEC ) * 1000;
 
     //display what is stored on the canvas
     displayFrameBuffer3(canvas,old_canvas);
     
+    printf("\n\rCalculation time: %3.3lfms",calcTime);
     //hold it, so the person can actually see it
     getchar();
 
@@ -76,6 +80,7 @@ void fillScene(scene* scene)
         .colour[2] = 0,
         .radius = 1.0,
         .specular = 500.0,
+        .reflective = 0.2
     };
 
     sphere sphereBlue = (sphere){
@@ -90,6 +95,7 @@ void fillScene(scene* scene)
         .colour[2] = 255,
         .radius = 1.0,
         .specular = 500.0,
+        .reflective = 0.3
     };
 
     sphere sphereGreen = (sphere){
@@ -104,6 +110,7 @@ void fillScene(scene* scene)
         .colour[2] = 0,
         .radius = 1.0,
         .specular = 10.0,
+        .reflective = 0.4
     };
 
     sphere sphereYellow = (sphere){
@@ -118,6 +125,7 @@ void fillScene(scene* scene)
         .colour[2] = 0,
         .radius = 5000.0,
         .specular = 1000.0,
+        .reflective = 0.5
     };
 
     light ambientLight = (light){

@@ -519,7 +519,7 @@ vector CanvasToViewport(frameBuffer canvas, int x, int y)
     return (vector){(double)x*((double)VIEWPORT_WIDTH/(double)canvas.width),(double)y*((double)VIEWPORT_HEIGHT/(double)canvas.height),(double)VIEWPORT_DEPTH,1.0};
 }
 
-void TraceRay(int out_colour[3], scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max)
+void TraceRay(int out_colour[3], scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max, int recursionDepth)
 {
     double closest_t = INFINITY;
     sphere* closest_sphere = NULL;
@@ -528,20 +528,37 @@ void TraceRay(int out_colour[3], scene* scene, vector rayOriginVector, vector ra
     {
         for (int channel = 0; channel < 3; channel++)
         {
-            out_colour[channel] = 255;
+            out_colour[channel] = 0;
         }
         return; 
     }
     
+    // compute local colour
     vector point = addVector(rayOriginVector, (multiplyVectorByScalar(rayDirectionVector, closest_t)));
-    vector normal;
     vector viewDirection = multiplyVectorByScalar(rayDirectionVector, -1.0);
+    vector normal = normaliseVector(subtractVector(point, closest_sphere->center));
     for (int channel = 0; channel < 3; channel++)
     {
-        normal = subtractVector(point, closest_sphere->center);
-        normal = normaliseVector(normal);
         out_colour[channel] = closest_sphere->colour[channel] * computeLighting(scene,point,normal,viewDirection,closest_sphere->specular);
     }
+
+    // check for recursion limit or non-reflective object.
+    double reflective = closest_sphere->reflective;
+    if (recursionDepth <= 0 || reflective <= 0)
+    {
+        return;
+    }
+
+    vector reflectedRay = reflectRay(viewDirection,normal);
+    int reflectedColour[3];
+    TraceRay(reflectedColour,scene,point,reflectedRay,0.001,INFINITY,recursionDepth-1);
+
+    for (int channel = 0; channel < 3; channel++)
+    {
+        out_colour[channel] = out_colour[channel]*(1 - closest_sphere->reflective) + reflectedColour[channel]*closest_sphere->reflective;
+    }
+
+
 }
 
 void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max)
@@ -646,9 +663,7 @@ double computeLighting(scene* scene, vector point_to_compute, vector normal_to_p
             if (specular_exponent != -1.0)
             {
                 // reflection_vector = 2*N*dot(N,L)-L
-                vector two_N_dot_L = multiplyVectorByScalar(normal_to_point, 2.0 * n_dot_l);
-                // reflection_vector = subtractVector(multiplyVectorByScalar(multiplyVectorByScalar(normal_to_point,2.0), dotProduct(normal_to_point, L)),L);
-                reflection_vector = subtractVector(two_N_dot_L, L);
+                reflection_vector = reflectRay(L,normal_to_point);
                 double r_dot_v = dotProduct(reflection_vector, view_vector);
                 if (r_dot_v > 0)
                 {
