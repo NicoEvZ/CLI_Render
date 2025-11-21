@@ -108,6 +108,7 @@ typedef struct
 }matrix4x4;
 
 //draw.c:
+void debugPrintPixelandColour(int x, int y, int colour[3]);
 
 void copyTriangleData(triangle fromTriangle, triangle* toTriagle);
 
@@ -149,7 +150,7 @@ void drawInFrame(frameBuffer* frame, int x, int y, visual symbol);
 
 void putPixel(frameBuffer* frame, int x, int y, int color[3]);
 
-vector CanvasToViewport(frameBuffer canvas, int x, int y);
+vector CanvasToViewport(frameBuffer canvas, double x, double y);
 
 void TraceRay(int out_colour[3], scene* scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max, int recursionDepth);
 

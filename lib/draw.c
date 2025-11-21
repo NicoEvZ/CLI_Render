@@ -418,7 +418,7 @@ void drawFrameBorder(frameBuffer* frame)
 void initialiseFrameBuffer(frameBuffer* frame, renderConfig importData)
 {
     frame->width = importData.frameColumnsImport;
-    frame->height = importData.frameRowsImport*2;
+    frame->height = importData.frameRowsImport;
 
 
     frame->depthMinimum = 0;
@@ -497,7 +497,7 @@ void drawInFrame(frameBuffer* frame, int x, int y, visual symbol)
     }
 }
 
-void putPixel(frameBuffer* canvas, int x, int y, int color[3])
+void putPixel(frameBuffer* canvas, int x, int y, int colour[3])
 {
     // clamp input canvas coords
     x = clamp(x, -(canvas->width/2), (canvas->width/2)-1);
@@ -505,16 +505,18 @@ void putPixel(frameBuffer* canvas, int x, int y, int color[3])
 
     // convert from canvas coords to screen coords
     int screen_x = clamp(((canvas->width/2) + x),0,canvas->width-1);
-    int screen_y = clamp(((canvas->height/2) + y),0,canvas->height-1);
+    int screen_y = clamp(((canvas->height/2) - y)-1,0,canvas->height-1);
+
+    // debugPrintPixelandColour(screen_x,screen_y,colour);
     
     // per channel, copy the input colour to the position in the frame colour buffer (screen)
     for (int i = 0; i < 3; i++)
     {
-        canvas->colourBuffer[screen_x][screen_y][i]  = clamp(color[i], 0, 255);
+        canvas->colourBuffer[screen_x][screen_y][i]  = clamp(colour[i], 0, 255);
     }
 }
 
-vector CanvasToViewport(frameBuffer canvas, int x, int y)
+vector CanvasToViewport(frameBuffer canvas, double x, double y)
 {
     return (vector){(double)x*((double)VIEWPORT_WIDTH/(double)canvas.width),(double)y*((double)VIEWPORT_HEIGHT/(double)canvas.height),(double)VIEWPORT_DEPTH,1.0};
 }
@@ -673,6 +675,11 @@ double computeLighting(scene* scene, vector point_to_compute, vector normal_to_p
         }
     };
     return i;
+}
+
+void debugPrintPixelandColour(int x, int y, int colour[3])
+{
+    printf("x:%d,y:%d,R:%d,G:%d,B:%d\n",x,y,colour[0],colour[1],colour[2]);
 }
 
 void displayDepthBuffer(frameBuffer frame)

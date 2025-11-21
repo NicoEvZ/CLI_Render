@@ -9,48 +9,92 @@
 #include "runner.h"
 
 int main(void){
-    cursesSetup();
+    // cursesSetup();
     clock_t calcTimer = clock();
     renderConfig ray_config;
-    ray_config.frameColumnsImport = 160;
-    ray_config.frameRowsImport = 70;
-    frameBuffer canvas, old_canvas;
+    ray_config.frameColumnsImport = 600; //width
+    ray_config.frameRowsImport = 600; //height
+    frameBuffer canvas;
     initialiseFrameBuffer(&canvas, ray_config);
-    initialiseFrameBuffer(&old_canvas, ray_config);
 
     scene scene;
     fillScene(&scene);
 
     vector origin;
     vector D;
-    int colour[3] = {0,0,0};
     initialiseVector(&origin);
     initialiseVector(&D);
     int recursionDepth = 3;
+    bool subSample = true;
+
+    int sampleSize = 4;
+    double spacing = 1.0/ ((double)sampleSize - 1.0);
 
     for (int x = -(canvas.width/2); x < (canvas.width/2); x++)
     {
         for (int y = -(canvas.height/2); y < (canvas.height/2); y++)
-        {
-            D = CanvasToViewport(canvas, x, y);
-            TraceRay(colour, &scene, origin, D, 1, INFINITY,recursionDepth);
-            putPixel(&canvas, x, y, colour);
+        {   
+            int colour[3] = {0,0,0};
+            if (subSample)
+            {
+                
+                int colour2[3] = {0,0,0};
+                int *colourArray = malloc(sizeof(colour)*sampleSize*sampleSize);
+                
+                
+                for (int i = 0; i < sampleSize; i++)
+                {
+                    for (int j = 0; j < sampleSize; j++)
+                    {
+                        double x1 = (double)x + i * spacing;
+                        double y1 = (double)y + j * spacing;
+
+                        D = CanvasToViewport(canvas, x1, y1);
+                        TraceRay(colour, &scene, origin, D, 1, INFINITY,recursionDepth);
+
+                        colourArray[j*3 + i] = colour[0];
+                        colourArray[j*3 + i + 1] = colour[1];
+                        colourArray[j*3 + i + 2] = colour[2];
+
+                    }
+                }
+                for (int c = 0; c < sampleSize*sampleSize*3; c+=3)
+                {
+                    colour2[0] += (colourArray[c]*colourArray[c]);
+                    colour2[1] += (colourArray[c+1]*colourArray[c+1]);
+                    colour2[2] += (colourArray[c+2]*colourArray[c+2]);
+                }
+                colour2[0] = (int)sqrt(((double)colour2[0]/(double)(sampleSize*sampleSize)));
+                colour2[1] = (int)sqrt(((double)colour2[1]/(double)(sampleSize*sampleSize)));
+                colour2[2] = (int)sqrt(((double)colour2[2]/(double)(sampleSize*sampleSize)));
+                putPixel(&canvas, x, y, colour2);
+            }
+            else
+            {
+                D = CanvasToViewport(canvas, x, y);
+                TraceRay(colour, &scene, origin, D, 1, INFINITY,recursionDepth);
+                putPixel(&canvas, x, y, colour);
+            }
         }
     }
     calcTimer = clock() - calcTimer;
     double calcTime = ((double)calcTimer/ CLOCKS_PER_SEC ) * 1000;
+    printf("Calculation time: %3.3lfms\n",calcTime);
 
     //display what is stored on the canvas
-    displayFrameBuffer3(canvas,old_canvas);
-    
-    printf("\n\rCalculation time: %3.3lfms",calcTime);
-    //hold it, so the person can actually see it
-    getchar();
+    // displayFrameBuffer3(canvas,old_canvas);
+    clock_t genTimer = clock();
+    char *output_path = "output.ppm"; 
+    generatePPMImage(&canvas, output_path);
+    genTimer = clock() - genTimer;
+    double genTime = ((double)genTimer/CLOCKS_PER_SEC) * 1000;
+    printf("Generation time: %3.3fms\n",genTime);
+    // //hold it, so the person can actually see it
+    // getchar();
 
     deleteScene(&scene);
     deleteFrameBuffer(&canvas);
-    deleteFrameBuffer(&old_canvas);
-    cursesEnd();
+    // cursesEnd();
     return 0;
 }
 
@@ -169,4 +213,27 @@ void deleteScene(scene* scene)
 {
     free(scene->lightArray);
     free(scene->sphereArray);
+}
+
+void generatePPMImage(frameBuffer *frameBuffer, char *output_path)
+{
+    FILE *ppm = fopen(output_path,"wb");
+    int width = frameBuffer->width;
+    int height = frameBuffer->height;
+    fprintf(ppm,"P6\n");
+    fprintf(ppm,"%d %d\n", width, height);
+    fprintf(ppm,"255\n");
+
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            fputc(frameBuffer->colourBuffer[x][y][0],ppm);
+            fputc(frameBuffer->colourBuffer[x][y][1],ppm);
+            fputc(frameBuffer->colourBuffer[x][y][2],ppm);
+        }
+        
+    }
+    fclose(ppm);
+    printf("Generated %s\n",output_path);
 }
