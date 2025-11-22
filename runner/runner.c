@@ -52,21 +52,46 @@ int main(void){
                         D = CanvasToViewport(canvas, x1, y1);
                         TraceRay(colour, &scene, origin, D, 1, INFINITY,recursionDepth);
 
-                        colourArray[j*3 + i] = colour[0];
-                        colourArray[j*3 + i + 1] = colour[1];
-                        colourArray[j*3 + i + 2] = colour[2];
+                        colourArray[j*3 + i*sampleSize*3] = colour[0];
+                        colourArray[j*3 + i*sampleSize*3 + 1] = colour[1];
+                        colourArray[j*3 + i*sampleSize*3 + 2] = colour[2];
 
                     }
                 }
+                double R;
+                double G;
+                double B;
                 for (int c = 0; c < sampleSize*sampleSize*3; c+=3)
                 {
-                    colour2[0] += (colourArray[c]*colourArray[c]);
-                    colour2[1] += (colourArray[c+1]*colourArray[c+1]);
-                    colour2[2] += (colourArray[c+2]*colourArray[c+2]);
+                    // normalise to 0-1 scale norm = (x/255)
+                    // inverse gamma correction lin = sqrt(norm)
+                    // accumulate all values for each channel lin_tot = lin_1 + lin_2...
+                    R += sqrt((double)colourArray[c]/255.0);
+                    G += sqrt((double)colourArray[c+1]/255.0);
+                    B += sqrt((double)colourArray[c+2]/255.0);
+
+                    // colour2[0] += (colourArray[c]);
+                    // colour2[1] += (colourArray[c+1]);
+                    // colour2[2] += (colourArray[c+2]);
                 }
-                colour2[0] = (int)sqrt(((double)colour2[0]/(double)(sampleSize*sampleSize)));
-                colour2[1] = (int)sqrt(((double)colour2[1]/(double)(sampleSize*sampleSize)));
-                colour2[2] = (int)sqrt(((double)colour2[2]/(double)(sampleSize*sampleSize)));
+                
+                // take average of linear values lin_avg = lin_tot/n_lin
+                R = R/(double)(sampleSize*sampleSize);
+                G = G/(double)(sampleSize*sampleSize);
+                B = B/(double)(sampleSize*sampleSize);
+
+                // apply gamma correction (lin_avg)^2
+                R = (R*R);
+                G = (G*G);
+                B = (B*B);
+
+                // convert back to 0-255 scale norm_avg*255
+                colour2[0] = (int)(R*255);
+                colour2[1] = (int)(G*255);
+                colour2[2] = (int)(B*255);
+                // colour2[0] = (int)((double)colour2[0]/(double)(sampleSize*sampleSize*3));
+                // colour2[1] = (int)((double)colour2[1]/(double)(sampleSize*sampleSize*3));
+                // colour2[2] = (int)((double)colour2[2]/(double)(sampleSize*sampleSize*3));
                 putPixel(&canvas, x, y, colour2);
             }
             else
