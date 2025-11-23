@@ -682,6 +682,38 @@ void debugPrintPixelandColour(int x, int y, int colour[3])
     printf("x:%d,y:%d,R:%d,G:%d,B:%d\n",x,y,colour[0],colour[1],colour[2]);
 }
 
+void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements)
+{
+    double R;
+    double G;
+    double B;
+    int n_colours = n_arrayElements/3;
+    for (int c = 0; c < n_arrayElements; c+=3)
+    {
+        // normalise to 0-1 scale norm = (x/255)
+        // inverse gamma correction lin = sqrt(norm)
+        // accumulate all values for each channel lin_tot = lin_1 + lin_2...
+        R += sqrt((double)arrayOfColours[c]/255.0);
+        G += sqrt((double)arrayOfColours[c+1]/255.0);
+        B += sqrt((double)arrayOfColours[c+2]/255.0);
+    }
+    
+    // take average of linear values lin_avg = lin_tot/n_lin
+    R = R/(double)(n_colours);
+    G = G/(double)(n_colours);
+    B = B/(double)(n_colours);
+
+    // apply gamma correction (lin_avg)^2
+    R = (R*R);
+    G = (G*G);
+    B = (B*B);
+
+    // convert back to 0-255 scale norm_avg*255
+    outColour[0] = (int)(R*255);
+    outColour[1] = (int)(G*255);
+    outColour[2] = (int)(B*255);
+}
+
 void displayDepthBuffer(frameBuffer frame)
 {   
     int characterColumn = 1;

@@ -110,6 +110,8 @@ typedef struct
 //draw.c:
 void debugPrintPixelandColour(int x, int y, int colour[3]);
 
+void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements);
+
 void copyTriangleData(triangle fromTriangle, triangle* toTriagle);
 
 void copyFrameBufferData(frameBuffer fromFrame, frameBuffer* toFrame);

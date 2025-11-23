@@ -28,6 +28,7 @@ int main(void){
     bool subSample = true;
 
     int sampleSize = 4;
+    int n_totalChannels = sampleSize*sampleSize*3;
     double spacing = 1.0/ ((double)sampleSize - 1.0);
 
     for (int x = -(canvas.width/2); x < (canvas.width/2); x++)
@@ -39,8 +40,7 @@ int main(void){
             {
                 
                 int colour2[3] = {0,0,0};
-                int *colourArray = malloc(sizeof(colour)*sampleSize*sampleSize);
-                
+                int *colourArray = (int *)malloc(sizeof(int)*(n_totalChannels));  
                 
                 for (int i = 0; i < sampleSize; i++)
                 {
@@ -52,47 +52,17 @@ int main(void){
                         D = CanvasToViewport(canvas, x1, y1);
                         TraceRay(colour, &scene, origin, D, 1, INFINITY,recursionDepth);
 
-                        colourArray[j*3 + i*sampleSize*3] = colour[0];
-                        colourArray[j*3 + i*sampleSize*3 + 1] = colour[1];
-                        colourArray[j*3 + i*sampleSize*3 + 2] = colour[2];
+                        int arrayIndex = j*3 + i*sampleSize*3;
+
+                        colourArray[arrayIndex] = colour[0];
+                        colourArray[arrayIndex + 1] = colour[1];
+                        colourArray[arrayIndex + 2] = colour[2];
 
                     }
                 }
-                double R;
-                double G;
-                double B;
-                for (int c = 0; c < sampleSize*sampleSize*3; c+=3)
-                {
-                    // normalise to 0-1 scale norm = (x/255)
-                    // inverse gamma correction lin = sqrt(norm)
-                    // accumulate all values for each channel lin_tot = lin_1 + lin_2...
-                    R += sqrt((double)colourArray[c]/255.0);
-                    G += sqrt((double)colourArray[c+1]/255.0);
-                    B += sqrt((double)colourArray[c+2]/255.0);
-
-                    // colour2[0] += (colourArray[c]);
-                    // colour2[1] += (colourArray[c+1]);
-                    // colour2[2] += (colourArray[c+2]);
-                }
-                
-                // take average of linear values lin_avg = lin_tot/n_lin
-                R = R/(double)(sampleSize*sampleSize);
-                G = G/(double)(sampleSize*sampleSize);
-                B = B/(double)(sampleSize*sampleSize);
-
-                // apply gamma correction (lin_avg)^2
-                R = (R*R);
-                G = (G*G);
-                B = (B*B);
-
-                // convert back to 0-255 scale norm_avg*255
-                colour2[0] = (int)(R*255);
-                colour2[1] = (int)(G*255);
-                colour2[2] = (int)(B*255);
-                // colour2[0] = (int)((double)colour2[0]/(double)(sampleSize*sampleSize*3));
-                // colour2[1] = (int)((double)colour2[1]/(double)(sampleSize*sampleSize*3));
-                // colour2[2] = (int)((double)colour2[2]/(double)(sampleSize*sampleSize*3));
+                colourAverage(colour2, colourArray, n_totalChannels);
                 putPixel(&canvas, x, y, colour2);
+                free(colourArray);
             }
             else
             {
@@ -106,16 +76,12 @@ int main(void){
     double calcTime = ((double)calcTimer/ CLOCKS_PER_SEC ) * 1000;
     printf("Calculation time: %3.3lfms\n",calcTime);
 
-    //display what is stored on the canvas
-    // displayFrameBuffer3(canvas,old_canvas);
     clock_t genTimer = clock();
     char *output_path = "output.ppm"; 
     generatePPMImage(&canvas, output_path);
     genTimer = clock() - genTimer;
     double genTime = ((double)genTimer/CLOCKS_PER_SEC) * 1000;
     printf("Generation time: %3.3fms\n",genTime);
-    // //hold it, so the person can actually see it
-    // getchar();
 
     deleteScene(&scene);
     deleteFrameBuffer(&canvas);
