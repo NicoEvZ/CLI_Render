@@ -4,6 +4,6 @@ CMakeFiles/
 Makefile
 build/
 .vscode/
-.ppm
-.png
-.mp4
+*.ppm
+*.png
+*.mp4
