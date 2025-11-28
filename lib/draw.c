@@ -516,6 +516,44 @@ void putPixel(frameBuffer* canvas, int x, int y, int colour[3])
     }
 }
 
+void getPixel(frameBuffer* canvas, int x, int y, int outColour[3])
+{
+    // clamp input canvas coords
+    x = clamp(x, -(canvas->width/2), (canvas->width/2)-1);
+    y = clamp(y, -(canvas->height/2), (canvas->height/2) - 1);
+
+    // convert from canvas coords to screen coords
+    int screen_x = clamp(((canvas->width/2) + x),0,canvas->width-1);
+    int screen_y = clamp(((canvas->height/2) - y)-1,0,canvas->height-1);
+
+    // debugPrintPixelandColour(screen_x,screen_y,colour);
+    
+    // per channel, copy the input colour to the position in the frame colour buffer (screen)
+    for (int i = 0; i < 3; i++)
+    {
+        outColour[i] = clamp( canvas->colourBuffer[screen_x][screen_y][i], 0, 255);
+    }
+}
+
+// returns true if the distance is greater than the provided threshold
+bool testColourDistance(int colour1[3], int colour2[2], double threshold)
+{
+    double dR2 = pow((double)(colour2[0]-colour1[0]), 2);
+    double dG2 = pow((double)(colour2[1]-colour1[1]), 2);
+    double dB2 = pow((double)(colour2[2]-colour1[2]), 2);
+
+    // printf("dR2:%f,dG2:%f,dB2:%f\n",dR2,dG2,dB2);
+    // printf("distance: %f\n",dR2+dG2+dB2);
+
+    if ((dR2+dG2+dB2) > threshold)
+    {
+        return true;
+    }
+
+    return false;
+
+}
+
 vector CanvasToViewport(frameBuffer canvas, double x, double y)
 {
     return (vector){(double)x*((double)VIEWPORT_WIDTH/(double)canvas.width),(double)y*((double)VIEWPORT_HEIGHT/(double)canvas.height),(double)VIEWPORT_DEPTH,1.0};
@@ -559,8 +597,37 @@ void TraceRay(int out_colour[3], scene* scene, vector rayOriginVector, vector ra
     {
         out_colour[channel] = out_colour[channel]*(1 - closest_sphere->reflective) + reflectedColour[channel]*closest_sphere->reflective;
     }
+}
 
+void SuperSamplePixel(int outColour[3], frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth)
+{
+    int n_totalChannels = sampleSize*sampleSize*3;
+    double spacing = 1.0/ ((double)sampleSize - 1.0);
+    int *colourArray = (int *)malloc(sizeof(int)*(n_totalChannels));
+    vector D;
+    initialiseVector(&D);
+    int tempColour[3] = {0,0,0};
+                    
+                    for (int i = 0; i < sampleSize; i++)
+                    {
+                        for (int j = 0; j < sampleSize; j++)
+                        {
+                            double x1 = (double)x + i * spacing;
+                            double y1 = (double)y + j * spacing;
 
+                            D = CanvasToViewport(*canvas, x1, y1);
+                            TraceRay(tempColour, &scene, origin, D, 1, INFINITY,recursionDepth);
+
+                            int arrayIndex = (j + i*sampleSize)*3;
+
+                            colourArray[arrayIndex] = tempColour[0];
+                            colourArray[arrayIndex + 1] = tempColour[1];
+                            colourArray[arrayIndex + 2] = tempColour[2];
+
+                        }
+                    }
+                    colourAverage(outColour, colourArray, n_totalChannels);
+                    free(colourArray);
 }
 
 void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max)
@@ -677,9 +744,12 @@ double computeLighting(scene* scene, vector point_to_compute, vector normal_to_p
     return i;
 }
 
-void debugPrintPixelandColour(int x, int y, int colour[3])
+void debugPrintPixelandColour(frameBuffer *canvas, int x, int y, int colour[3])
 {
-    printf("x:%d,y:%d,R:%d,G:%d,B:%d\n",x,y,colour[0],colour[1],colour[2]);
+    // convert from canvas coords to screen coords
+    int screen_x = clamp(((canvas->width/2) + x),0,canvas->width-1);
+    int screen_y = clamp(((canvas->height/2) - y)-1,0,canvas->height-1);
+    printf("x:%d,y:%d,R:%d,G:%d,B:%d\n",screen_x,screen_y,colour[0],colour[1],colour[2]);
 }
 
 void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements)

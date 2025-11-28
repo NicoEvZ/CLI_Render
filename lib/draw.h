@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #define PI 3.14159
 #define ONE_AND_THIRD_PI 1.33333 * PI
 #define TWO_THIRDS_PI 0.66666 * PI
@@ -108,7 +110,9 @@ typedef struct
 }matrix4x4;
 
 //draw.c:
-void debugPrintPixelandColour(int x, int y, int colour[3]);
+void debugPrintPixelandColour(frameBuffer *canvas, int x, int y, int colour[3]);
+
+void SuperSamplePixel(int outColour[3], frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth);
 
 void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements);
 
@@ -151,6 +155,10 @@ void deleteFrameBuffer(frameBuffer* frame);
 void drawInFrame(frameBuffer* frame, int x, int y, visual symbol);
 
 void putPixel(frameBuffer* frame, int x, int y, int color[3]);
+
+void getPixel(frameBuffer* canvas, int x, int y, int outColour[3]);
+
+bool testColourDistance(int colour1[3], int colour2[2], double threshold);
 
 vector CanvasToViewport(frameBuffer canvas, double x, double y);
 
