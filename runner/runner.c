@@ -136,7 +136,8 @@ int main(void){
     // testColourDistance(grey,black,0);
     // testColourDistance(white,black,0);
 
-    // deleteFrameBuffer(&canvas);
+    deleteFrameBuffer(&canvas);
+    deleteFrameBuffer(&canvasTest);
 
     return 0;
 }
