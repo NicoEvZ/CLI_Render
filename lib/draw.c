@@ -16,8 +16,9 @@ void copyTriangleData(triangle fromTriangle, triangle* toTriangle)
     for (int i = 0; i < 3; i++)
     {
         toTriangle->point[i] = fromTriangle.point[i];
-        toTriangle->symbol.colour[i] = fromTriangle.symbol.colour[i];
+        
     }
+    toTriangle->symbol.colour = fromTriangle.symbol.colour;
     toTriangle->symbol.character = fromTriangle.symbol.character;
     toTriangle->symbol.brightness = fromTriangle.symbol.brightness;
 }
@@ -32,19 +33,8 @@ void copyFrameBufferData(frameBuffer fromFrame, frameBuffer* toFrame)
         {
             toFrame->characterBuffer[x][y] = fromFrame.characterBuffer[x][y];
             toFrame->depthBuffer[x][y] = fromFrame.depthBuffer[x][y];
-            for (int i = 0; i < 3; i++)
-            {
-                toFrame->colourBuffer[x][y][i] = fromFrame.colourBuffer[x][y][i];
-            }
+            toFrame->colourBuffer[x][y] = fromFrame.colourBuffer[x][y];
         }
-    }
-}
-
-void setTriangleColour(int colour[3], triangle* Triangle)
-{
-    for (int i = 0; i < 3; i++)
-    {
-        Triangle->symbol.colour[i] = colour[i];
     }
 }
 
@@ -55,6 +45,65 @@ void cycleMeshColour(mesh* object, int incriment, int totalSteps)
     object->colour[0] = 125.5 * sin(cycleRatio) + 125.5;
     object->colour[1] = 125.5 * sin(cycleRatio + ONE_AND_THIRD_PI) + 125.5;
     object->colour[2] = 125.5 * sin(cycleRatio + TWO_THIRDS_PI) + 125.5; 
+}
+
+LabColor rgb_to_lab(int r8, int g8, int b8) 
+{
+    // 1. Convert 8-bit sRGB to linear RGB (0.0 to 1.0)
+    double r_linear = r8 / 255.0;
+    double g_linear = g8 / 255.0;
+    double b_linear = b8 / 255.0;
+
+    r_linear = pivot_rgb(r_linear);
+    g_linear = pivot_rgb(g_linear);
+    b_linear = pivot_rgb(b_linear);
+
+    // 2. Convert linear RGB to CIE XYZ (using sRGB D65 white point matrix)
+    // The matrix values are specific to the color space (e.g., sRGB, Adobe RGB)
+    double x = r_linear * 0.412453 + g_linear * 0.357580 + b_linear * 0.180423;
+    double y = r_linear * 0.212671 + g_linear * 0.715160 + b_linear * 0.072169;
+    double z = r_linear * 0.019334 + g_linear * 0.119193 + b_linear * 0.950227;
+
+    // 3. Convert CIE XYZ to CIELAB using D65 reference white
+    // D65 reference white point values
+    double xn = 0.95047;
+    double yn = 1.00000;
+    double zn = 1.08883;
+
+    double xr = x / xn;
+    double yr = y / yn;
+    double zr = z / zn;
+
+    xr = pivot_xyz(xr);
+    yr = pivot_xyz(yr);
+    zr = pivot_xyz(zr);
+
+    LabColor lab;
+    lab.L = (116.0 * yr) - 16.0;
+    lab.a = 500.0 * (xr - yr);
+    lab.b = 200.0 * (yr - zr);
+
+    return lab;
+}
+
+// Helper function for the CIELAB non-linear transformation
+double pivot_xyz(double n) 
+{
+    if (n > 0.008856) {
+        return pow(n, 1.0/3.0);
+    } else {
+        return (7.787 * n) + (16.0/116.0);
+    }
+}
+
+// Helper function for the sRGB to linear RGB transformation and gamma correction
+double pivot_rgb(double n) 
+{
+    if (n > 0.04045) {
+        return pow((n + 0.055) / 1.055, 2.4);
+    } else {
+        return n / 12.92;
+    }
 }
 
 //output = input, unless it exceeds min or max
@@ -389,10 +438,11 @@ void clearFrameBuffer(frameBuffer* frame)
         {
             frame->characterBuffer[x][y]=BLANK;
             frame->depthBuffer[x][y]=1000;
-            for (int i = 0; i < 3; i++)
-            {
-                frame->colourBuffer[x][y][i] = 127;
-            }
+            frame->colourBuffer[x][y].r = 127;
+            // for (int i = 0; i < 3; i++)
+            // {
+            //     frame->colourBuffer[x][y][i] = 127;
+            // }
         }
     }
 }
@@ -406,10 +456,11 @@ void drawFrameBorder(frameBuffer* frame)
             if ((x == 0) | (y == 0) | (x == (frame->width-1)) | (y == (frame->height-1))) 
             {   
                 frame->characterBuffer[x][y]=BORDER;
-                for (int i = 0; i < 3; i++)
-                {
-                    frame->colourBuffer[x][y][i]=255;
-                }
+
+                frame->colourBuffer[x][y].r = 255;
+                frame->colourBuffer[x][y].g = 255;
+                frame->colourBuffer[x][y].b = 255;
+
             }
         }
     }
@@ -425,28 +476,24 @@ void initialiseFrameBuffer(frameBuffer* frame, renderConfig importData)
     frame->depthMaximum = 1000;
 
     frame->characterBuffer = malloc(frame->width * sizeof(int*));
-    frame->colourBuffer = malloc(frame->width * sizeof(int**));
+    frame->colourBuffer = malloc(frame->width * sizeof(RGB*));
     frame->depthBuffer = malloc(frame->width * sizeof(double*));
 
     for (int i = 0; i < frame->width; i++)
     {
         frame->characterBuffer[i] = malloc(frame->height * sizeof(int));
-        frame->colourBuffer[i] = malloc(frame->height * sizeof(int*));
+        frame->colourBuffer[i] = malloc(frame->height * sizeof(RGB));
         frame->depthBuffer[i] = malloc(frame->height * sizeof(double));
-        for (int j = 0; j < frame->height; j++)
-        {
-            frame->colourBuffer[i][j] =  malloc(3 * sizeof(int));
-        }
     }
 
     for (int x = 0; x < frame->width; x++)
     {
         for (int y = 0; y < frame->height; y++)
         {
-            for (int j = 0; j < 3; j++)
-            {
-                frame->colourBuffer[x][y][j] = 232;
-            }
+            frame->colourBuffer[x][y].r = 232;
+            frame->colourBuffer[x][y].g = 232;
+            frame->colourBuffer[x][y].b = 232;
+
             frame->depthBuffer[x][y] = 1000;
         }
     }
@@ -458,10 +505,6 @@ void deleteFrameBuffer(frameBuffer* frame)
 {
     for (int i = 0; i < frame->width; i++)
     {
-        for (int j = 0; j < frame->height; j++)
-        {
-            free(frame->colourBuffer[i][j]);
-        }
         free(frame->characterBuffer[i]);
         free(frame->colourBuffer[i]);
         free(frame->depthBuffer[i]);
@@ -490,14 +533,14 @@ void drawInFrame(frameBuffer* frame, int x, int y, visual symbol)
     // }
 
     frame->characterBuffer[x][y] = symbol.character;
-    
-    for (int i = 0; i < 3; i++)
-    {
-        frame->colourBuffer[x][y][i] = clamp(((int)rint(symbol.colour[i] * symbol.brightness)), 0, 255);
-    }
+
+    frame->colourBuffer[x][y].r = clamp(((int)rint(symbol.colour.r * symbol.brightness)), 0, 255);
+    frame->colourBuffer[x][y].g = clamp(((int)rint(symbol.colour.g * symbol.brightness)), 0, 255);
+    frame->colourBuffer[x][y].b = clamp(((int)rint(symbol.colour.b * symbol.brightness)), 0, 255);
+
 }
 
-void putPixel(frameBuffer* canvas, int x, int y, int colour[3])
+void putPixel(frameBuffer* canvas, int x, int y, RGB colour)
 {
     // clamp input canvas coords
     x = clamp(x, -(canvas->width/2), (canvas->width/2)-1);
@@ -510,14 +553,15 @@ void putPixel(frameBuffer* canvas, int x, int y, int colour[3])
     // debugPrintPixelandColour(screen_x,screen_y,colour);
     
     // per channel, copy the input colour to the position in the frame colour buffer (screen)
-    for (int i = 0; i < 3; i++)
-    {
-        canvas->colourBuffer[screen_x][screen_y][i]  = clamp(colour[i], 0, 255);
-    }
+    canvas->colourBuffer[screen_x][screen_y].r  = clamp(colour.r, 0, 255);
+    canvas->colourBuffer[screen_x][screen_y].g  = clamp(colour.g, 0, 255);
+    canvas->colourBuffer[screen_x][screen_y].b  = clamp(colour.b, 0, 255);
+
 }
 
-void getPixel(frameBuffer* canvas, int x, int y, int outColour[3])
+RGB getPixel(frameBuffer* canvas, int x, int y)
 {
+    RGB outColour;
     // clamp input canvas coords
     x = clamp(x, -(canvas->width/2), (canvas->width/2)-1);
     y = clamp(y, -(canvas->height/2), (canvas->height/2) - 1);
@@ -529,23 +573,24 @@ void getPixel(frameBuffer* canvas, int x, int y, int outColour[3])
     // debugPrintPixelandColour(screen_x,screen_y,colour);
     
     // per channel, copy the input colour to the position in the frame colour buffer (screen)
-    for (int i = 0; i < 3; i++)
-    {
-        outColour[i] = clamp( canvas->colourBuffer[screen_x][screen_y][i], 0, 255);
-    }
+    outColour.r = clamp( canvas->colourBuffer[screen_x][screen_y].r, 0, 255);
+    outColour.g = clamp( canvas->colourBuffer[screen_x][screen_y].g, 0, 255);
+    outColour.b = clamp( canvas->colourBuffer[screen_x][screen_y].b, 0, 255);
+
+    return outColour;
 }
 
 // returns true if the distance is greater than the provided threshold
-bool testColourDistance(int colour1[3], int colour2[2], double threshold)
+bool testColourDistance(RGB colour1, RGB colour2, double threshold)
 {
-    double dR2 = pow((double)(colour2[0]-colour1[0]), 2);
-    double dG2 = pow((double)(colour2[1]-colour1[1]), 2);
-    double dB2 = pow((double)(colour2[2]-colour1[2]), 2);
+    long double dR2 = pow((double)(colour2.r - colour1.r), 2);
+    long double dG2 = pow((double)(colour2.g - colour1.g), 2);
+    long double dB2 = pow((double)(colour2.b - colour1.b), 2);
 
-    // printf("dR2:%f,dG2:%f,dB2:%f\n",dR2,dG2,dB2);
-    // printf("distance: %f\n",dR2+dG2+dB2);
+    // printf("dR2:%Lf,dG2:%Lf,dB2:%Lf\n",dR2,dG2,dB2);
+    // printf("distance: %f\n",sqrt(dR2+dG2+dB2));
 
-    if ((dR2+dG2+dB2) > threshold)
+    if (sqrt(dR2+dG2+dB2) > threshold)
     {
         return true;
     }
@@ -559,75 +604,83 @@ vector CanvasToViewport(frameBuffer canvas, double x, double y)
     return (vector){(double)x*((double)VIEWPORT_WIDTH/(double)canvas.width),(double)y*((double)VIEWPORT_HEIGHT/(double)canvas.height),(double)VIEWPORT_DEPTH,1.0};
 }
 
-void TraceRay(int out_colour[3], scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max, int recursionDepth)
+RGB TraceRay( scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max, int recursionDepth)
 {
+    RGB out_colour;
+    out_colour.r = 0;
+    out_colour.g = 0;
+    out_colour.b = 0;
     double closest_t = INFINITY;
     sphere* closest_sphere = NULL;
     ClosestIntersection(&closest_sphere, &closest_t, scene, rayOriginVector, rayDirectionVector, t_min, t_max);
     if (closest_sphere == NULL)
     {
-        for (int channel = 0; channel < 3; channel++)
-        {
-            out_colour[channel] = 0;
-        }
-        return; 
+        // for (int channel = 0; channel < 3; channel++)
+        // {
+        //     out_colour[channel] = 0;
+        // }
+        return out_colour; 
     }
     
     // compute local colour
     vector point = addVector(rayOriginVector, (multiplyVectorByScalar(rayDirectionVector, closest_t)));
     vector viewDirection = multiplyVectorByScalar(rayDirectionVector, -1.0);
     vector normal = normaliseVector(subtractVector(point, closest_sphere->center));
-    for (int channel = 0; channel < 3; channel++)
-    {
-        out_colour[channel] = closest_sphere->colour[channel] * computeLighting(scene,point,normal,viewDirection,closest_sphere->specular);
-    }
+
+    double lighting = computeLighting(scene,point,normal,viewDirection,closest_sphere->specular);
+        
+    out_colour.r = closest_sphere->colour.r * lighting;
+    out_colour.g = closest_sphere->colour.g * lighting;
+    out_colour.b = closest_sphere->colour.b * lighting;
 
     // check for recursion limit or non-reflective object.
     double reflective = closest_sphere->reflective;
     if (recursionDepth <= 0 || reflective <= 0)
     {
-        return;
+        return out_colour;
     }
 
     vector reflectedRay = reflectRay(viewDirection,normal);
-    int reflectedColour[3];
-    TraceRay(reflectedColour,scene,point,reflectedRay,0.001,INFINITY,recursionDepth-1);
+    RGB reflectedColour = TraceRay(scene, point, reflectedRay, 0.001, INFINITY, recursionDepth-1);
 
-    for (int channel = 0; channel < 3; channel++)
-    {
-        out_colour[channel] = out_colour[channel]*(1 - closest_sphere->reflective) + reflectedColour[channel]*closest_sphere->reflective;
-    }
+    out_colour.r = out_colour.r * (1 - closest_sphere->reflective) + reflectedColour.r * closest_sphere->reflective;
+    out_colour.g = out_colour.g * (1 - closest_sphere->reflective) + reflectedColour.g * closest_sphere->reflective;
+    out_colour.b = out_colour.b * (1 - closest_sphere->reflective) + reflectedColour.b * closest_sphere->reflective;
+
+    return out_colour;
 }
 
-void SuperSamplePixel(int outColour[3], frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth)
+RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth)
 {
+    RGB outColour;
     int n_totalChannels = sampleSize*sampleSize*3;
     double spacing = 1.0/ ((double)sampleSize - 1.0);
-    int *colourArray = (int *)malloc(sizeof(int)*(n_totalChannels));
+    RGB *colourArray = (RGB *)malloc(sizeof(RGB)*(n_totalChannels));
     vector D;
     initialiseVector(&D);
-    int tempColour[3] = {0,0,0};
+    RGB tempColour;
                     
-                    for (int i = 0; i < sampleSize; i++)
-                    {
-                        for (int j = 0; j < sampleSize; j++)
-                        {
-                            double x1 = (double)x + i * spacing;
-                            double y1 = (double)y + j * spacing;
+    for (int i = 0; i < sampleSize; i++)
+    {
+        for (int j = 0; j < sampleSize; j++)
+        {
+            double x1 = (double)x + i * spacing;
+            double y1 = (double)y + j * spacing;
 
-                            D = CanvasToViewport(*canvas, x1, y1);
-                            TraceRay(tempColour, &scene, origin, D, 1, INFINITY,recursionDepth);
+            D = CanvasToViewport(*canvas, x1, y1);
+            tempColour = TraceRay(&scene, origin, D, 1, INFINITY,recursionDepth);
 
-                            int arrayIndex = (j + i*sampleSize)*3;
+            int arrayIndex = (j + i*sampleSize)*3;
 
-                            colourArray[arrayIndex] = tempColour[0];
-                            colourArray[arrayIndex + 1] = tempColour[1];
-                            colourArray[arrayIndex + 2] = tempColour[2];
+            colourArray[arrayIndex] = tempColour;
+            // colourArray[arrayIndex + 1] = tempColour[1];
+            // colourArray[arrayIndex + 2] = tempColour[2];
 
-                        }
-                    }
-                    colourAverage(outColour, colourArray, n_totalChannels);
-                    free(colourArray);
+        }
+    }
+    outColour = colourAverage(colourArray, n_totalChannels);
+    free(colourArray);
+    return outColour;
 }
 
 void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max)
@@ -744,16 +797,17 @@ double computeLighting(scene* scene, vector point_to_compute, vector normal_to_p
     return i;
 }
 
-void debugPrintPixelandColour(frameBuffer *canvas, int x, int y, int colour[3])
+void debugPrintPixelandColour(frameBuffer *canvas, int x, int y, RGB colour)
 {
     // convert from canvas coords to screen coords
     int screen_x = clamp(((canvas->width/2) + x),0,canvas->width-1);
     int screen_y = clamp(((canvas->height/2) - y)-1,0,canvas->height-1);
-    printf("x:%d,y:%d,R:%d,G:%d,B:%d\n",screen_x,screen_y,colour[0],colour[1],colour[2]);
+    printf("x:%d,y:%d,R:%d,G:%d,B:%d\n",screen_x,screen_y,colour.r,colour.g,colour.b);
 }
 
-void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements)
+RGB colourAverage(RGB arrayOfColours[], int n_arrayElements)
 {
+    RGB outColour;
     double R;
     double G;
     double B;
@@ -763,9 +817,9 @@ void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements)
         // normalise to 0-1 scale norm = (x/255)
         // inverse gamma correction lin = sqrt(norm)
         // accumulate all values for each channel lin_tot = lin_1 + lin_2...
-        R += sqrt((double)arrayOfColours[c]/255.0);
-        G += sqrt((double)arrayOfColours[c+1]/255.0);
-        B += sqrt((double)arrayOfColours[c+2]/255.0);
+        R += sqrt((double)arrayOfColours[c].r/255.0);
+        G += sqrt((double)arrayOfColours[c].g/255.0);
+        B += sqrt((double)arrayOfColours[c].b/255.0);
     }
     
     // take average of linear values lin_avg = lin_tot/n_lin
@@ -779,9 +833,11 @@ void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements)
     B = (B*B);
 
     // convert back to 0-255 scale norm_avg*255
-    outColour[0] = (int)(R*255);
-    outColour[1] = (int)(G*255);
-    outColour[2] = (int)(B*255);
+    outColour.r = (int)(R*255);
+    outColour.g = (int)(G*255);
+    outColour.b = (int)(B*255);
+
+    return outColour;
 }
 
 void displayDepthBuffer(frameBuffer frame)
@@ -864,12 +920,12 @@ void displayFrameBuffer3(frameBuffer frame, frameBuffer oldFrame)
                 // and finally reset cursor (\e[m)
                 printf("\e[%d;%dH\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm\u2584\e[m", characterRow, 
                                                                                 characterColumn, 
-                                                                                frame.colourBuffer[x][y][0],
-                                                                                frame.colourBuffer[x][y][1], 
-                                                                                frame.colourBuffer[x][y][2],
-                                                                                frame.colourBuffer[x][nextY][0], 
-                                                                                frame.colourBuffer[x][nextY][1], 
-                                                                                frame.colourBuffer[x][nextY][2]
+                                                                                frame.colourBuffer[x][y].r,
+                                                                                frame.colourBuffer[x][y].g, 
+                                                                                frame.colourBuffer[x][y].b,
+                                                                                frame.colourBuffer[x][nextY].r, 
+                                                                                frame.colourBuffer[x][nextY].g, 
+                                                                                frame.colourBuffer[x][nextY].b
                                                                                 );
 
             }
@@ -887,12 +943,12 @@ int isPixelColourNew(frameBuffer frame, frameBuffer oldFrame, int x, int y)
 
     int nextY = clamp(y-1, 0, frame.height);
 
-    if ((frame.colourBuffer[x][y][0] != oldFrame.colourBuffer[x][y][0]) ||
-    (frame.colourBuffer[x][y][1] != oldFrame.colourBuffer[x][y][1]) ||
-    (frame.colourBuffer[x][y][2] != oldFrame.colourBuffer[x][y][2]) ||
-    (frame.colourBuffer[x][nextY][0] != oldFrame.colourBuffer[x][nextY][0]) ||
-    (frame.colourBuffer[x][nextY][1] != oldFrame.colourBuffer[x][nextY][1]) ||
-    (frame.colourBuffer[x][nextY][2] != oldFrame.colourBuffer[x][nextY][2]))
+    if ((frame.colourBuffer[x][y].r != oldFrame.colourBuffer[x][y].r) ||
+    (frame.colourBuffer[x][y].g != oldFrame.colourBuffer[x][y].g) ||
+    (frame.colourBuffer[x][y].b != oldFrame.colourBuffer[x][y].b) ||
+    (frame.colourBuffer[x][nextY].r != oldFrame.colourBuffer[x][nextY].r) ||
+    (frame.colourBuffer[x][nextY].g != oldFrame.colourBuffer[x][nextY].g) ||
+    (frame.colourBuffer[x][nextY].b != oldFrame.colourBuffer[x][nextY].b))
     {
         return 1;
     }
@@ -903,7 +959,12 @@ int isPixelColourNew(frameBuffer frame, frameBuffer oldFrame, int x, int y)
 void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* frame)
 {
     visual outputSymbol;
-    outputSymbol = (visual){ .colour[0] = 255, .colour[1] = 255, .colour[2] = 255};
+    outputSymbol = (visual){ 
+        .colour = (RGB){
+            .r = 255,
+            .g = 255,
+            .b = 255}, 
+        };
 
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -945,7 +1006,12 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* frame)
 void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* frame)
 {
     visual outputSymbol;
-    outputSymbol = (visual){ .colour[0] = 255, .colour[1] = 255, .colour[2] = 255};
+    outputSymbol = (visual){ 
+        .colour = (RGB){
+            .r = 255,
+            .g = 255,
+            .b = 255}, 
+        };
 
 
     int dx = x1 - x0;

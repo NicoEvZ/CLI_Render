@@ -140,9 +140,7 @@ static void test_copyTriangleData(void **state)
                                 .point[1] = (vector){4, 5, 6, 1},
                                 .point[2] = (vector){7, 8, 9, 1},
                                 .symbol.character = 'A',
-                                .symbol.colour[0] = 255,
-                                .symbol.colour[1] = 255,
-                                .symbol.colour[2] = 255,
+                                .symbol.colour = (RGB){.r = 255, .g = 255, .b = 255},
                                 .symbol.brightness = 1
                             };
 
@@ -151,22 +149,22 @@ static void test_copyTriangleData(void **state)
                             .point[1] = (vector){0, 0, 0, 0},
                             .point[2] = (vector){0, 0, 0, 0},
                             .symbol.character = 'B',
-                            .symbol.colour[0] = 0,
-                            .symbol.colour[1] = 0,
-                            .symbol.colour[2] = 0,
+                            .symbol.colour = (RGB){.r = 0, .g = 0, .b = 0},
                             .symbol.brightness = 0
                         };
 
     copyTriangleData(testTriangle, &output);
     
     assert_true(output.symbol.character == testTriangle.symbol.character);
+    assert_float_equal(output.symbol.colour.r, testTriangle.symbol.colour.r, epsilon);
+    assert_float_equal(output.symbol.colour.g, testTriangle.symbol.colour.g, epsilon);
+    assert_float_equal(output.symbol.colour.b, testTriangle.symbol.colour.b, epsilon);
     for (int i = 0; i < 3; i++)
     {
         assert_float_equal(output.point[i].x, testTriangle.point[i].x, epsilon);
         assert_float_equal(output.point[i].y, testTriangle.point[i].y, epsilon);
         assert_float_equal(output.point[i].z, testTriangle.point[i].z, epsilon);
         assert_float_equal(output.point[i].w, testTriangle.point[i].w, epsilon);
-        assert_float_equal(output.symbol.colour[i], testTriangle.symbol.colour[i], epsilon);
     }
 }
 
@@ -289,18 +287,14 @@ int main(void)
                                             .point[1] = (vector){0, 0, 1, 1},
                                             .point[2] = (vector){1, 0, 1, 1},
                                             .symbol.character = 'A',
-                                            .symbol.colour[0] = 255,
-                                            .symbol.colour[1] = 255,
-                                            .symbol.colour[2] = 255,
+                                            .symbol.colour = (RGB){.r = 255, .g = 255, .b = 255},
                                             .symbol.brightness = 1.0
                                         };
     triangle test_triangle_B = (triangle){  .point[0] = (vector){1, 0, 1, 1},
                                             .point[1] = (vector){1, 1, 1, 1},
                                             .point[2] = (vector){0, 1, 1, 1},
                                             .symbol.character = 'B',
-                                            .symbol.colour[0] = 255,
-                                            .symbol.colour[1] = 255,
-                                            .symbol.colour[2] = 255,
+                                            .symbol.colour = (RGB){.r = 255, .g = 255, .b = 255},
                                             .symbol.brightness = 1.0
                                         };
     test_mesh.trianglePointer[0] = test_triangle_A;
@@ -318,11 +312,14 @@ int main(void)
                                                     test_mesh.trianglePointer[i].point[j].z,
                                                     test_mesh.trianglePointer[i].point[j].w);
         }
-        char c;
-        for (int j = 0; j < 3; j++)
-        {
-            printf("\tcolour[%c]: %d\n", c = (j == 0) ? 'r' : (j == 1) ? 'g' : 'b', test_mesh.trianglePointer[i].symbol.colour[j]);
-        }
+        // char c;
+        // for (int j = 0; j < 3; j++)
+        // {
+        //     printf("\tcolour[%c]: %d\n", c = (j == 0) ? 'r' : (j == 1) ? 'g' : 'b', test_mesh.trianglePointer[i].symbol.colour[j]);
+        // }
+        printf("\tcolour.r: %d\n",test_mesh.trianglePointer[i].symbol.colour.r);
+        printf("\tcolour.g: %d\n",test_mesh.trianglePointer[i].symbol.colour.g);
+        printf("\tcolour.b: %d\n",test_mesh.trianglePointer[i].symbol.colour.b);
         printf("\tbrightnes: %lf\n", test_mesh.trianglePointer[i].symbol.brightness);
         printf("\tchar: %c\n\n", test_mesh.trianglePointer[i].symbol.character);
     }

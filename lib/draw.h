@@ -37,11 +37,17 @@ typedef struct
     vector pos_or_dir;
 }light;
 
+typedef struct {
+    int r;
+    int g;
+    int b;
+} RGB;
+
 typedef struct 
 {
     vector center;
     double radius;
-    int colour[3];
+    RGB colour;
     double specular;
     double reflective;
 }sphere;
@@ -57,7 +63,7 @@ typedef struct
 typedef struct
 {
     char character;
-    int colour[3];
+    RGB colour;
     double brightness;
 }visual;
 
@@ -84,7 +90,7 @@ typedef struct
     double** depthBuffer;
     double depthMinimum;
     double depthMaximum;
-    int*** colourBuffer; 
+    RGB** colourBuffer;
 } frameBuffer;
 
 typedef struct
@@ -109,18 +115,29 @@ typedef struct
     double matrix[4][4];
 }matrix4x4;
 
+// Structure to hold LAB color values (L: 0-100, a, b: roughly -110 to 110)
+typedef struct {
+    double L;
+    double a;
+    double b;
+} LabColor;
+
 //draw.c:
-void debugPrintPixelandColour(frameBuffer *canvas, int x, int y, int colour[3]);
+void debugPrintPixelandColour(frameBuffer *canvas, int x, int y, RGB colour);
 
-void SuperSamplePixel(int outColour[3], frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth);
+RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth);
 
-void colourAverage(int outColour[], int arrayOfColours[], int n_arrayElements);
+RGB colourAverage(RGB arrayOfColours[], int n_arrayElements);
+
+double pivot_xyz(double n); 
+
+double pivot_rgb(double n); 
+
+LabColor rgb_to_lab(int r8, int g8, int b8); 
 
 void copyTriangleData(triangle fromTriangle, triangle* toTriagle);
 
 void copyFrameBufferData(frameBuffer fromFrame, frameBuffer* toFrame);
-
-void setTriangleColour(int colour[3], triangle* Triangle);
 
 void cycleMeshColour(mesh* object, int incriment, int totalSteps);
 
@@ -154,15 +171,15 @@ void deleteFrameBuffer(frameBuffer* frame);
 
 void drawInFrame(frameBuffer* frame, int x, int y, visual symbol);
 
-void putPixel(frameBuffer* frame, int x, int y, int color[3]);
+void putPixel(frameBuffer* frame, int x, int y, RGB color);
 
-void getPixel(frameBuffer* canvas, int x, int y, int outColour[3]);
+RGB getPixel(frameBuffer* canvas, int x, int y);
 
-bool testColourDistance(int colour1[3], int colour2[2], double threshold);
+bool testColourDistance(RGB colour1, RGB colour2 , double threshold);
 
 vector CanvasToViewport(frameBuffer canvas, double x, double y);
 
-void TraceRay(int out_colour[3], scene* scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max, int recursionDepth);
+RGB TraceRay(scene* scene, vector ray_origin_vector, vector ray_direction_vector, double t_min, double t_max, int recursionDepth);
 
 void ClosestIntersection(sphere** closest_sphere, double* closest_t, scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max);
 
