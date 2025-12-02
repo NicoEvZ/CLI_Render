@@ -438,11 +438,7 @@ void clearFrameBuffer(frameBuffer* frame)
         {
             frame->characterBuffer[x][y]=BLANK;
             frame->depthBuffer[x][y]=1000;
-            frame->colourBuffer[x][y].r = 127;
-            // for (int i = 0; i < 3; i++)
-            // {
-            //     frame->colourBuffer[x][y][i] = 127;
-            // }
+            frame->colourBuffer[x][y] = (RGB){0,0,0};
         }
     }
 }
@@ -456,11 +452,7 @@ void drawFrameBorder(frameBuffer* frame)
             if ((x == 0) | (y == 0) | (x == (frame->width-1)) | (y == (frame->height-1))) 
             {   
                 frame->characterBuffer[x][y]=BORDER;
-
-                frame->colourBuffer[x][y].r = 255;
-                frame->colourBuffer[x][y].g = 255;
-                frame->colourBuffer[x][y].b = 255;
-
+                frame->colourBuffer[x][y] = (RGB){255, 255, 255};
             }
         }
     }
@@ -484,18 +476,6 @@ void initialiseFrameBuffer(frameBuffer* frame, renderConfig importData)
         frame->characterBuffer[i] = malloc(frame->height * sizeof(int));
         frame->colourBuffer[i] = malloc(frame->height * sizeof(RGB));
         frame->depthBuffer[i] = malloc(frame->height * sizeof(double));
-    }
-
-    for (int x = 0; x < frame->width; x++)
-    {
-        for (int y = 0; y < frame->height; y++)
-        {
-            frame->colourBuffer[x][y].r = 232;
-            frame->colourBuffer[x][y].g = 232;
-            frame->colourBuffer[x][y].b = 232;
-
-            frame->depthBuffer[x][y] = 1000;
-        }
     }
 
     clearFrameBuffer(frame);
@@ -523,14 +503,6 @@ void drawInFrame(frameBuffer* frame, int x, int y, visual symbol)
 {
     x = clamp(x, 0, (frame->width - 1));
     y = clamp(y, 0, (frame->height - 1));
-
-    // if ((frame->characterBuffer[x][y] == symbol.character) && 
-    //     (frame->colourBuffer[x][y][0] == ((int)rint(symbol.colour[0] * symbol.brightness))) &&
-    //     (frame->colourBuffer[x][y][1] == ((int)rint(symbol.colour[1] * symbol.brightness))) &&
-    //     (frame->colourBuffer[x][y][2] == ((int)rint(symbol.colour[2] * symbol.brightness))))
-    // {
-    //     return;
-    // }
 
     frame->characterBuffer[x][y] = symbol.character;
 
@@ -606,19 +578,13 @@ vector CanvasToViewport(frameBuffer canvas, double x, double y)
 
 RGB TraceRay( scene* scene, vector rayOriginVector, vector rayDirectionVector, double t_min, double t_max, int recursionDepth)
 {
-    RGB out_colour;
-    out_colour.r = 0;
-    out_colour.g = 0;
-    out_colour.b = 0;
+    RGB out_colour = (RGB){0,0,0};
+
     double closest_t = INFINITY;
     sphere* closest_sphere = NULL;
     ClosestIntersection(&closest_sphere, &closest_t, scene, rayOriginVector, rayDirectionVector, t_min, t_max);
     if (closest_sphere == NULL)
     {
-        // for (int channel = 0; channel < 3; channel++)
-        // {
-        //     out_colour[channel] = 0;
-        // }
         return out_colour; 
     }
     
@@ -650,7 +616,7 @@ RGB TraceRay( scene* scene, vector rayOriginVector, vector rayDirectionVector, d
     return out_colour;
 }
 
-RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth)
+RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, matrix4x4 rotation, int recursionDepth)
 {
     RGB outColour;
     int n_totalChannels = sampleSize*sampleSize*3;
@@ -658,7 +624,13 @@ RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene sc
     RGB *colourArray = (RGB *)malloc(sizeof(RGB)*(n_totalChannels));
     vector D;
     initialiseVector(&D);
-    RGB tempColour;
+    
+    if (sampleSize < 2)
+    {
+        D = CanvasToViewport(*canvas,x,y);
+        D = matrixVectorMultiply(D, rotation);
+        return TraceRay(&scene, origin, D, 1, INFINITY,recursionDepth);
+    }
                     
     for (int i = 0; i < sampleSize; i++)
     {
@@ -668,14 +640,11 @@ RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene sc
             double y1 = (double)y + j * spacing;
 
             D = CanvasToViewport(*canvas, x1, y1);
-            tempColour = TraceRay(&scene, origin, D, 1, INFINITY,recursionDepth);
+            D = matrixVectorMultiply(D, rotation);
 
             int arrayIndex = (j + i*sampleSize)*3;
 
-            colourArray[arrayIndex] = tempColour;
-            // colourArray[arrayIndex + 1] = tempColour[1];
-            // colourArray[arrayIndex + 2] = tempColour[2];
-
+            colourArray[arrayIndex] = TraceRay(&scene, origin, D, 1, INFINITY,recursionDepth);
         }
     }
     outColour = colourAverage(colourArray, n_totalChannels);
@@ -960,10 +929,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, frameBuffer* frame)
 {
     visual outputSymbol;
     outputSymbol = (visual){ 
-        .colour = (RGB){
-            .r = 255,
-            .g = 255,
-            .b = 255}, 
+        .colour = (RGB){255, 255, 255} 
         };
 
     int dx = x1 - x0;
@@ -1007,10 +973,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, frameBuffer* frame)
 {
     visual outputSymbol;
     outputSymbol = (visual){ 
-        .colour = (RGB){
-            .r = 255,
-            .g = 255,
-            .b = 255}, 
+        .colour = (RGB){255, 255, 255}
         };
 
 

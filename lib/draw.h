@@ -125,7 +125,7 @@ typedef struct {
 //draw.c:
 void debugPrintPixelandColour(frameBuffer *canvas, int x, int y, RGB colour);
 
-RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, int recursionDepth);
+RGB SuperSamplePixel(frameBuffer* canvas, int sampleSize, int x, int y, scene scene, vector origin, matrix4x4 rotation, int recursionDepth);
 
 RGB colourAverage(RGB arrayOfColours[], int n_arrayElements);
 

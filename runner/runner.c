@@ -12,15 +12,15 @@ int main(void){
     // cursesSetup();
     clock_t calcTimer = clock();
     renderConfig ray_config;
-    ray_config.frameColumnsImport = 600; //width
-    ray_config.frameRowsImport = 600; //height
+    ray_config.frameColumnsImport = 1080; //width
+    ray_config.frameRowsImport = 1080; //height
     frameBuffer canvas;
     frameBuffer canvasTest;
     initialiseFrameBuffer(&canvas, ray_config);
     initialiseFrameBuffer(&canvasTest, ray_config);
 
-    RGB pink = (RGB){.r = 211, .g = 3, .b = 252};
-    RGB black = (RGB){.r = 0, .g = 0, .b = 0};
+    RGB pink = (RGB){211, 3, 252};
+    RGB black = (RGB){0, 0, 0};
 
     scene scene;
     fillScene(&scene);
@@ -31,20 +31,25 @@ int main(void){
     matrix4x4 camera_rotation;
 
     char buf[256];
+    char buf_test[256];
 
     initialiseVector(&origin);
     initialiseVector(&D);
     int recursionDepth = 3;
     bool superSampleDisabled = false;
     int sampleSize = 4;
-    double superSampleThreshold = 40;
-    int frames = 1;
+    double superSampleThreshold = 18;
+    int frames = 5;
+    // clock_t frameCompTimer = clock();
 
     for (i = 0; i < frames; i++)
     {
+        // frameCompTimer = clock();
         double angle = (i - (frames/2)) * (PI/180.0);
-        snprintf(buf,sizeof(buf), "selective-superSampling-%02d.ppm",i);
+        snprintf(buf,sizeof(buf), "selective-superSampling-rotation-%02d.ppm",i);
         char *output_path = buf;
+        snprintf(buf_test,sizeof(buf_test), "selective-superSampling-rotation-test-%02d.ppm",i);
+        char *test_output_path = buf_test;
         initialiseRotateYMatrix(&camera_rotation,angle);
         RGB previousColourX;
         RGB previousColourY;
@@ -52,18 +57,14 @@ int main(void){
         {
             for (int y = -(canvas.height/2); y < (canvas.height/2); y++)
             {   
-                // int currentColour[3] = {0,0,0};
-                D = CanvasToViewport(canvas, x, y);
-                RGB currentColour = TraceRay(&scene, origin, D, 1, INFINITY, recursionDepth);
-
-                putPixel(&canvas, x, y, currentColour);
-                putPixel(&canvasTest, x, y, black);
+                RGB currentColour = SuperSamplePixel(&canvas, 1, x, y, scene, origin, camera_rotation, recursionDepth);
 
                 // printf("Current:\n");
                 // debugPrintPixelandColour(&canvas, x, y, currentColour);
 
                 if (superSampleDisabled)
                 {
+                    putPixel(&canvas, x, y, currentColour);
                     continue;
                 }
 
@@ -88,53 +89,45 @@ int main(void){
                 // if neither x or y beat the difference threshold, move onto the next pixel
                 if (!superSampleX && !superSampleY)
                 {
+                    putPixel(&canvas, x, y, currentColour);
+                    putPixel(&canvasTest, x, y, black);
                     continue;
                 }
                 
-                currentColour = SuperSamplePixel(&canvas, sampleSize, x, y, scene, origin, recursionDepth);
+                currentColour = SuperSamplePixel(&canvas, sampleSize, x, y, scene, origin, camera_rotation, recursionDepth);
                 putPixel(&canvas, x, y, currentColour);
                 putPixel(&canvasTest, x, y, pink);
 
                 
                 if (superSampleX)
                 {
-                    previousColourX = SuperSamplePixel(&canvas, sampleSize, x-1, y, scene, origin, recursionDepth);
+                    previousColourX = SuperSamplePixel(&canvas, sampleSize, x-1, y, scene, origin, camera_rotation, recursionDepth);
                     putPixel(&canvas, x-1, y, previousColourX);
                     putPixel(&canvasTest, x-1, y, pink);
                 }
 
                 if (superSampleY)
                 {
-                    previousColourY = SuperSamplePixel(&canvas, sampleSize, x, y-1, scene, origin, recursionDepth);
+                    previousColourY = SuperSamplePixel(&canvas, sampleSize, x, y-1, scene, origin,  camera_rotation, recursionDepth);
                     putPixel(&canvas, x, y-1, previousColourY);
                     putPixel(&canvasTest, x, y-1, pink);
                 }
             }
         }
         generatePPMImage(&canvas, output_path);
-        generatePPMImage(&canvasTest, "test.ppm");
+        clearFrameBuffer(&canvas);
+        generatePPMImage(&canvasTest, test_output_path);
+        clearFrameBuffer(&canvasTest);
+        // frameCompTimer = clock() - frameCompTimer;
+        // double frameCompTime = ((double)frameCompTimer/ CLOCKS_PER_SEC );
+        // printf("compTime: %3.3lfs\n",frameCompTime);
+        fflush(stdout);
     }
     calcTimer = clock() - calcTimer;
     double calcTime = ((double)calcTimer/ CLOCKS_PER_SEC );
     printf("Calculation time: %3.3lfs\n",calcTime);
     deleteScene(&scene);
     // cursesEnd();
-
-    // printf("TEST:\n");
-    // RGB white = (RGB){.r = 255, .g = 255, .b = 255};
-    // // RGB black = (RGB){.r = 0, .g = 0, .b = 0};
-    // RGB grey = (RGB){.r = 127, .g = 127, .b = 127};
-
-    // int x = 0;
-    // int y = 0;
-
-    // debugPrintPixelandColour(&canvas,x,y,white);
-    // debugPrintPixelandColour(&canvas,x,y,black);
-    // debugPrintPixelandColour(&canvas,x,y,grey);
-
-    // testColourDistance(white,grey,0);
-    // testColourDistance(grey,black,0);
-    // testColourDistance(white,black,0);
 
     deleteFrameBuffer(&canvas);
     deleteFrameBuffer(&canvasTest);
@@ -280,9 +273,9 @@ void generatePPMImage(frameBuffer *frameBuffer, char *output_path)
     {
         for (int x = 0; x < width; ++x)
         {
-            fputc(frameBuffer->colourBuffer[x][y].r,ppm);
-            fputc(frameBuffer->colourBuffer[x][y].g,ppm);
-            fputc(frameBuffer->colourBuffer[x][y].b,ppm);
+            fputc(frameBuffer->colourBuffer[x][y].r, ppm);
+            fputc(frameBuffer->colourBuffer[x][y].g, ppm);
+            fputc(frameBuffer->colourBuffer[x][y].b, ppm);
         }
         
     }
